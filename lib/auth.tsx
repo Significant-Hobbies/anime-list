@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { getApiUrl } from "./apiConfig";
+import { trackReturned, trackSignup } from "./analytics";
 
 interface AuthUser {
   id: string;
@@ -58,6 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener("mal_auth_expired", handleExpired);
     return () => window.removeEventListener("mal_auth_expired", handleExpired);
   }, []);
+
+  // Owner analytics — fixed taxonomy. `signup` fires once on the first
+  // session we ever see for an account; `returned` on later sessions for a
+  // user with prior activity. trackSignup() de-dupes and returns false when
+  // the user already exists, so `returned` only fires for genuine returns.
+  useEffect(() => {
+    if (!user?.id) return;
+    const isNew = trackSignup(user.id);
+    if (!isNew) trackReturned(user.id);
+  }, [user?.id]);
 
   const login = useCallback(async (credential: string) => {
     const res = await fetch(`${API_URL}/api/auth/google`, {

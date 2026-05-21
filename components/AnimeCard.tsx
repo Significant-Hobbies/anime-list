@@ -8,6 +8,7 @@ import { ExternalLink } from "lucide-react";
 import type { AnimeSummary } from "@/lib/types";
 import { addToWatchlist, addToSchedule, getWatchlist, getWatchlistTags } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { trackActivated, trackCoreAction } from "@/lib/analytics";
 import { Badge } from "@/components/ui/badge";
 import { DEFAULT_WATCH_TAGS, resolveTagColor } from "@/lib/watchStatus";
 import { getAnimeDetailHref } from "@/lib/utils";
@@ -60,6 +61,10 @@ export default function AnimeCard({
       setCustomTag("");
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
+      // Owner analytics: adding an anime to the watchlist is the core action,
+      // and the first add is the user's `activated` milestone.
+      trackCoreAction("watchlist_add");
+      trackActivated(user?.id);
     },
   });
 

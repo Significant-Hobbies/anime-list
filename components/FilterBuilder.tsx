@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SearchFilter, SearchResponse } from "@/lib/types";
 import { getFields, getFilterActions, getWatchlistTags, searchAnime } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { trackCoreAction } from "@/lib/analytics";
 import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS } from "@/lib/filterMetadata";
 import FilterRow from "./FilterRow";
 import ResultsGrid, { ResultsGridSkeleton } from "./ResultsGrid";
@@ -141,6 +142,9 @@ export default function FilterBuilder() {
     debounceRef.current = setTimeout(() => {
       setSearchText(value);
       setCurrentPage(1);
+      // Owner analytics: a non-empty committed query is the discovery core
+      // action. Debounced, so it fires once per settled search, not keystroke.
+      if (value.trim()) trackCoreAction("anime_search");
     }, 300);
   };
 
@@ -235,7 +239,7 @@ export default function FilterBuilder() {
 
   const filterKey = JSON.stringify(buildSearchOpts());
 
-  const { data, isLoading: loading, isFetching, error } = useQuery<SearchResponse>({
+  const { data, isLoading: loading, isFetching, error, refetch } = useQuery<SearchResponse>({
     queryKey: ["search", filterKey],
     queryFn: () => {
       const { filters: f, opts } = buildSearchOpts();
@@ -383,7 +387,7 @@ export default function FilterBuilder() {
 
       {/* Advanced Matrix Builder */}
       {showAdvanced && (
-        <div className="space-y-4 p-8 bg-surface-container-low border border-outline/10 rounded-sm animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="space-y-4 p-4 md:p-8 bg-surface-container-low border border-outline/10 rounded-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="flex items-center justify-between border-b border-outline/10 pb-4">
             <h3 className="text-[11px] font-black tracking-[0.3em] uppercase text-white/40">Logic Matrix</h3>
             <button
@@ -424,7 +428,7 @@ export default function FilterBuilder() {
                   key={genre}
                   onClick={() => toggleGenre(genre)}
                   className={cn(
-                    "px-6 py-2 border text-[10px] font-black tracking-widest uppercase transition-all rounded-sm",
+                    "px-6 py-2 min-h-11 border text-[10px] font-black tracking-widest uppercase transition-all rounded-sm",
                     selected
                       ? "bg-primary-container text-on-primary-container border-primary shadow-[0_0_15px_rgba(255,80,110,0.2)]"
                       : "bg-surface-container-low border-outline/10 text-white/40 hover:border-white/20 hover:text-white"
@@ -452,7 +456,7 @@ export default function FilterBuilder() {
                     key={val}
                     onClick={() => { setAiring(val as any); resetPage(); }}
                     className={cn(
-                      "flex-1 py-3 text-[10px] font-black tracking-widest uppercase transition-all rounded-sm",
+                      "flex-1 py-3 min-h-11 text-[10px] font-black tracking-widest uppercase transition-all rounded-sm",
                       active
                         ? "bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,80,110,0.2)]"
                         : "text-white/20 hover:text-white"
@@ -511,7 +515,20 @@ export default function FilterBuilder() {
         </div>
       </div>
 
-      {error && <p className="text-error text-[10px] font-bold uppercase tracking-widest animate-pulse">Critical: {error instanceof Error ? error.message : "Search failure detected"}</p>}
+      {error && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-error text-[10px] font-bold uppercase tracking-widest">
+            Couldn&apos;t reach the search service
+          </p>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="text-[10px] font-bold uppercase tracking-widest border border-error/40 text-error px-3 py-1 rounded-sm hover:bg-error/10 transition-colors disabled:opacity-50"
+          >
+            {isFetching ? "Retrying…" : "Retry"}
+          </button>
+        </div>
+      )}
 
       <div className="pt-10">
         {loading && !data ? (
