@@ -14,7 +14,7 @@ Anime/manga discovery platform with 14,800+ titles, multi-field filtering, perso
 - DB: Turso (libSQL) — anime data + user watchlists; also Cloudflare Worker (Hono) with daily cron
 - Auth: Google OAuth 2.0 + JWT (`jose` + `google-auth-library`)
 - Testing: Jest (unit), Playwright (e2e)
-- Deploy: Vercel (frontend + Express via `vercel.json`) + Cloudflare Worker (`wrangler deploy`)
+- Deploy: Cloudflare Pages (project `anime-list`, anime-list-9lk.pages.dev) via `@opennextjs/cloudflare` + Cloudflare Worker `mal-api` (`wrangler deploy`). Express `server.ts` is local-dev only (not deployed).
 - Package manager: pnpm
 
 ## Repo structure
@@ -59,7 +59,7 @@ pnpm deploy:worker    # Deploy Cloudflare Worker
 ```
 
 ## Architecture notes
-- **Dual backend**: Express (primary, port 8080) + Cloudflare Worker (Hono, edge). Worker runs daily cron @ 3 AM UTC for DB refresh.
+- **Backend**: Cloudflare Worker `mal-api` (Hono, edge) is the deployed API; runs daily cron @ 3 AM UTC for DB refresh. Express (port 8080) is local-dev only — not deployed.
 - **In-memory cache**: 14,800+ anime loaded on startup into in-memory store with stale-while-revalidate. All searches <1ms.
 - **Scoring algorithm**: log-scale prevents mega-popular titles from dominating — `log10(score)*10 + log10(members/10000) + log10(favorites/100)`.
 - **Daily auto-update**: GitHub Actions `update-anime-data.yml` hits Jikan API daily at midnight UTC. `quarterly-anime-sync.yml` for full refresh.

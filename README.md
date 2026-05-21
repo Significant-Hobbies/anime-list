@@ -5,7 +5,20 @@
 
 A modern anime discovery platform that helps you find your next favorite show.
 
-**Live Demo**: [anime-explorer-mal.vercel.app](https://anime-explorer-mal.vercel.app)
+**Live Demo**: [anime-list-9lk.pages.dev](https://anime-list-9lk.pages.dev)
+
+## Deployment & External Services
+
+| Concern | Service |
+|---------|---------|
+| Hosting | Cloudflare Pages (`anime-list`, anime-list-9lk.pages.dev) via `@opennextjs/cloudflare` |
+| API | Cloudflare Worker (`mal-api`) — Hono, daily cron at 03:00 UTC |
+| Database | Turso (libSQL) |
+| Auth | Google OAuth 2.0 + JWT |
+| Analytics | PostHog (`@saas-maker/posthog-client`) |
+| CI/CD | GitHub Actions — auto-deploy to Cloudflare Pages on push to `main`; daily Turso sync workflow |
+
+> The Express server in `server.ts` is for local development only; it is not deployed. Production API traffic is served by the `mal-api` Cloudflare Worker.
 
 ## The Problem
 
@@ -24,14 +37,14 @@ Finding quality anime to watch is hard. MyAnimeList has thousands of titles, but
 
 ```mermaid
 graph TB
-    subgraph "Client Layer - Vercel"
+    subgraph "Client Layer - Cloudflare Pages"
         UI[Next.js Frontend<br/>React 19 + TailwindCSS]
         Components[UI Components<br/>FilterBuilder, AnimeCard, Stats]
         Cache[TanStack Query<br/>Client-side Cache]
     end
 
-    subgraph "API Layer - Render"
-        Express[Express.js Server<br/>TypeScript]
+    subgraph "API Layer - Cloudflare Worker"
+        Express[Hono Worker (mal-api)<br/>TypeScript]
         Routes[API Routes<br/>/search /stats /watchlist]
         Controllers[Controllers<br/>Request Handlers]
         Memory[In-Memory Cache<br/>14.8k Anime<br/>Stale-While-Revalidate]
@@ -76,8 +89,8 @@ graph TB
 
 ### Key Components
 
-- **Frontend (Vercel)**: Next.js 15 with App Router, TailwindCSS 4 + shadcn/ui components
-- **Backend (Render)**: Express.js API with stale-while-revalidate in-memory cache for <1ms response times
+- **Frontend (Cloudflare Pages)**: Next.js 16 with App Router, TailwindCSS 4 + shadcn/ui components
+- **Backend (Cloudflare Worker `mal-api`)**: Hono API with stale-while-revalidate in-memory cache for <1ms response times
 - **Database (Turso)**: libSQL database storing anime data (14,800+ titles) and user watchlists
 - **Caching Strategy**: 1-hour TTL with background refresh - 100% of requests served instantly from memory
 - **Automation (GitHub Actions)**: Daily cron at midnight UTC fetches latest anime seasons from Jikan API
@@ -131,13 +144,14 @@ npm run db:update  # Update anime data from MAL API
 
 ## Deployment
 
-**Frontend (Vercel)**
-- Auto-deploys on push to main
-- Configure environment variables in Vercel dashboard
+**Frontend (Cloudflare Pages — project `anime-list`)**
+- Auto-deploys on push to main via GitHub Actions (`.github/workflows/deploy.yml`)
+- `NEXT_PUBLIC_*` build vars are set in the workflow; runtime vars live in `wrangler.toml`
 
-**Backend (Render)**
-- Auto-deploys from `render.yaml` on push to main
-- Configure `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID` in environment variables
+**API Worker (Cloudflare Worker — `mal-api`)**
+- Deploy with `pnpm deploy:worker` (`wrangler deploy --config wrangler.cron.toml`)
+- Set worker secrets via `wrangler secret put`: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`
+- Runs a daily cron at 03:00 UTC
 
 **Database (Turso)**
 - Create database: `turso db create mal-watchlist`
