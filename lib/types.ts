@@ -14,6 +14,8 @@ export interface AnimeSummary {
   themes: string[];
   type: string;
   image?: string;
+  chapters?: number;
+  volumes?: number;
 }
 
 export interface SearchResponse {
@@ -270,4 +272,58 @@ export interface ScheduleTimelineResponse {
     start_date: string;
     finish_date: string;
   };
+}
+
+export interface MangaWatchlistData {
+  user: { id: string; name: string };
+  manga: Record<string, { id: string; status: string }>;
+}
+
+export interface EnrichedMangaWatchlistItem {
+  mal_id: string;
+  watchStatus: string;
+  title: string;
+  image?: string;
+  score?: number;
+  year?: number;
+  type?: string;
+  chapters?: number;
+  volumes?: number;
+  members?: number;
+  genres: string[];
+  url?: string;
+}
+
+export interface EnrichedMangaWatchlistResponse {
+  items: EnrichedMangaWatchlistItem[];
+}
+
+export interface MangaDetailResponse {
+  manga: {
+    mal_id: number;
+    url: string;
+    title: string;
+    title_english?: string;
+    type?: string;
+    chapters?: number;
+    volumes?: number;
+    score?: number;
+    scored_by?: number;
+    rank?: number;
+    status?: string;
+    popularity?: number;
+    members?: number;
+    favorites?: number;
+    synopsis?: string;
+    year?: number;
+    image?: string;
+    has_colored?: boolean;
+    is_completed?: boolean;
+    available_in_english?: boolean;
+    available_languages?: string[];
+    genres: string[];
+    themes: string[];
+    demographics: string[];
+  };
+  watchlistEntry: { status: string } | null;
 }

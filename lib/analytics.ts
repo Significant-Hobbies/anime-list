@@ -26,7 +26,7 @@ import { track } from "@saas-maker/posthog-client";
 const PROJECT = "anime_list" as const;
 
 /** The product-specific action behind a `core_action` event. */
-export type CoreAction = "watchlist_add" | "anime_search";
+export type CoreAction = "watchlist_add" | "anime_search" | "manga_search";
 
 interface AnalyticsEventMap {
   /** First Google sign-in for an account. */

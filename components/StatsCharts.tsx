@@ -88,11 +88,17 @@ function fieldCountToItems(data: FieldCount[]) {
   return data.map((d) => ({ label: d.field, value: d.count }));
 }
 
-export default function StatsCharts({ stats }: { stats: AnimeStats }) {
+export default function StatsCharts({
+  stats,
+  totalLabel = "Total anime",
+}: {
+  stats: AnimeStats;
+  totalLabel?: string;
+}) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Total anime: {stats.totalAnime.toLocaleString()}
+        {totalLabel}: {stats.totalAnime.toLocaleString()}
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

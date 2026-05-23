@@ -25,7 +25,8 @@ const THEMES = [
 const DEMOGRAPHICS = ["Shounen", "Shoujo", "Seinen", "Josei", "Kids"];
 
 const SEASONS = ["winter", "spring", "summer", "fall"];
-const TYPES = ["TV", "Movie", "OVA", "ONA", "Special", "Music"];
+const ANIME_TYPES = ["TV", "Movie", "OVA", "ONA", "Special", "Music"];
+const MANGA_TYPES = ["Manga", "Novel", "Light Novel", "One-shot", "Doujin", "Manhwa", "Manhua", "OEL"];
 const VALUE_SELECT_FIELDS = new Set(["type", "season"]);
 const TEXT_ACTIONS = ["CONTAINS", "EQUALS", "EXCLUDES"];
 const ENUM_ACTIONS = ["EQUALS", "EXCLUDES"];
@@ -66,6 +67,7 @@ interface Props {
   index: number;
   fields: FieldOptions;
   actions: FilterActions;
+  mediaType?: "anime" | "manga";
   onChange: (index: number, filter: SearchFilter) => void;
   onRemove: (index: number) => void;
 }
@@ -120,12 +122,15 @@ function getDefaultAction(
   return "CONTAINS";
 }
 
-function getValueOptions(field: string): string[] | null {
+function getValueOptions(field: string, mediaType: "anime" | "manga"): string[] | null {
   if (field === "genres") return GENRES;
   if (field === "themes") return THEMES;
   if (field === "demographics") return DEMOGRAPHICS;
   if (field === "season") return SEASONS;
-  if (field === "type") return TYPES;
+  if (field === "type") return mediaType === "manga" ? MANGA_TYPES : ANIME_TYPES;
+  if (field === "status") {
+    return ["Publishing", "Finished", "On Hiatus", "Discontinued", "Not yet published"];
+  }
   return null;
 }
 
@@ -134,13 +139,14 @@ export default function FilterRow({
   index,
   fields,
   actions,
+  mediaType = "anime",
   onChange,
   onRemove,
 }: Props) {
   const allFields = [...fields.numeric, ...fields.array, ...fields.string];
   const availableActions = getActionsForField(filter.field, fields, actions);
   const isArray = isArrayField(filter.field, fields);
-  const valueOptions = getValueOptions(filter.field);
+  const valueOptions = getValueOptions(filter.field, mediaType);
   const normalizedAction = availableActions.includes(filter.action) ? filter.action : availableActions[0];
   const normalizedValue = isArray
     ? Array.isArray(filter.value) ? filter.value : []

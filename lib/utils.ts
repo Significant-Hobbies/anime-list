@@ -6,5 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getAnimeDetailHref(malId: number | string) {
-  return `/anime/${malId}`
+  return `/anime/${malId}`;
+}
+
+export function getMangaDetailHref(malId: number | string) {
+  return `/manga/${malId}`;
 }

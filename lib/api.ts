@@ -12,6 +12,9 @@ import type {
   WatchlistImportPreview,
   AniListExportResponse,
   ScheduleTimelineResponse,
+  MangaWatchlistData,
+  EnrichedMangaWatchlistResponse,
+  MangaDetailResponse,
 } from "./types";
 import { getApiUrl } from "./apiConfig";
 
@@ -270,4 +273,108 @@ export interface ChangelogEntry {
 
 export function getChangelog(limit = 200): Promise<{ changes: ChangelogEntry[] }> {
   return fetchJson(`${BASE}/changelog?limit=${limit}`);
+}
+
+export interface RandomAnimePick {
+  mal_id: number;
+  id: number;
+  title: string;
+  title_english?: string;
+}
+
+export function getRandomAnimePick(options?: {
+  genre?: string;
+  limit?: number;
+}): Promise<{ results: RandomAnimePick[] }> {
+  const params = new URLSearchParams();
+  if (options?.genre) params.set("genre", options.genre);
+  if (options?.limit != null) params.set("limit", String(options.limit));
+  const query = params.toString();
+  return fetchJson(`${BASE}/anime/random${query ? `?${query}` : ""}`);
+}
+
+const MANGA_BASE = `${BASE}/manga`;
+
+export function getMangaFields(): Promise<FieldOptions & { boolean?: string[] }> {
+  return fetchJson(`${MANGA_BASE}/fields`);
+}
+
+export function getMangaFilterActions(): Promise<FilterActions & { text?: string[] }> {
+  return fetchJson(`${MANGA_BASE}/filters`);
+}
+
+export function searchManga(
+  filters: SearchFilter[],
+  opts: {
+    pagesize?: number;
+    offset?: number;
+    sortBy?: string;
+    hideWatched?: string[];
+  } = {},
+): Promise<SearchResponse> {
+  return fetchJson(`${MANGA_BASE}/search`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({
+      filters,
+      pagesize: opts.pagesize ?? DEFAULT_PAGE_SIZE,
+      offset: opts.offset ?? 0,
+      sortBy: opts.sortBy,
+      hideWatched: opts.hideWatched ?? [],
+    }),
+  });
+}
+
+export function getMangaStats(opts: { hideWatched?: string[] } = {}): Promise<AnimeStats> {
+  const params = new URLSearchParams();
+  if (opts.hideWatched && opts.hideWatched.length > 0) {
+    params.set("hideWatched", opts.hideWatched.join(","));
+  }
+  const query = params.toString();
+  return fetchJson(`${MANGA_BASE}/stats${query ? `?${query}` : ""}`);
+}
+
+export function getMangaWatchlist(): Promise<MangaWatchlistData> {
+  return fetchJson(`${MANGA_BASE}/watchlist`);
+}
+
+export function getEnrichedMangaWatchlist(): Promise<EnrichedMangaWatchlistResponse> {
+  return fetchJson(`${MANGA_BASE}/watchlist/enriched`);
+}
+
+export function addToMangaWatchlist(
+  malIds: number[],
+  status: string,
+  tagColor?: string,
+): Promise<{ success: boolean; message: string }> {
+  return fetchJson(`${MANGA_BASE}/watched/add`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ mal_ids: malIds, status, tagColor }),
+  });
+}
+
+export function removeFromMangaWatchlist(
+  malIds: number[],
+): Promise<{ success: boolean; message: string }> {
+  return fetchJson(`${MANGA_BASE}/watched/remove`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ mal_ids: malIds }),
+  });
+}
+
+export function getMangaDetail(malId: number | string): Promise<MangaDetailResponse> {
+  return fetchJson(`${MANGA_BASE}/${malId}`);
+}
+
+export function getRandomMangaPick(options?: {
+  genre?: string;
+  limit?: number;
+}): Promise<{ results: RandomAnimePick[] }> {
+  const params = new URLSearchParams();
+  if (options?.genre) params.set("genre", options.genre);
+  if (options?.limit != null) params.set("limit", String(options.limit));
+  const query = params.toString();
+  return fetchJson(`${MANGA_BASE}/random${query ? `?${query}` : ""}`);
 }

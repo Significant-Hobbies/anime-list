@@ -15,7 +15,7 @@ import GoogleSignInButton from "./GoogleSignInButton";
 import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
 
-const links = [
+const animeLinks = [
   { href: "/", label: "Discover" },
   { href: "/stats", label: "Stats" },
   { href: "/watchlist", label: "Watchlist" },
@@ -23,24 +23,66 @@ const links = [
   { href: "/changelog", label: "Changelog" },
 ];
 
+const mangaLinks = [
+  { href: "/manga", label: "Discover" },
+  { href: "/manga/stats", label: "Stats" },
+  { href: "/manga/watchlist", label: "Watchlist" },
+  { href: "/changelog", label: "Changelog" },
+];
+
+function isMangaPath(pathname: string) {
+  return pathname === "/manga" || pathname.startsWith("/manga/");
+}
+
+function isActiveLink(pathname: string, href: string) {
+  if (href === "/" || href === "/manga") {
+    return pathname === href;
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function Navigation() {
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
+  const mangaMode = isMangaPath(pathname);
+  const links = mangaMode ? mangaLinks : animeLinks;
+  const homeHref = mangaMode ? "/manga" : "/";
 
   return (
     <nav className="sticky top-0 z-50 border-b border-outline/20 bg-background/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-6">
         <Link
-          href="/"
+          href={homeHref}
           className="font-display font-black text-base uppercase tracking-tighter italic text-glow whitespace-nowrap"
         >
           <span className="text-primary">NEON</span>
           <span className="text-white"> CURATOR</span>
         </Link>
 
+        <div className="hidden sm:flex items-center gap-1 p-1 bg-surface-container-low border border-outline/10 rounded-sm">
+          <Link
+            href="/"
+            className={cn(
+              "px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-sm transition-all",
+              !mangaMode ? "bg-primary-container text-on-primary-container" : "text-white/40 hover:text-white",
+            )}
+          >
+            Anime
+          </Link>
+          <Link
+            href="/manga"
+            className={cn(
+              "px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-sm transition-all",
+              mangaMode ? "bg-primary-container text-on-primary-container" : "text-white/40 hover:text-white",
+            )}
+          >
+            Manga
+          </Link>
+        </div>
+
         <div className="hidden md:flex items-center gap-5 flex-1">
           {links.map((link) => {
-            const active = pathname === link.href;
+            const active = isActiveLink(pathname, link.href);
             return (
               <Link
                 key={link.href}
@@ -70,8 +112,18 @@ export default function Navigation() {
               align="start"
               className="bg-surface-container-high border-outline/20 rounded-sm"
             >
+              <DropdownMenuItem asChild>
+                <Link href="/" className={cn("w-full cursor-pointer text-[10px] font-black uppercase tracking-widest", !mangaMode ? "text-primary" : "text-white/70")}>
+                  Anime
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/manga" className={cn("w-full cursor-pointer text-[10px] font-black uppercase tracking-widest", mangaMode ? "text-primary" : "text-white/70")}>
+                  Manga
+                </Link>
+              </DropdownMenuItem>
               {links.map((link) => {
-                const active = pathname === link.href;
+                const active = isActiveLink(pathname, link.href);
                 return (
                   <DropdownMenuItem key={link.href} asChild>
                     <Link

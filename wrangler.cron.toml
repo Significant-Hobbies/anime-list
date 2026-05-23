@@ -3,6 +3,9 @@ main = "src/worker.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat_v2"]
 
+[dev]
+port = 8787
+
 [triggers]
 crons = ["0 3 * * *"]
 
@@ -12,5 +15,7 @@ NODE_ENV = "production"
 # Secrets (set via `wrangler secret put <KEY>`):
 # - TURSO_DATABASE_URL
 # - TURSO_AUTH_TOKEN
+# - TURSO_MANGA_DATABASE_URL (optional; manga catalog — falls back to app DB)
+# - TURSO_MANGA_AUTH_TOKEN (optional)
 # - JWT_SECRET
 # - GOOGLE_CLIENT_ID
