@@ -16,12 +16,10 @@ export function MangaResultsGridSkeleton() {
 export default function MangaResultsGrid({ results }: { results: SearchResponse }) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-outline/10 pb-4">
-        <h2 className="font-display font-black text-xl uppercase italic tracking-tighter text-white">
-          Manga <span className="text-primary">Results</span>
-        </h2>
-        <p className="text-[10px] font-bold tracking-widest text-white/40 uppercase">
-          {results.totalFiltered.toLocaleString()} ENTRIES DETECTED
+      <div className="flex items-center justify-between border-b border-border pb-4">
+        <h2 className="font-semibold text-xl text-foreground">Results</h2>
+        <p className="text-sm text-muted-foreground">
+          {results.totalFiltered.toLocaleString()} titles
         </p>
       </div>
 

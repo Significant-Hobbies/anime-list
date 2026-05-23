@@ -2,7 +2,7 @@ import { SaasMakerAnalytics } from '@/components/SaasMakerAnalytics'
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { Epilogue, Manrope } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -10,49 +10,46 @@ import { AuthProvider } from "@/lib/auth";
 import { QueryProvider } from "@/lib/query-provider";
 import FeedbackWidgetWrapper from "@/components/FeedbackWidgetWrapper";
 import { AnalyticsProvider } from "@/components/posthog-provider";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/brand";
 
-const epilogue = Epilogue({ subsets: ['latin'], variable: '--font-epilogue' });
-const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const siteUrl = "https://anime-list-9lk.pages.dev";
 
 export const metadata: Metadata = {
   title: {
-    default: "NEON CURATOR - Discover & Track Anime",
-    template: "%s | NEON CURATOR",
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "Discover anime with powerful filters, explore statistics across 15,000+ titles, and track your watchlist. Built on MyAnimeList data.",
+  description: SITE_DESCRIPTION,
   keywords: [
-    "anime", "myanimelist", "anime discovery", "anime tracker",
-    "anime statistics", "watchlist", "anime search", "anime filter",
+    "anime", "manga", "myanimelist", "anime discovery", "manga discovery",
+    "anime tracker", "watchlist", "anime search", "manga search",
   ],
   authors: [{ name: "Sarthak Agrawal" }],
   openGraph: {
-    title: "NEON CURATOR - Discover & Track Anime",
-    description:
-      "Discover anime with powerful filters, explore statistics across 15,000+ titles, and track your watchlist.",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
     type: "website",
     url: siteUrl,
-    siteName: "NEON CURATOR",
+    siteName: SITE_NAME,
   },
   twitter: {
     card: "summary_large_image",
-    title: "NEON CURATOR - Discover & Track Anime",
-    description:
-      "Discover anime with powerful filters, explore statistics across 15,000+ titles, and track your watchlist.",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
   },
   robots: { index: true, follow: true },
   metadataBase: new URL(siteUrl),
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "NEON CURATOR",
+    statusBarStyle: "default",
+    title: SITE_NAME,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
 };
@@ -64,7 +61,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body data-analytics="true" className={`min-h-screen antialiased bg-background text-on-surface font-body selection:bg-primary-container selection:text-white ${epilogue.variable} ${manrope.variable} ${manrope.className}`}>
+      <body
+        data-analytics="true"
+        className={`min-h-screen bg-background text-foreground ${inter.variable} ${inter.className}`}
+      >
         <AnalyticsProvider>
           <SaasMakerAnalytics />
           <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
@@ -75,9 +75,8 @@ export default function RootLayout({
               __html: JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "WebApplication",
-                name: "NEON CURATOR",
-                description:
-                  "Discover anime with powerful filters, explore statistics across 15,000+ titles, and track your watchlist.",
+                name: SITE_NAME,
+                description: SITE_DESCRIPTION,
                 url: siteUrl,
                 applicationCategory: "EntertainmentApplication",
                 operatingSystem: "Web",
@@ -93,7 +92,7 @@ export default function RootLayout({
             <QueryProvider>
               <AuthProvider>
                 <Navigation />
-                <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-32 pt-20">{children}</main>
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-24 pt-8">{children}</main>
                 <Footer />
                 <FeedbackWidgetWrapper />
               </AuthProvider>

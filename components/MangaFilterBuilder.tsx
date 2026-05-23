@@ -238,27 +238,27 @@ export default function MangaFilterBuilder() {
 
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-surface-container-low p-6 rounded-sm border border-outline/10 shadow-2xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-card p-5 rounded-lg border border-border shadow-sm">
         <div className="lg:col-span-5 relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
           <input
-            placeholder="ENCODE MANGA TITLE SEARCH..."
+            placeholder="Search manga titles..."
             value={inputValue}
             onChange={(e) => handleInputChange(e.target.value)}
-            className="w-full h-14 bg-surface border border-outline/10 pl-12 pr-4 text-[10px] font-black tracking-widest uppercase text-white placeholder:text-white/20 focus:outline-none focus:border-primary transition-all rounded-sm"
+            className="w-full h-11 bg-surface border border-border pl-12 pr-4 text-sm font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary transition-all rounded-lg"
           />
         </div>
 
         <div className="lg:col-span-3">
-          <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2 block">Priority Sort</label>
+          <label className="text-xs font-medium text-muted-foreground mb-2 block">Sort by</label>
           <Select
             value={sortBy}
             onValueChange={(value) => { setSortBy(value); resetPage(); }}
           >
-            <SelectTrigger className="h-14 bg-surface border-outline/10 text-[10px] font-black tracking-widest uppercase rounded-sm focus:border-primary">
+            <SelectTrigger className="h-11 bg-surface border-border text-sm font-medium rounded-lg focus:border-primary">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-surface-container-high border-outline/10">
+            <SelectContent className="bg-surface-container-high border-border">
               {SORT_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value} className="text-[10px] font-bold uppercase tracking-widest focus:bg-primary/10 focus:text-primary">
                   {opt.label}
@@ -272,22 +272,22 @@ export default function MangaFilterBuilder() {
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
             className={cn(
-              "h-14 flex-1 flex items-center justify-center gap-3 text-[10px] font-black tracking-widest uppercase rounded-sm border transition-all",
+              "h-11 flex-1 flex items-center justify-center gap-3 text-sm font-medium rounded-lg border transition-all",
               showAdvanced
-                ? "bg-primary-container text-on-primary-container border-primary shadow-[0_0_20px_rgba(255,80,110,0.3)]"
-                : "bg-surface border-outline/10 text-white/60 hover:border-primary hover:text-white",
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-surface border-border text-white/60 hover:border-primary hover:text-white",
             )}
           >
             <SlidersHorizontal size={18} />
-            Advanced Matrix
+            Filters
             {activeAdvancedFilters.length > 0 && (
-              <span className="bg-white/10 px-2 py-0.5 rounded-sm">{activeAdvancedFilters.length}</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded-lg">{activeAdvancedFilters.length}</span>
             )}
           </button>
 
           <button
             onClick={clearAll}
-            className="h-14 w-14 flex items-center justify-center bg-surface border border-outline/10 text-white/20 hover:text-error hover:border-error transition-all rounded-sm"
+            className="h-11 w-14 flex items-center justify-center bg-surface border border-border text-white/20 hover:text-error hover:border-error transition-all rounded-lg"
           >
             <Trash2 size={20} />
           </button>
@@ -295,14 +295,14 @@ export default function MangaFilterBuilder() {
       </div>
 
       {showAdvanced && (
-        <div className="space-y-4 p-4 md:p-8 bg-surface-container-low border border-outline/10 rounded-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center justify-between border-b border-outline/10 pb-4">
-            <h3 className="text-[11px] font-black tracking-[0.3em] uppercase text-white/40">Logic Matrix</h3>
+        <div className="space-y-4 p-4 md:p-8 bg-surface-container-low border border-border rounded-lg animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center justify-between border-b border-border pb-4">
+            <h3 className="text-sm font-medium text-muted-foreground">Advanced filters</h3>
             <button
               onClick={addFilter}
-              className="text-[10px] font-black tracking-widest uppercase text-primary hover:text-white transition-colors"
+              className="text-sm font-medium text-primary hover:text-white transition-colors"
             >
-              + ADD OPERATOR
+              + Add filter
             </button>
           </div>
           <div className="space-y-4">
@@ -325,7 +325,7 @@ export default function MangaFilterBuilder() {
       <div className="space-y-8">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/20 whitespace-nowrap">Genre Matrix</span>
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Genres</span>
             <div className="h-px flex-1 bg-outline/5" />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -336,10 +336,10 @@ export default function MangaFilterBuilder() {
                   key={genre}
                   onClick={() => toggleGenre(genre)}
                   className={cn(
-                    "px-6 py-2 min-h-11 border text-[10px] font-black tracking-widest uppercase transition-all rounded-sm",
+                    "px-6 py-2 min-h-11 border text-sm font-medium transition-all rounded-lg",
                     selected
-                      ? "bg-primary-container text-on-primary-container border-primary shadow-[0_0_15px_rgba(255,80,110,0.2)]"
-                      : "bg-surface-container-low border-outline/10 text-white/40 hover:border-white/20 hover:text-white",
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-surface-container-low border-border text-white/40 hover:border-white/20 hover:text-white",
                   )}
                 >
                   {genre}
@@ -352,7 +352,7 @@ export default function MangaFilterBuilder() {
         {user && watchlistTags.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/20 whitespace-nowrap">Hide from list</span>
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Hide tagged</span>
               <div className="h-px flex-1 bg-outline/5" />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -363,7 +363,7 @@ export default function MangaFilterBuilder() {
                   <button
                     key={tag.tag}
                     onClick={() => toggleHideWatched(tag.tag)}
-                    className="px-4 py-2 border rounded-sm text-[9px] font-black tracking-widest uppercase transition-all"
+                    className="px-4 py-2 border rounded-lg text-[9px] font-black tracking-widest uppercase transition-all"
                     style={{
                       borderColor: active ? color : toRgba(color, 0.1),
                       backgroundColor: active ? toRgba(color, 0.2) : "transparent",
@@ -388,7 +388,7 @@ export default function MangaFilterBuilder() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="text-[10px] font-bold uppercase tracking-widest border border-error/40 text-error px-3 py-1 rounded-sm hover:bg-error/10 transition-colors disabled:opacity-50"
+            className="text-[10px] font-bold uppercase tracking-widest border border-error/40 text-error px-3 py-1 rounded-lg hover:bg-error/10 transition-colors disabled:opacity-50"
           >
             {isFetching ? "Retrying…" : "Retry"}
           </button>
@@ -403,13 +403,13 @@ export default function MangaFilterBuilder() {
             <MangaResultsGrid results={data} />
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-20 border-t border-outline/10 pt-10 pb-32">
+              <div className="flex items-center justify-between mt-20 border-t border-border pt-10 pb-32">
                 <button
                   onClick={() => { setCurrentPage(currentPage - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   disabled={!hasPrev || isFetching}
-                  className="flex items-center gap-4 text-[11px] font-black tracking-[0.3em] uppercase text-white/40 hover:text-primary disabled:opacity-0 transition-all"
+                  className="flex items-center gap-4 text-sm font-medium text-muted-foreground hover:text-primary disabled:opacity-0 transition-all"
                 >
-                  <span className="text-lg">←</span> PREV SIGNAL
+                  <span className="text-lg">←</span> Previous
                 </button>
                 <div className="flex items-center gap-6">
                   <span className="text-white/20 font-display font-black italic text-2xl">{currentPage} <span className="text-sm opacity-50">/ {totalPages}</span></span>
@@ -417,9 +417,9 @@ export default function MangaFilterBuilder() {
                 <button
                   onClick={() => { setCurrentPage(currentPage + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   disabled={!hasNext || isFetching}
-                  className="flex items-center gap-4 text-[11px] font-black tracking-[0.3em] uppercase text-white/40 hover:text-primary disabled:opacity-0 transition-all text-right"
+                  className="flex items-center gap-4 text-sm font-medium text-muted-foreground hover:text-primary disabled:opacity-0 transition-all text-right"
                 >
-                  NEXT SIGNAL <span className="text-lg">→</span>
+                  Next <span className="text-lg">→</span>
                 </button>
               </div>
             )}

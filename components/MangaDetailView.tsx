@@ -101,7 +101,7 @@ export default function MangaDetailView({ malId }: { malId: number }) {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             {manga.rank ? (
-              <span className="bg-primary-container text-on-primary-container px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-sm shadow-[0_0_15px_rgba(255,80,110,0.3)]">
+              <span className="bg-primary text-primary-foreground px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-sm">
                 Rank {rank}
               </span>
             ) : null}
@@ -121,7 +121,7 @@ export default function MangaDetailView({ malId }: { malId: number }) {
               </span>
             ) : null}
           </div>
-          <h1 className="font-display font-black text-4xl sm:text-6xl tracking-tighter text-white uppercase italic">
+          <h1 className="font-semibold text-3xl sm:text-5xl tracking-tight text-foreground">
             {title}
           </h1>
           {manga.title !== title && (
@@ -142,7 +142,7 @@ export default function MangaDetailView({ malId }: { malId: number }) {
 
           <div className="bg-surface-container-low p-1 flex rounded-sm">
             {watchlistEntry ? (
-              <div className="flex-1 py-3 text-[10px] font-black tracking-widest uppercase text-center bg-primary-container text-on-primary-container shadow-[0_0_20px_rgba(255,80,110,0.3)] rounded-sm">
+              <div className="flex-1 py-3 text-[10px] font-black tracking-widest uppercase text-center bg-primary text-primary-foreground rounded-sm">
                 IN LIST: {watchlistEntry.status}
               </div>
             ) : (
@@ -210,7 +210,7 @@ export default function MangaDetailView({ malId }: { malId: number }) {
 
           {manga.available_languages && manga.available_languages.length > 0 && (
             <div className="space-y-3">
-              <h2 className="font-display font-black text-xl uppercase italic tracking-tighter text-white/80">Languages</h2>
+              <h2 className="font-display font-semibold text-xl text-foreground/80">Languages</h2>
               <div className="flex flex-wrap gap-2">
                 {manga.available_languages.map((lang) => (
                   <Badge key={lang} variant="outline">{lang}</Badge>

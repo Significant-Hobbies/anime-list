@@ -28,12 +28,10 @@ export function ResultsGridSkeleton() {
 export default function ResultsGrid({ results }: { results: SearchResponse }) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-outline/10 pb-4">
-        <h2 className="font-display font-black text-xl uppercase italic tracking-tighter text-white">
-          Inquiry <span className="text-primary">Results</span>
-        </h2>
-        <p className="text-[10px] font-bold tracking-widest text-white/40 uppercase">
-          {results.totalFiltered.toLocaleString()} ENTRIES DETECTED
+      <div className="flex items-center justify-between border-b border-border pb-4">
+        <h2 className="font-semibold text-xl text-foreground">Results</h2>
+        <p className="text-sm text-muted-foreground">
+          {results.totalFiltered.toLocaleString()} titles
         </p>
       </div>
 
@@ -45,7 +43,7 @@ export default function ResultsGrid({ results }: { results: SearchResponse }) {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-32 text-center bg-surface-container-low border border-outline/10 rounded-sm">
-          <div className="h-16 w-16 rounded-sm bg-primary/10 border border-primary/20 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(255,80,110,0.2)]">
+          <div className="h-16 w-16 rounded-sm bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
             <span className="text-primary text-2xl font-black italic">!</span>
           </div>
           <h3 className="text-xl font-display font-black uppercase italic text-white mb-2 tracking-tight">

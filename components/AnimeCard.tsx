@@ -116,14 +116,12 @@ export default function AnimeCard({
             </div>
           )}
 
-          {/* Cyberpunk Gradient overlay */}
-          <div className="absolute inset-0 bg-primary-container/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
           {/* Score badge */}
           {anime.score > 0 && (
-            <div className="absolute top-2 left-2 bg-surface/80 backdrop-blur-md rounded-sm px-2 py-1 border border-outline/20">
-              <span className="text-[10px] font-black tracking-widest text-primary italic font-display">
+            <div className="absolute top-2 left-2 bg-background/80 backdrop-blur-md rounded-md px-2 py-1 border border-border">
+              <span className="text-xs font-medium text-primary">
                 {anime.score.toFixed(1)}
               </span>
             </div>
@@ -169,12 +167,12 @@ export default function AnimeCard({
             prefetch={false}
             className="block w-full"
           >
-            <h4 className="font-display font-black text-lg uppercase tracking-tight text-white group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+            <h4 className="font-medium text-base text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
               {title}
             </h4>
           </Link>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-[10px] font-bold text-white/40 tracking-widest uppercase">
+            <p className="text-xs text-muted-foreground">
               <span>{anime.genres[0] || "Unknown"}</span>
               {anime.year > 0 && <span> • </span>}
               {anime.year > 0 && <span>{anime.year}</span>}
@@ -205,7 +203,7 @@ export default function AnimeCard({
               }}
               disabled={mutation.isPending}
               aria-label={currentStatus ? `Edit watchlist status: ${currentStatus}` : "Add to watchlist"}
-              className="h-8 min-w-8 rounded-sm bg-primary-container text-on-primary-container flex items-center justify-center shadow-[0_0_15px_rgba(255,80,110,0.4)] hover:scale-105 transition-transform px-2"
+              className="h-8 min-w-8 rounded-sm bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform px-2"
               style={
                 currentStatusColor
                   ? { backgroundColor: currentStatusColor, boxShadow: `0 0 15px ${currentStatusColor}66` }
@@ -236,7 +234,7 @@ export default function AnimeCard({
                   >
                     <span className="flex items-center gap-3">
                       <span
-                        className="h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]"
+                        className="h-2 w-2 rounded-full"
                         style={{ backgroundColor: color, color: color }}
                       />
                       <span className="text-white/80">{tag.tag}</span>
@@ -300,7 +298,7 @@ export default function AnimeCard({
       {currentStatus && (
         <div className="mt-2">
           <Badge
-            className="text-[9px] font-black tracking-widest uppercase rounded-sm border-none shadow-[0_0_10px_rgba(0,0,0,0.5)]"
+            className="text-[9px] font-black tracking-widest uppercase rounded-sm border-none"
             style={{
               backgroundColor: currentStatusColor ?? resolveTagColor(currentStatus),
               color: "#131313",

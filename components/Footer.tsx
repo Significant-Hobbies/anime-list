@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { getLastUpdated } from "@/lib/api";
+import { SITE_NAME } from "@/lib/brand";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -26,23 +27,18 @@ export default function Footer() {
   });
 
   return (
-    <footer className="max-w-7xl mx-auto px-4 sm:px-6 py-6 mt-8 border-t border-outline/20">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest text-white/40">
+    <footer className="max-w-7xl mx-auto px-4 sm:px-6 py-8 mt-8 border-t border-border">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
-          <span>
-            <span className="text-primary">NEON</span> CURATOR
-          </span>
+          <span className="font-medium text-foreground">{SITE_NAME}</span>
           {data?.lastUpdated && (
             <>
-              <span className="text-white/20">|</span>
-              <span>Data updated {timeAgo(data.lastUpdated)}</span>
+              <span className="text-border">·</span>
+              <span>Updated {timeAgo(data.lastUpdated)}</span>
             </>
           )}
         </div>
-        <Link
-          href="/changelog"
-          className="hover:text-white transition-colors"
-        >
+        <Link href="/changelog" className="hover:text-foreground transition-colors">
           Changelog
         </Link>
       </div>

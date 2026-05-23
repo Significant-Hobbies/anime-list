@@ -180,12 +180,12 @@ export default function FilterRow({
   };
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center gap-3 bg-surface p-4 rounded-sm border border-outline/5 transition-all hover:border-outline/20">
+    <div className="flex flex-col md:flex-row md:items-center gap-3 bg-surface p-4 rounded-lg border border-outline/5 transition-all hover:border-outline/20">
       <div className="flex gap-3 flex-1">
         <select
           value={normalizedFilter.field}
           onChange={(e) => handleFieldChange(e.target.value)}
-          className="h-10 bg-surface-container-low border border-outline/10 px-3 text-[10px] font-black tracking-widest uppercase text-white rounded-sm focus:border-primary focus:outline-none min-w-[140px]"
+          className="h-10 bg-surface-container-low border border-border px-3 text-sm font-medium text-white rounded-lg focus:border-primary focus:outline-none min-w-[140px]"
         >
           {allFields.map((f) => (
             <option key={f} value={f}>{getFieldLabel(f)}</option>
@@ -195,7 +195,7 @@ export default function FilterRow({
         <select
           value={normalizedFilter.action}
           onChange={(e) => onChange(index, { ...normalizedFilter, action: e.target.value })}
-          className="h-10 bg-surface-container-low border border-outline/10 px-3 text-[10px] font-black tracking-widest uppercase text-primary rounded-sm focus:border-primary focus:outline-none min-w-[140px]"
+          className="h-10 bg-surface-container-low border border-border px-3 text-sm font-medium text-primary rounded-lg focus:border-primary focus:outline-none min-w-[140px]"
         >
           {availableActions.map((a) => (
             <option key={a} value={a}>{getActionLabel(a)}</option>
@@ -212,8 +212,8 @@ export default function FilterRow({
                 key={opt}
                 onClick={() => handleValueChange(opt)}
                 className={cn(
-                  "px-3 py-1 border text-[9px] font-black tracking-widest uppercase rounded-sm transition-all",
-                  selected ? "bg-primary/20 text-primary border-primary" : "bg-surface-container-highest/20 border-outline/10 text-white/30 hover:text-white"
+                  "px-3 py-1 border text-[9px] font-black tracking-widest uppercase rounded-lg transition-all",
+                  selected ? "bg-primary/20 text-primary border-primary" : "bg-surface-container-highest/20 border-border text-white/30 hover:text-white"
                 )}
               >
                 {opt}
@@ -224,7 +224,7 @@ export default function FilterRow({
           <select
             value={typeof normalizedFilter.value === "string" ? normalizedFilter.value : ""}
             onChange={(e) => handleValueChange(e.target.value)}
-            className="h-10 w-full bg-surface-container-low border border-outline/10 px-3 text-[10px] font-black tracking-widest uppercase text-white rounded-sm focus:border-primary focus:outline-none"
+            className="h-10 w-full bg-surface-container-low border border-border px-3 text-sm font-medium text-white rounded-lg focus:border-primary focus:outline-none"
           >
             <option value="">SELECT VALUE...</option>
             {valueOptions.map((opt) => (
@@ -237,7 +237,7 @@ export default function FilterRow({
             value={normalizedFilter.value as string | number}
             onChange={(e) => handleValueChange(e.target.value)}
             placeholder="INPUT PARAMETER..."
-            className="h-10 w-full bg-surface-container-low border border-outline/10 px-4 text-[10px] font-black tracking-widest uppercase text-white placeholder:text-white/10 rounded-sm focus:border-primary focus:outline-none"
+            className="h-10 w-full bg-surface-container-low border border-border px-4 text-sm font-medium text-white placeholder:text-white/10 rounded-lg focus:border-primary focus:outline-none"
           />
         )}
       </div>

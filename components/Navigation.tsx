@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { SITE_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -49,22 +50,21 @@ export default function Navigation() {
   const homeHref = mangaMode ? "/manga" : "/";
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-outline/20 bg-background/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-6">
         <Link
           href={homeHref}
-          className="font-display font-black text-base uppercase tracking-tighter italic text-glow whitespace-nowrap"
+          className="text-lg font-semibold tracking-tight text-foreground whitespace-nowrap"
         >
-          <span className="text-primary">NEON</span>
-          <span className="text-white"> CURATOR</span>
+          {SITE_NAME}
         </Link>
 
-        <div className="hidden sm:flex items-center gap-1 p-1 bg-surface-container-low border border-outline/10 rounded-sm">
+        <div className="hidden sm:flex items-center gap-1 rounded-lg bg-muted/60 p-1">
           <Link
             href="/"
             className={cn(
-              "px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-sm transition-all",
-              !mangaMode ? "bg-primary-container text-on-primary-container" : "text-white/40 hover:text-white",
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              !mangaMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
             Anime
@@ -72,15 +72,15 @@ export default function Navigation() {
           <Link
             href="/manga"
             className={cn(
-              "px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-sm transition-all",
-              mangaMode ? "bg-primary-container text-on-primary-container" : "text-white/40 hover:text-white",
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              mangaMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
             Manga
           </Link>
         </div>
 
-        <div className="hidden md:flex items-center gap-5 flex-1">
+        <div className="hidden md:flex items-center gap-1 flex-1">
           {links.map((link) => {
             const active = isActiveLink(pathname, link.href);
             return (
@@ -88,10 +88,10 @@ export default function Navigation() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "text-[11px] font-black uppercase tracking-widest transition-colors",
+                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   active
-                    ? "text-primary text-glow"
-                    : "text-white/40 hover:text-white",
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {link.label}
@@ -108,17 +108,14 @@ export default function Navigation() {
                 <span className="sr-only">Open menu</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="bg-surface-container-high border-outline/20 rounded-sm"
-            >
+            <DropdownMenuContent align="start" className="bg-popover border-border">
               <DropdownMenuItem asChild>
-                <Link href="/" className={cn("w-full cursor-pointer text-[10px] font-black uppercase tracking-widest", !mangaMode ? "text-primary" : "text-white/70")}>
+                <Link href="/" className={cn("w-full cursor-pointer text-sm", !mangaMode ? "text-primary" : "")}>
                   Anime
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/manga" className={cn("w-full cursor-pointer text-[10px] font-black uppercase tracking-widest", mangaMode ? "text-primary" : "text-white/70")}>
+                <Link href="/manga" className={cn("w-full cursor-pointer text-sm", mangaMode ? "text-primary" : "")}>
                   Manga
                 </Link>
               </DropdownMenuItem>
@@ -129,8 +126,8 @@ export default function Navigation() {
                     <Link
                       href={link.href}
                       className={cn(
-                        "w-full cursor-pointer text-[10px] font-black uppercase tracking-widest",
-                        active ? "text-primary" : "text-white/70",
+                        "w-full cursor-pointer text-sm",
+                        active ? "text-primary" : "",
                       )}
                     >
                       {link.label}
@@ -146,35 +143,25 @@ export default function Navigation() {
           {loading ? null : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 h-8 px-2 hover:bg-white/5"
-                >
-                  <Avatar className="h-6 w-6">
+                <Button variant="ghost" size="sm" className="gap-2 h-9 px-2">
+                  <Avatar className="h-7 w-7">
                     {user.picture && (
                       <AvatarImage src={user.picture} alt={user.name} />
                     )}
-                    <AvatarFallback className="text-[10px] bg-primary-container text-on-primary-container font-black">
+                    <AvatarFallback className="text-xs bg-primary/15 text-primary">
                       {user.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-white/70">
+                  <span className="hidden sm:inline text-sm text-muted-foreground">
                     {user.name.split(" ")[0]}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="bg-surface-container-high border-outline/20 rounded-sm"
-              >
-                <DropdownMenuItem className="text-[9px] font-bold uppercase tracking-widest text-white/40">
+              <DropdownMenuContent align="end" className="bg-popover border-border">
+                <DropdownMenuItem className="text-xs text-muted-foreground">
                   {user.email}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="text-[10px] font-bold uppercase tracking-widest text-white/80"
-                >
+                <DropdownMenuItem onClick={logout} className="text-sm">
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>

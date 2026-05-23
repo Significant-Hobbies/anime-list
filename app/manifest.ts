@@ -1,20 +1,18 @@
 import type { MetadataRoute } from "next";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/brand";
 
-// PWA manifest — makes NEON CURATOR installable to a phone home screen and
-// launchable as a standalone app.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "NEON CURATOR — Discover & Track Anime",
-    short_name: "NEON CURATOR",
-    description:
-      "Discover anime with powerful filters, explore statistics across 15,000+ titles, and track your watchlist. Built on MyAnimeList data.",
+    name: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    short_name: SITE_NAME,
+    description: SITE_DESCRIPTION,
     id: "/",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#0f172a",
-    theme_color: "#60a5fa",
+    background_color: "#09090b",
+    theme_color: "#818cf8",
     categories: ["entertainment", "lifestyle"],
     icons: [
       {

@@ -198,7 +198,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             {anime.rank ? (
-              <span className="bg-primary-container text-on-primary-container px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-sm shadow-[0_0_15px_rgba(255,80,110,0.3)]">
+              <span className="bg-primary text-primary-foreground px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-sm">
                 Rank {rank}
               </span>
             ) : null}
@@ -213,7 +213,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
               </span>
             ) : null}
           </div>
-          <h1 className="font-display font-black text-4xl sm:text-6xl tracking-tighter text-white uppercase italic">
+          <h1 className="font-semibold text-3xl sm:text-5xl tracking-tight text-foreground">
             {title}
           </h1>
           {anime.title !== title && (
@@ -238,7 +238,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
           {/* Watchlist Action */}
           <div className="bg-surface-container-low p-1 flex rounded-sm">
             {watchlistEntry ? (
-              <div className="flex-1 py-3 text-[10px] font-black tracking-widest uppercase text-center bg-primary-container text-on-primary-container shadow-[0_0_20px_rgba(255,80,110,0.3)] rounded-sm">
+              <div className="flex-1 py-3 text-[10px] font-black tracking-widest uppercase text-center bg-primary text-primary-foreground rounded-sm">
                 IN LIST: {watchlistEntry.status}
               </div>
             ) : (
