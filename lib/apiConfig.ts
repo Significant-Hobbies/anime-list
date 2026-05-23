@@ -1,5 +1,5 @@
 export const PRODUCTION_API_URL = "https://mal-api.sarthakagrawal927.workers.dev";
-export const LOCAL_API_URL = "http://localhost:8080";
+export const LOCAL_API_URL = "http://localhost:8787";
 
 function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");

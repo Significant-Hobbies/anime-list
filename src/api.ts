@@ -44,45 +44,6 @@ const fetchFromApi = async <T>(url: string): Promise<T | null> => {
   }
 };
 
-// Monthly full refresh - fetch all top anime and update Turso database
-export const fetchAllAnimePages = async (): Promise<void> => {
-  const p0 = performance.now();
-  const allAnime: AnimeItem[] = [];
-  let page = 1;
-
-  console.log("Starting full anime database refresh...");
-
-  while (page <= API_CONFIG.totalPages) {
-    const url = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.topAnime}?page=${page}&limit=20`;
-    const data = await fetchFromApi<ApiResponse<RawAnimeItem[]>>(url);
-
-    if (!data?.data || !Array.isArray(data.data)) {
-      console.error(`Invalid data format on page ${page}`);
-      break;
-    }
-
-    // Transform and collect anime
-    for (const rawAnime of data.data) {
-      const anime = transformRawAnime(rawAnime);
-      // Only include anime with complete data
-      if (anime.score && anime.scored_by && anime.members && anime.favorites && anime.year) {
-        allAnime.push(anime);
-      }
-    }
-
-    if (!data.pagination?.has_next_page) break;
-    if (page % 10 === 0) console.log(`✓ Fetched ${page} pages (${allAnime.length} anime)`);
-    page++;
-  }
-
-  // Save to Turso database
-  console.log(`Saving ${allAnime.length} anime to database...`);
-  const summary = await upsertAnimeBatch(allAnime);
-  console.log(`📥 ${summary.added.length} new, 🔄 ${summary.updated.length} updated`);
-
-  console.log(`✓ Full refresh completed in ${(performance.now() - p0) / 1000}s`);
-};
-
 // Fetch last 2 seasons and update Turso database
 export const updateLatestTwoSeasonData = async (): Promise<void> => {
   const p0 = performance.now();
@@ -191,7 +152,7 @@ export const fetchAllMangaPages = async (): Promise<void> => {
     page++;
   }
 
-  let existingManga: Record<string, RawMangaItem> = {};
+  const existingManga: Record<string, RawMangaItem> = {};
   for (const manga of fetchedManga) {
     existingManga[manga.mal_id.toString()] = manga;
   }

@@ -18,7 +18,7 @@ A modern anime discovery platform that helps you find your next favorite show.
 | Analytics | PostHog (`@saas-maker/posthog-client`) |
 | CI/CD | GitHub Actions — auto-deploy to Cloudflare Pages on push to `main`; daily Turso sync workflow |
 
-> The Express server in `server.ts` is for local development only; it is not deployed. Production API traffic is served by the `mal-api` Cloudflare Worker.
+> Local and production API traffic is served by the `mal-api` Cloudflare Worker on port **8787** during `pnpm dev`.
 
 ## The Problem
 
@@ -44,9 +44,8 @@ graph TB
     end
 
     subgraph "API Layer - Cloudflare Worker"
-        Express[Hono Worker (mal-api)<br/>TypeScript]
+        Worker[Hono Worker (mal-api)<br/>TypeScript]
         Routes[API Routes<br/>/search /stats /watchlist]
-        Controllers[Controllers<br/>Request Handlers]
         Memory[In-Memory Cache<br/>14.8k Anime<br/>Stale-While-Revalidate]
     end
 
@@ -67,20 +66,19 @@ graph TB
 
     UI --> Components
     Components --> Cache
-    Cache --> Express
-    Express --> Routes
-    Routes --> Controllers
-    Controllers --> Memory
+    Cache --> Worker
+    Worker --> Routes
+    Routes --> Memory
     Memory -.1hr cache.-> AnimeDB
-    Controllers --> WatchlistDB
-    Controllers --> Google
+    Routes --> WatchlistDB
+    Routes --> Google
     Cron --> Update
     Update --> Jikan
     Jikan --> Update
     Update --> AnimeDB
 
     style UI fill:#3b82f6
-    style Express fill:#10b981
+    style Worker fill:#10b981
     style AnimeDB fill:#8b5cf6
     style Jikan fill:#f59e0b
     style Memory fill:#ef4444
@@ -112,34 +110,27 @@ cd mal
 npm install
 ```
 
-2. Create `.env` file:
-```env
-TURSO_DATABASE_URL=your-database-url
-TURSO_AUTH_TOKEN=your-auth-token
-JWT_SECRET=your-secret
-GOOGLE_CLIENT_ID=your-google-client-id
-PORT=8080
-```
+2. Create `.env` from `.env.example` and set Turso + Google OAuth values. For local dev, `NEXT_PUBLIC_API_URL=http://localhost:8787`.
 
-3. Start development server:
+3. Start development:
 ```bash
-npm run dev
+pnpm dev
 ```
 
-Both backend (port 8080) and frontend (port 3000) will start concurrently.
+This runs the Cloudflare Worker API (port 8787) and Next.js (port 3000) together.
 
 4. Open http://localhost:3000
 
 ### Available Commands
 
 ```bash
-npm run dev        # Run both backend and frontend
-npm run dev:be     # Backend only
-npm run dev:fe     # Frontend only
-npm run build      # Build for production
-npm start          # Start production server
-npm run db:seed    # Seed Turso database from JSON (one-time)
-npm run db:update  # Update anime data from MAL API
+pnpm dev           # Worker + frontend
+pnpm dev:be        # Worker only (port 8787)
+pnpm dev:fe        # Frontend only
+pnpm build         # Build frontend for production
+pnpm test          # Unit tests
+pnpm db:seed       # Seed Turso database from JSON (one-time)
+pnpm db:update     # Update anime data from Jikan API
 ```
 
 ## Deployment

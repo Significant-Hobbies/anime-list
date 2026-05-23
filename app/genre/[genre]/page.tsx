@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { getRandomAnimePick } from "@/lib/api";
 
 export default function GenreRandomPage() {
   const params = useParams<{ genre: string }>();
@@ -14,23 +15,15 @@ export default function GenreRandomPage() {
       return;
     }
     let aborted = false;
-    fetch(`/api/anime?genre=${encodeURIComponent(genre)}&random=1&limit=1`, {
-      cache: "no-store",
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data: unknown) => {
+    getRandomAnimePick({ genre, limit: 1 })
+      .then((data) => {
         if (aborted) return;
-        const list =
-          data && typeof data === "object" && "results" in data &&
-          Array.isArray((data as { results: unknown }).results)
-            ? ((data as { results: Array<{ mal_id?: number | string; id?: number | string }> }).results)
-            : [];
-        const pick = list[0];
+        const pick = data.results[0];
         const id = pick?.mal_id ?? pick?.id;
         if (id != null) {
           window.location.replace(`/anime/${id}`);
         } else {
-          setMsg(`No anime found for genre "${genre}".`);
+          setMsg(`No anime found in ${decodeURIComponent(genre)}.`);
         }
       })
       .catch(() => {
@@ -39,7 +32,7 @@ export default function GenreRandomPage() {
     return () => {
       aborted = true;
     };
-  }, [params]);
+  }, [params?.genre]);
 
   return (
     <main className="flex min-h-screen items-center justify-center p-8">

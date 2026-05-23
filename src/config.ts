@@ -135,30 +135,6 @@ export const FILE_PATHS = {
   userMangaWatchList: `${DATA_DIR}/user_manga_watchedlist_data.json`,
 };
 
-export const SERVER_CONFIG = {
-  port: parseInt(process.env.PORT || "8080"),
-  routes: {
-    base: "/api",
-    stats: "/stats",
-    fetch: "/fetch",
-    filters: "/filters",
-    fields: "/fields",
-    search: "/search",
-    watchlist: "/watchlist",
-    add_to_watched: "/watched/add",
-  },
-} as const;
-
-export const ERROR_MESSAGES = {
-  fetchFailed: "Failed to fetch anime stats",
-  filterFailed: "Failed to apply filters and get stats",
-  invalidFilters: "Filters must be an array",
-  serverError: "Something broke!",
-  fetchError: "Error in fetch process",
-  filterError: "Error in filter process",
-  noDataFound: "No anime data found. Please run the fetch process first.",
-} as const;
-
 export const DISTRIBUTION_RANGES = {
   score: [7, 8, 9],
   members: [100000, 1000000],

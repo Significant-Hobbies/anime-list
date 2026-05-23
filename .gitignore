@@ -21,5 +21,5 @@ test-results
 .open-next
 .pages-deploy
 .wrangler
-.fallow
+.playwright-mcp
 .DS_Store

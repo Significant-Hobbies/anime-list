@@ -23,6 +23,7 @@ import {
 import { getAnimeStats } from "./statistics";
 import { getScoreSortedList } from "./utils/statistics";
 import { animeStore } from "./store/animeStore";
+import { mangaStore } from "./store/mangaStore";
 import {
   getAnimeByMalId,
   getLastDataUpdate,
@@ -58,9 +59,7 @@ import {
   reorderScheduleSchema,
 } from "./validators/schedule";
 import {
-  getSchedule,
   initScheduleTable,
-  upsertScheduleItems,
   updateScheduleItem as dbUpdateScheduleItem,
   removeScheduleItems,
   reorderSchedule as dbReorderSchedule,
@@ -71,9 +70,9 @@ import {
   migrateScheduleEpisodesWatched,
 } from "./db/migrations";
 import { getAnimeDetailSupplementalData } from "./controllers/animeDetailService";
-import {
-  computeTimeline,
-} from "./controllers/scheduleController";
+import { buildScheduleTimelineResponse, addScheduleItems } from "./services/scheduleService";
+import { buildTasteRecommendations } from "./recommendations";
+import { registerMangaRoutes } from "./worker/mangaRoutes";
 import {
   NUMERIC_FIELDS,
   ARRAY_FIELDS,
@@ -99,6 +98,8 @@ interface AuthPayload {
 type Env = {
   TURSO_DATABASE_URL: string;
   TURSO_AUTH_TOKEN: string;
+  TURSO_MANGA_DATABASE_URL?: string;
+  TURSO_MANGA_AUTH_TOKEN?: string;
   JWT_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   POSTHOG_API_KEY?: string;
@@ -244,6 +245,10 @@ const toDetailAnime = (
 app.use("*", async (c, next) => {
   process.env.TURSO_DATABASE_URL = c.env.TURSO_DATABASE_URL;
   process.env.TURSO_AUTH_TOKEN = c.env.TURSO_AUTH_TOKEN;
+  process.env.TURSO_MANGA_DATABASE_URL =
+    c.env.TURSO_MANGA_DATABASE_URL || c.env.TURSO_DATABASE_URL;
+  process.env.TURSO_MANGA_AUTH_TOKEN =
+    c.env.TURSO_MANGA_AUTH_TOKEN || c.env.TURSO_AUTH_TOKEN;
   process.env.JWT_SECRET = c.env.JWT_SECRET;
   process.env.GOOGLE_CLIENT_ID = c.env.GOOGLE_CLIENT_ID;
   await next();
@@ -755,6 +760,53 @@ app.post("/api/watchlist/tags/:tagId/delete", requireAuth, async (c) => {
   return c.json({ success: true, message: "Tag deleted" });
 });
 
+app.get("/api/watchlist/recommendations", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const watchlist = await getAnimeWatchlist(user.userId);
+
+  if (!watchlist) {
+    return c.json({
+      profile: {
+        favoriteGenres: [],
+        favoriteThemes: [],
+        preferredTypes: [],
+        sampledTitles: 0,
+      },
+      recommendations: [],
+    });
+  }
+
+  const allAnime = await animeStore.getAnimeList();
+  return c.json(buildTasteRecommendations(allAnime, watchlist));
+});
+
+app.get("/api/anime/random", async (c) => {
+  const genre = (c.req.query("genre") || "").trim();
+  const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "1", 10) || 1, 1), 20);
+
+  let catalog = await animeStore.getAnimeList();
+  if (genre) {
+    const normalizedGenre = genre.toLowerCase();
+    catalog = catalog.filter((anime) =>
+      Object.keys(anime.genres).some((g) => g.toLowerCase() === normalizedGenre),
+    );
+  }
+
+  if (catalog.length === 0) {
+    return c.json({ results: [] });
+  }
+
+  const shuffled = [...catalog].sort(() => Math.random() - 0.5);
+  const results = shuffled.slice(0, limit).map((anime) => ({
+    mal_id: anime.mal_id,
+    id: anime.mal_id,
+    title: anime.title,
+    title_english: anime.title_english,
+  }));
+
+  return c.json({ results });
+});
+
 app.get("/api/watchlist/enriched", requireAuth, async (c) => {
   const user = c.get("user")!;
   const watchlist = await getAnimeWatchlist(user.userId);
@@ -858,33 +910,7 @@ app.post("/api/watched/remove", requireAuth, async (c) => {
 // Schedule
 app.get("/api/schedule/timeline", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const [scheduleRows, watchlist] = await Promise.all([
-    getSchedule(user.userId),
-    getAnimeWatchlist(user.userId),
-  ]);
-  const allAnime = await animeStore.getAnimeList();
-  const animeMap = new Map(allAnime.map((a) => [a.mal_id.toString(), a]));
-
-  const items = scheduleRows.map((row) => {
-    const anime = animeMap.get(row.mal_id);
-    const watched = watchlist?.anime[row.mal_id];
-    return {
-      mal_id: row.mal_id,
-      episodes_per_day: row.episodes_per_day,
-      sort_order: row.sort_order,
-      episodes_watched: row.episodes_watched,
-      title: anime?.title_english || anime?.title || (watched?.title as string | undefined) || `ID: ${row.mal_id}`,
-      image: anime?.image,
-      episodes: anime?.episodes,
-      type: anime?.type,
-      score: anime?.score,
-      url: anime?.url,
-      watchStatus: watched?.status || "",
-    };
-  });
-
-  const { timeline, stats } = computeTimeline(items);
-  return c.json({ items, timeline, stats });
+  return c.json(await buildScheduleTimelineResponse(user.userId));
 });
 
 app.post("/api/schedule/add", requireAuth, async (c) => {
@@ -894,10 +920,7 @@ app.post("/api/schedule/add", requireAuth, async (c) => {
     return c.json({ error: "Invalid schedule payload", details: parsed.error.issues }, 400);
   }
   const user = c.get("user")!;
-  await upsertScheduleItems(
-    user.userId,
-    parsed.data.mal_ids.map((id) => ({ malId: id, episodesPerDay: parsed.data.episodes_per_day })),
-  );
+  await addScheduleItems(user.userId, parsed.data.mal_ids, parsed.data.episodes_per_day);
   return c.json({ success: true, message: "Added to schedule" });
 });
 
@@ -937,6 +960,8 @@ app.post("/api/schedule/reorder", requireAuth, async (c) => {
   return c.json({ success: true, message: "Schedule reordered" });
 });
 
+registerMangaRoutes(app, { requireAuth, optionalAuth });
+
 // ── Export ──────────────────────────────────────────────────────────────
 
 export default {
@@ -950,8 +975,12 @@ export default {
     // Bridge env for the cron context
     process.env.TURSO_DATABASE_URL = env.TURSO_DATABASE_URL;
     process.env.TURSO_AUTH_TOKEN = env.TURSO_AUTH_TOKEN;
-    console.log("Cron: refreshing anime cache from Turso");
-    await animeStore.setAnimeList();
+    process.env.TURSO_MANGA_DATABASE_URL =
+      env.TURSO_MANGA_DATABASE_URL || env.TURSO_DATABASE_URL;
+    process.env.TURSO_MANGA_AUTH_TOKEN =
+      env.TURSO_MANGA_AUTH_TOKEN || env.TURSO_AUTH_TOKEN;
+    console.log("Cron: refreshing anime and manga caches from Turso");
+    await Promise.all([animeStore.setAnimeList(), mangaStore.setMangaList()]);
     console.log("Cron: cache refreshed");
   },
 };

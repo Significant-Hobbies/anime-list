@@ -1,7 +1,6 @@
 const STATIC_ALLOWED_ORIGINS = new Set([
   "https://anime-list-web.sarthakagrawal927.workers.dev",
   "https://anime-list-9lk.pages.dev",
-  "https://anime-explorer-mal.vercel.app",
   "http://localhost:3000",
 ]);
 

@@ -58,7 +58,7 @@ async function initMangaData() {
 }
 
 export async function loadMangaData(): Promise<void> {
-  let fileExists = existsSync(FILE_PATHS.cleanMangaData);
+  const fileExists = existsSync(FILE_PATHS.cleanMangaData);
   if (!fileExists) {
     console.log("Manga data file not found. Initializing...");
     return initMangaData();

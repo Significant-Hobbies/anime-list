@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const siteUrl = "https://anime-explorer-mal.vercel.app";
+const siteUrl = "https://anime-list-9lk.pages.dev";
 
 export const metadata = {
   title: "About — NEON CURATOR",
