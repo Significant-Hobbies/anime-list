@@ -142,6 +142,14 @@ export const DISTRIBUTION_RANGES = {
   years: [2000, 2010, 2020],
 } as const;
 
+/** Manga catalog uses lower popularity thresholds than anime. */
+export const MANGA_DISTRIBUTION_RANGES = {
+  score: [7, 7.5, 8, 8.5],
+  members: [1000, 10000, 50000, 100000],
+  favorites: [10, 100, 1000, 5000],
+  years: [1990, 2000, 2010, 2020],
+} as const;
+
 export const PERCENTILE_FIELDS = {
   score: AnimeField.Score,
   members: AnimeField.Members,

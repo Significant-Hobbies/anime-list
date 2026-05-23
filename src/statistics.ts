@@ -1,7 +1,7 @@
 import {
   AnimeField,
   DISTRIBUTION_RANGES,
-  FILE_PATHS,
+  MANGA_DISTRIBUTION_RANGES,
   PERCENTILE_FIELDS,
 } from "./config";
 import { AnimeItem } from "./types/anime";
@@ -74,20 +74,20 @@ export const getMangaStats = async (
   });
 
   const distributions = {
-    score: getDistribution(data, DISTRIBUTION_RANGES.score, MangaField.Score as any),
+    score: getDistribution(data, MANGA_DISTRIBUTION_RANGES.score, MangaField.Score as any),
     members: getDistribution(
       data,
-      DISTRIBUTION_RANGES.members,
+      MANGA_DISTRIBUTION_RANGES.members,
       MangaField.Members as any
     ),
     favorites: getDistribution(
       data,
-      DISTRIBUTION_RANGES.favorites,
+      MANGA_DISTRIBUTION_RANGES.favorites,
       MangaField.Favorites as any
     ),
     yearDistribution: getDistribution(
       data,
-      DISTRIBUTION_RANGES.years,
+      MANGA_DISTRIBUTION_RANGES.years,
       MangaField.Year as any
     ),
   };
