@@ -56,8 +56,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
+  modal,
 }: {
   children: React.ReactNode;
+  modal: React.ReactNode;
 }) {
   return (
     <html lang="en" className="dark">
@@ -94,6 +96,7 @@ export default function RootLayout({
                 <Navigation />
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-24 pt-8">{children}</main>
                 <Footer />
+                {modal}
                 <FeedbackWidgetWrapper />
               </AuthProvider>
             </QueryProvider>

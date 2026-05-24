@@ -11,14 +11,16 @@ import {
   Heart,
   Star,
 } from "lucide-react";
-import { getAnimeDetail, updateAnimeNote } from "@/lib/api";
+import { getAnimeDetail, updateAnimeNote, addToWatchlist, getWatchlistTags, addToSchedule } from "@/lib/api";
 import type {
   AnimeRecommendationItem,
   AnimeRelationItem,
 } from "@/lib/types";
-import { getAnimeDetailHref } from "@/lib/utils";
+import { cn, getAnimeDetailHref } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { trackActivated, trackCoreAction } from "@/lib/analytics";
+import { DEFAULT_WATCH_TAGS, resolveTagColor } from "@/lib/watchStatus";
 
 const compactNumber = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -36,10 +38,10 @@ function formatStat(value?: number | null, compact = false): string | null {
   return compact ? compactNumber.format(value) : wholeNumber.format(value);
 }
 
-function LoadingSkeleton() {
+function LoadingSkeleton({ isModal = false }: { isModal?: boolean }) {
   return (
-    <div className="space-y-6 animate-pulse px-6 py-10">
-      <div className="h-9 w-32 rounded-md bg-muted" />
+    <div className={cn("space-y-6 animate-pulse", isModal ? "p-6" : "px-6 py-10")}>
+      {!isModal && <div className="h-9 w-32 rounded-md bg-muted" />}
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="lg:col-span-4 aspect-[2/3] rounded-sm bg-surface-container-high" />
         <div className="lg:col-span-8 space-y-4 rounded-sm border border-outline/10 bg-surface-container-low p-6">
@@ -105,14 +107,36 @@ function RelatedTitleLink({
   );
 }
 
-export default function AnimeDetailView({ malId }: { malId: number }) {
+export default function AnimeDetailView({ malId, isModal = false }: { malId: number, isModal?: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [noteDraft, setNoteDraft] = useState("");
+  const [scheduled, setScheduled] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [customTag, setCustomTag] = useState("");
+  const [customColor, setCustomColor] = useState("#10b981");
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+
   const detailQuery = useQuery({
     queryKey: ["anime", "detail", malId],
     queryFn: () => getAnimeDetail(malId),
   });
+
+  const { data: tagsData } = useQuery({
+    queryKey: ["watchlist", "tags"],
+    queryFn: () => getWatchlistTags(),
+    enabled: !!user,
+  });
+
+  const availableTags = tagsData?.tags?.length ? tagsData.tags : DEFAULT_WATCH_TAGS;
+  const persistedStatus = detailQuery.data?.watchlistEntry?.status ?? null;
+  const currentStatus = optimisticStatus ?? persistedStatus;
+  const currentStatusColor = useMemo(() => {
+    if (!currentStatus) return null;
+    const matchingTag = availableTags.find((tag) => tag.tag === currentStatus);
+    return resolveTagColor(currentStatus, matchingTag?.color);
+  }, [availableTags, currentStatus]);
+
   const noteMutation = useMutation({
     mutationFn: (note: string) => updateAnimeNote(malId, note),
     onSuccess: () => {
@@ -120,6 +144,47 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
   });
+
+  const watchlistMutation = useMutation({
+    mutationFn: ({
+      status,
+      tagColor,
+    }: {
+      status: string;
+      tagColor?: string;
+    }) => addToWatchlist([malId], status, tagColor),
+    onSuccess: () => {
+      setCustomTag("");
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
+      queryClient.invalidateQueries({ queryKey: ["anime", "detail", malId] });
+      trackCoreAction("watchlist_add");
+      trackActivated(user?.id);
+    },
+  });
+
+  const scheduleMutation = useMutation({
+    mutationFn: () => addToSchedule([malId]),
+    onSuccess: () => {
+      setScheduled(true);
+      setShowMenu(false);
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+    },
+  });
+
+  const handleAdd = (status: string, tagColor?: string) => {
+    const previousStatus = currentStatus;
+    setShowMenu(false);
+    setOptimisticStatus(status);
+    watchlistMutation.mutate(
+      { status, tagColor },
+      {
+        onError: () => {
+          setOptimisticStatus(previousStatus);
+        },
+      },
+    );
+  };
 
   const recommendations = useMemo(() => {
     if (!detailQuery.data) return [];
@@ -137,13 +202,15 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
     setNoteDraft(detailQuery.data?.watchlistEntry?.note ?? "");
   }, [detailQuery.data?.watchlistEntry?.note]);
 
-  if (detailQuery.isLoading) return <LoadingSkeleton />;
+  if (detailQuery.isLoading) return <LoadingSkeleton isModal={isModal} />;
   if (detailQuery.error || !detailQuery.data) {
     return (
-      <div className="space-y-4 px-6 pt-10">
-        <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
-          <Link href="/"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
-        </Button>
+      <div className={cn("space-y-4", isModal ? "p-6" : "px-6 pt-10")}>
+        {!isModal && (
+          <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
+            <Link href="/"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
+          </Button>
+        )}
         <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
           <h2 className="text-lg font-semibold text-foreground mb-2">Unable to load anime details</h2>
           <p className="text-sm font-body opacity-80">
@@ -175,16 +242,18 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
   const franchiseGuide = relations.filter((item) => item.relation.toLowerCase() !== "prequel" && item.relation.toLowerCase() !== "sequel");
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-12">
+    <div className={cn("space-y-12", !isModal && "max-w-7xl mx-auto", "px-4 sm:px-6 py-10")}>
       {/* Detail Header */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white h-8 px-2 border border-outline/20">
-            <Link href="/">
-              <ArrowLeft className="mr-1 h-3 w-3" />
-              Back
-            </Link>
-          </Button>
+        <div className={cn("flex items-center gap-4", isModal ? "justify-end" : "justify-between")}>
+          {!isModal && (
+            <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white h-8 px-2 border border-outline/20">
+              <Link href="/">
+                <ArrowLeft className="mr-1 h-3 w-3" />
+                Back
+              </Link>
+            </Button>
+          )}
           <a 
             href={anime.url} 
             target="_blank" 
@@ -236,14 +305,91 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
           </div>
 
           {/* Watchlist Action */}
-          <div className="bg-surface-container-low p-1 flex rounded-sm">
-            {watchlistEntry ? (
-              <div className="flex-1 py-3 text-[10px] font-black tracking-widest uppercase text-center bg-primary text-primary-foreground rounded-sm">
-                IN LIST: {watchlistEntry.status}
-              </div>
-            ) : (
-              <div className="flex-1 py-3 text-[10px] font-black tracking-widest uppercase text-center text-white/40 bg-surface">
-                NOT IN LIST
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              disabled={watchlistMutation.isPending}
+              aria-label={currentStatus ? `Edit watchlist status: ${currentStatus}` : "Add to watchlist"}
+              className="w-full h-12 rounded-sm bg-primary text-primary-foreground flex items-center justify-center hover:scale-[1.02] transition-transform"
+              style={
+                currentStatusColor
+                  ? { backgroundColor: currentStatusColor, boxShadow: `0 0 25px -5px ${currentStatusColor}66` }
+                  : undefined
+              }
+            >
+              {watchlistMutation.isPending ? (
+                <span className="animate-spin text-sm">...</span>
+              ) : currentStatus ? (
+                <span className="text-sm font-black uppercase tracking-widest">IN LIST: {currentStatus}</span>
+              ) : (
+                <span className="font-black text-sm">ADD TO LIST</span>
+              )}
+            </button>
+            {showMenu && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-surface-container-high border border-outline/20 shadow-2xl rounded-sm py-1 w-full z-20">
+                {availableTags.map((tag) => {
+                  const color = resolveTagColor(tag.tag, tag.color);
+                  const isCurrentTag = currentStatus === tag.tag;
+                  return (
+                  <button
+                    key={tag.tag}
+                    onClick={() => handleAdd(tag.tag, tag.color)}
+                    className="flex items-center justify-between gap-2 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors text-left"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: color, color: color }}
+                      />
+                      <span className="text-white/80">{tag.tag}</span>
+                    </span>
+                    {isCurrentTag && (
+                      <span className="text-[9px] text-primary">
+                        Current
+                      </span>
+                    )}
+                  </button>
+                  );
+                })}
+                <div className="border-t border-outline/10">
+                  <button
+                    onClick={() => scheduleMutation.mutate()}
+                    disabled={scheduleMutation.isPending || scheduled}
+                    className="flex items-center gap-3 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/80 hover:bg-white/5 transition-colors text-left disabled:opacity-50"
+                  >
+                    <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                    {scheduled ? "Scheduled" : "Schedule"}
+                  </button>
+                </div>
+                <div className="border-t border-outline/10 px-3 pt-3 pb-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={customTag}
+                      onChange={(e) => setCustomTag(e.target.value)}
+                      placeholder="NEW TAG"
+                      className="h-8 flex-1 rounded-sm border border-outline/20 bg-surface px-2 text-[10px] font-bold uppercase tracking-widest text-white placeholder:text-white/20 focus:outline-none focus:border-primary"
+                    />
+                    <input
+                      type="color"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      className="h-8 w-8 rounded-sm border border-outline/20 bg-surface p-0.5 cursor-pointer"
+                      aria-label="Tag color"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      const tag = customTag.trim();
+                      if (!tag) return;
+                      handleAdd(tag, customColor);
+                    }}
+                    className="h-8 w-full rounded-sm bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             )}
           </div>
