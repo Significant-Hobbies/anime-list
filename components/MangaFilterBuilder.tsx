@@ -77,13 +77,24 @@ function isFilterValuePresent(filter: SearchFilter): boolean {
   return normalizedFilter.value !== "" && normalizedFilter.value !== undefined;
 }
 
+const ACTION_LABEL: Record<string, string> = {
+  EQUALS: "=",
+  GREATER_THAN: ">",
+  GREATER_THAN_OR_EQUALS: "≥",
+  LESS_THAN: "<",
+  LESS_THAN_OR_EQUALS: "≤",
+  INCLUDES_ALL: "includes",
+  INCLUDES_ANY: "any of",
+  EXCLUDES: "excl.",
+  CONTAINS: "~",
+};
+
 function formatFilterChip(filter: SearchFilter): string {
-  const field = filter.field.replace(/_/g, " ");
-  const action = filter.action.replace(/_/g, " ").toLowerCase();
-  const value = Array.isArray(filter.value)
-    ? filter.value.join(", ")
-    : String(filter.value);
-  return `${field} ${action} ${value}`;
+  const words = filter.field.split("_");
+  const field = [words[0][0].toUpperCase() + words[0].slice(1), ...words.slice(1)].join(" ");
+  const op = ACTION_LABEL[filter.action] ?? filter.action.toLowerCase().replace(/_/g, " ");
+  const value = Array.isArray(filter.value) ? filter.value.join(", ") : String(filter.value);
+  return `${field} ${op} ${value}`;
 }
 
 export default function MangaFilterBuilder() {
@@ -217,6 +228,7 @@ export default function MangaFilterBuilder() {
       return searchManga(f, opts);
     },
     placeholderData: (prev) => prev,
+    retry: 1,
   });
 
   const toggleGenre = (genre: string) => {

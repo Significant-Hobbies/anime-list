@@ -163,3 +163,19 @@ pnpm db:update     # Update anime data from Jikan API
 ## License
 
 ISC - Sarthak Agrawal
+
+<!-- ACTIVE-AI-TASK-LOG:START -->
+## Active AI Task Log
+
+This section is maintained by the SaaS Maker Active-AI product/design loop so future agents do not reopen duplicate UI tasks.
+
+- Business lane: P2 Watch / maintenance
+- Rule: do not create another broad "improve the UI" task unless the acceptance criteria differ materially from the tasks listed here.
+- Source of truth for task status: SaaS Maker task board. README entries are durable context only.
+
+| Task | Status | Priority | Last known note |
+| --- | --- | --- | --- |
+| `5fc1a3af` anime_list: replace indefinite shelf skeleton with real cards or clear loading state | done | low | 2026-05-25 18:57:08 |
+| `049bfd61` [fleet-smoke] anime_list/web analytics endpoint 404 | done | medium | 2026-05-25 17:25:17 |
+| `e775b1b8` anime_list: add filter result explanation chips | done | low | 2026-05-26 |
+<!-- ACTIVE-AI-TASK-LOG:END -->
