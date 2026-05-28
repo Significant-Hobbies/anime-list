@@ -6,11 +6,11 @@
  * cross-fleet funnel (signup -> activated -> core_action) and a D1/D7
  * retention insight, with no custom dashboard.
  *
- * Every event carries `project: "anime_list"`.
+ * Every event carries `project_id: "anime_list"`.
  *
  * Browser-only: the anime_list app data layer is a separate Express/Hono
  * worker, not Next.js server actions — so all four events route through
- * `@saas-maker/posthog-client` (`track`) in the browser.
+ * `posthog-js` (`track`) in the browser.
  *
  *  - `signup`      — first Google sign-in for an account (a new user).
  *  - `activated`   — first real value: the user adds their first anime to
@@ -21,7 +21,7 @@
  */
 "use client";
 
-import { track } from "@saas-maker/posthog-client";
+import posthog from "posthog-js";
 
 const PROJECT = "anime_list" as const;
 
@@ -30,25 +30,29 @@ export type CoreAction = "watchlist_add" | "anime_search" | "manga_search";
 
 interface AnalyticsEventMap {
   /** First Google sign-in for an account. */
-  signup: { project: typeof PROJECT };
+  signup: { project_id: typeof PROJECT };
   /** The user reaches first real value — their first watchlist add. */
-  activated: { project: typeof PROJECT };
+  activated: { project_id: typeof PROJECT };
   /** The thing the product exists to do. */
-  core_action: { project: typeof PROJECT; action: CoreAction };
+  core_action: { project_id: typeof PROJECT; action: CoreAction };
   /** A return session by a user with prior activity. */
-  returned: { project: typeof PROJECT };
+  returned: { project_id: typeof PROJECT };
+}
+
+export function trackEvent(event: string, properties: Record<string, unknown> = {}): void {
+  try {
+    if (typeof window === "undefined") return;
+    posthog.capture(event, { project_id: PROJECT, ...properties });
+  } catch {
+    // Analytics must NEVER break a user flow. Swallow and move on.
+  }
 }
 
 function emit<K extends keyof AnalyticsEventMap>(
   event: K,
-  props: Omit<AnalyticsEventMap[K], "project">,
+  props: Omit<AnalyticsEventMap[K], "project_id">,
 ): void {
-  try {
-    if (typeof window === "undefined") return;
-    track(event, { project: PROJECT, ...props });
-  } catch {
-    // Analytics must NEVER break a user flow. Swallow and move on.
-  }
+  trackEvent(event, props);
 }
 
 // localStorage keys tracking lifecycle milestones, keyed where relevant by

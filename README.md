@@ -1,8 +1,5 @@
 # MAL Explorer
 
-![AI Generated](https://ai-percentage-pin.vercel.app/api/ai-percentage?value=60)
-![AI PRs Welcome](https://ai-percentage-pin.vercel.app/api/ai-prs?welcome=yes)
-
 A modern anime discovery platform that helps you find your next favorite show.
 
 **Live Demo**: [anime-list-9lk.pages.dev](https://anime-list-9lk.pages.dev)
@@ -15,7 +12,7 @@ A modern anime discovery platform that helps you find your next favorite show.
 | API | Cloudflare Worker (`mal-api`) — Hono, daily cron at 03:00 UTC |
 | Database | Turso (libSQL) |
 | Auth | Google OAuth 2.0 + JWT |
-| Analytics | PostHog (`@saas-maker/posthog-client`) |
+| Analytics | PostHog (`local posthog-js wrapper`) |
 | CI/CD | GitHub Actions — auto-deploy to Cloudflare Pages on push to `main`; daily Turso sync workflow |
 
 > Local and production API traffic is served by the `mal-api` Cloudflare Worker on port **8787** during `pnpm dev`.
