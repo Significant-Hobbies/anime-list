@@ -1,0 +1,11 @@
+# Per-page static HTML — Next.js prerendered routes ship as static html
+# under .vercel/output/static + functions. CF Edge caching the HTML body
+# costs nothing and turns Lighthouse cold hits from ~115ms TTFB to <50ms.
+/
+  Cache-Control: public, s-maxage=86400, stale-while-revalidate=604800
+/*.html
+  Cache-Control: public, s-maxage=86400, stale-while-revalidate=604800
+
+# Next.js immutable hashed assets.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
