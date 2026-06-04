@@ -48,15 +48,28 @@ export default function GoogleSignInButton() {
 
     if (window.google) {
       initGoogle();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google) {
-          clearInterval(interval);
-          initGoogle();
-        }
-      }, 100);
-      return () => clearInterval(interval);
+      return;
     }
+
+    // Inject the GSI script on demand. Previously this lived in the root
+    // layout (`Script src=accounts.google.com/gsi/client lazyOnload`) which
+    // pulled 186 KiB on every page including the landing, where most
+    // visitors never sign in. Loading from here keeps the home LCP clean
+    // and only pays the cost on routes that actually render the button.
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-gsi-loader="true"]',
+    );
+    const script = existing ?? document.createElement("script");
+    if (!existing) {
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.dataset.gsiLoader = "true";
+      document.head.appendChild(script);
+    }
+    const onLoad = () => initGoogle();
+    script.addEventListener("load", onLoad);
+    return () => script.removeEventListener("load", onLoad);
   }, [login]);
 
   const handleClick = () => {

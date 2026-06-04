@@ -67,11 +67,12 @@ export default function RootLayout({
         className={`min-h-screen bg-background text-foreground ${inter.variable}`}
       >
         <AnalyticsProvider>
-          {/* Google Identity Services — defer past page idle since the
-              homepage and most discover pages don't trigger a sign-in flow
-              on first load. psi-swarm flagged this as 76.9 KB of unused JS
-              that was racing for the LCP-critical interval. */}
-          <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
+          {/* Google Identity Services is no longer loaded here. Pages that
+              render <GoogleSignInButton> inject the script on mount via
+              components/GoogleSignInButton.tsx. psi-swarm flagged the
+              previous layout-level lazyOnload as 186 KiB of unused JS on
+              every homepage hit; loading on demand drops it from the
+              landing entirely. */}
           <Script
             id="structured-data"
             type="application/ld+json"
