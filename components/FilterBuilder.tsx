@@ -14,6 +14,10 @@ import type { SearchFilter, SearchResponse } from "@/lib/types";
 import { getFields, getFilterActions, getWatchlistTags, searchAnime } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { trackCoreAction } from "@/lib/analytics";
+import {
+  DEFAULT_ANIME_MIN_MEMBERS,
+  DEFAULT_ANIME_PAGE_SIZE,
+} from "@/lib/animeSearchDefaults";
 import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS } from "@/lib/filterMetadata";
 import FilterRow from "./FilterRow";
 import ResultsGrid, { ResultsGridSkeleton } from "./ResultsGrid";
@@ -41,8 +45,6 @@ const DEFAULT_FILTER: SearchFilter = {
   action: "GREATER_THAN_OR_EQUALS",
   value: 7,
 };
-const DEFAULT_PAGE_SIZE = 40;
-const DEFAULT_MIN_MEMBERS = 100_000;
 const RELEVANCE_SORT_VALUE = "relevance";
 const SINGLE_VALUE_OPTION_FIELDS = new Set(["type", "season"]);
 
@@ -123,7 +125,15 @@ function formatFilterChip(filter: SearchFilter): string {
   return `${field} ${op} ${value}`;
 }
 
-export default function FilterBuilder() {
+type FilterBuilderProps = {
+  initialSearchData?: SearchResponse;
+  initialSearchKey?: string;
+};
+
+export default function FilterBuilder({
+  initialSearchData,
+  initialSearchKey,
+}: FilterBuilderProps) {
   const { user } = useAuth();
   const [filters, setFilters] = useQueryState("af", filtersParser.withDefault([]));
   const [searchText, setSearchText] = useQueryState("q", parseAsString.withDefault(""));
@@ -131,7 +141,7 @@ export default function FilterBuilder() {
   const [selectedSeason, setSelectedSeason] = useQueryState("season", parseAsString.withDefault("any"));
   const [minMembers, setMinMembers] = useQueryState(
     "min",
-    parseAsInteger.withDefault(DEFAULT_MIN_MEMBERS),
+    parseAsInteger.withDefault(DEFAULT_ANIME_MIN_MEMBERS),
   );
   const [airing, setAiring] = useQueryState(
     "airing",
@@ -151,7 +161,7 @@ export default function FilterBuilder() {
   );
   const [pagesize, setPagesize] = useQueryState(
     "pagesize",
-    parseAsInteger.withDefault(DEFAULT_PAGE_SIZE),
+    parseAsInteger.withDefault(DEFAULT_ANIME_PAGE_SIZE),
   );
   const [currentPage, setCurrentPage] = useQueryState(
     "page",
@@ -275,6 +285,8 @@ export default function FilterBuilder() {
       const { filters: f, opts } = buildSearchOpts();
       return searchAnime(f, opts);
     },
+    initialData: filterKey === initialSearchKey ? initialSearchData : undefined,
+    initialDataUpdatedAt: 0,
     placeholderData: (prev) => prev,
     retry: 1,
   });
@@ -319,11 +331,11 @@ export default function FilterBuilder() {
     setFilters([]);
     setSortBy("score");
     setSelectedSeason("any");
-    setMinMembers(DEFAULT_MIN_MEMBERS);
+    setMinMembers(DEFAULT_ANIME_MIN_MEMBERS);
     setAiring("any");
     setHideWatched([]);
     setWatchlistMode("hide");
-    setPagesize(DEFAULT_PAGE_SIZE);
+    setPagesize(DEFAULT_ANIME_PAGE_SIZE);
     setShowAdvanced(false);
     setCurrentPage(1);
   };
@@ -358,7 +370,7 @@ export default function FilterBuilder() {
     selectedGenres.length > 0 ||
     selectedSeason !== "any" ||
     airing !== "any" ||
-    minMembers !== DEFAULT_MIN_MEMBERS ||
+    minMembers !== DEFAULT_ANIME_MIN_MEMBERS ||
     activeAdvancedFilters.length > 0 ||
     hideWatched.length > 0;
 
@@ -605,11 +617,11 @@ export default function FilterBuilder() {
                 }}
               />
             )}
-            {minMembers !== DEFAULT_MIN_MEMBERS && popularityLabel && (
+            {minMembers !== DEFAULT_ANIME_MIN_MEMBERS && popularityLabel && (
               <ActiveFilterChip
                 label={popularityLabel}
                 onRemove={() => {
-                  setMinMembers(DEFAULT_MIN_MEMBERS);
+                  setMinMembers(DEFAULT_ANIME_MIN_MEMBERS);
                   resetPage();
                 }}
               />

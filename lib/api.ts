@@ -22,6 +22,7 @@ import { getApiUrl } from "./apiConfig";
 const API_URL = getApiUrl();
 const BASE = `${API_URL}/api`;
 const DEFAULT_PAGE_SIZE = 40;
+const SEARCH_REQUEST_TIMEOUT_MS = 12_000;
 
 // Auth now flows via httpOnly cookie set by the server. We send
 // `credentials: "include"` on every request so the cookie ships along.
@@ -30,21 +31,53 @@ function withCreds(init: RequestInit = {}): RequestInit {
   return { ...init, credentials: "include" };
 }
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, withCreds(init));
-  if (res.status === 401) {
-    if (typeof window !== "undefined") {
-      // Profile cache only — the cookie is the source of truth and the
-      // server has already rejected it. Tell the app to drop user state.
-      localStorage.removeItem("mal_profile");
-      // Best-effort: also clear any leftover legacy entry.
-      localStorage.removeItem("mal_auth");
-      window.dispatchEvent(new Event("mal_auth_expired"));
+async function fetchJson<T>(
+  url: string,
+  init?: RequestInit,
+  timeoutMs?: number,
+): Promise<T> {
+  const controller = timeoutMs ? new AbortController() : null;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  if (controller && init?.signal) {
+    if (init.signal.aborted) {
+      controller.abort();
+    } else {
+      init.signal.addEventListener("abort", () => controller.abort(), { once: true });
     }
-    throw new Error("Session expired. Please sign in again.");
   }
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+
+  if (controller && timeoutMs) {
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  }
+
+  try {
+    const res = await fetch(
+      url,
+      withCreds(controller ? { ...init, signal: controller.signal } : init),
+    );
+
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        // Profile cache only — the cookie is the source of truth and the
+        // server has already rejected it. Tell the app to drop user state.
+        localStorage.removeItem("mal_profile");
+        // Best-effort: also clear any leftover legacy entry.
+        localStorage.removeItem("mal_auth");
+        window.dispatchEvent(new Event("mal_auth_expired"));
+      }
+      throw new Error("Session expired. Please sign in again.");
+    }
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Search service timed out. Please try again.");
+    }
+    throw error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 const jsonHeaders = { "Content-Type": "application/json" } as const;
@@ -68,19 +101,23 @@ export function searchAnime(
     includeWatched?: string[];
   } = {}
 ): Promise<SearchResponse> {
-  return fetchJson(`${BASE}/search`, {
-    method: "POST",
-    headers: jsonHeaders,
-    body: JSON.stringify({
-      filters,
-      pagesize: opts.pagesize ?? DEFAULT_PAGE_SIZE,
-      offset: opts.offset ?? 0,
-      sortBy: opts.sortBy,
-      airing: opts.airing ?? "any",
-      hideWatched: opts.hideWatched ?? [],
-      includeWatched: opts.includeWatched ?? [],
-    }),
-  });
+  return fetchJson(
+    `${BASE}/search`,
+    {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        filters,
+        pagesize: opts.pagesize ?? DEFAULT_PAGE_SIZE,
+        offset: opts.offset ?? 0,
+        sortBy: opts.sortBy,
+        airing: opts.airing ?? "any",
+        hideWatched: opts.hideWatched ?? [],
+        includeWatched: opts.includeWatched ?? [],
+      }),
+    },
+    SEARCH_REQUEST_TIMEOUT_MS,
+  );
 }
 
 export function getStats(opts: {
