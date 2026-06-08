@@ -64,7 +64,7 @@ export default function GoogleSignInButton() {
       script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
-      script.dataset.gsiLoader = "true";
+      script.dataset["gsiLoader"] = "true";
       document.head.appendChild(script);
     }
     const onLoad = () => initGoogle();
