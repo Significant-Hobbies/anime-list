@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { isAllowedOrigin } from "./corsOrigins";
-import { jwtVerify, createRemoteJWKSet } from "jose";
+import { SignJWT, jwtVerify, createRemoteJWKSet } from "jose";
 import { configurePostHog, trace, flushPostHog } from "@saas-maker/ops";
 
 // Business logic imports (all unchanged files)
@@ -94,6 +94,126 @@ import { z } from "zod";
 const discoverDismissSchema = z.object({
   mal_ids: z.array(z.string().or(z.number())).min(1),
 });
+
+// ── Types ──────────────────────────────────────────────────────────────
+
+interface AuthPayload {
+  userId: string;
+  email: string;
+  name: string;
+  picture?: string;
+}
+
+type Env = {
+  TURSO_DATABASE_URL: string;
+  TURSO_AUTH_TOKEN: string;
+  TURSO_MANGA_DATABASE_URL?: string;
+  TURSO_MANGA_AUTH_TOKEN?: string;
+  JWT_SECRET: string;
+  GOOGLE_CLIENT_ID: string;
+  POSTHOG_API_KEY?: string;
+};
+
+const SEARCH_CACHE_TTL_SECONDS = 180;
+const STATS_CACHE_TTL_SECONDS = 300;
+const SEARCH_SYNOPSIS_MAX = 220;
+
+const truncateSynopsis = (text: string | undefined): string | undefined => {
+  if (!text) return text;
+  if (text.length <= SEARCH_SYNOPSIS_MAX) return text;
+  return `${text.slice(0, SEARCH_SYNOPSIS_MAX - 1).trimEnd()}...`;
+};
+
+// ── JWT helpers (using jose instead of jsonwebtoken) ───────────────────
+
+const getJwtSecret = () =>
+  new TextEncoder().encode(
+    process.env.JWT_SECRET || "mal-explorer-dev-secret-change-in-prod",
+  );
+
+async function signToken(payload: AuthPayload): Promise<string> {
+  return new SignJWT(payload as unknown as Record<string, unknown>)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("7d")
+    .sign(getJwtSecret());
+}
+
+async function verifyToken(token: string): Promise<AuthPayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, getJwtSecret());
+    return payload as unknown as AuthPayload;
+  } catch {
+    return null;
+  }
+}
+
+function extractBearerToken(header: string | undefined): string | null {
+  if (header?.startsWith("Bearer ")) return header.slice(7);
+  return null;
+}
+
+// ── Cookie helpers (XSS hardening: token lives in httpOnly cookie) ─────
+
+const AUTH_COOKIE_NAME = "mal_auth_token";
+const AUTH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days, matches signToken TTL
+
+function buildAuthCookie(token: string): string {
+  // Cross-site frontends require SameSite=None+Secure.
+  return `${AUTH_COOKIE_NAME}=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}`;
+}
+
+function buildAuthClearCookie(): string {
+  return `${AUTH_COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`;
+}
+
+function readAuthCookie(cookieHeader: string | undefined): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(/(?:^|;\s*)mal_auth_token=([^;]+)/);
+  return match?.[1] ?? null;
+}
+
+function extractToken(c: {
+  req: { header: (name: string) => string | undefined };
+}): string | null {
+  return (
+    extractBearerToken(c.req.header("Authorization")) ||
+    readAuthCookie(c.req.header("Cookie"))
+  );
+}
+
+const toHex = (buffer: ArrayBuffer): string =>
+  Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+const buildSearchCacheRequest = async (
+  origin: string,
+  payload: {
+    filters: unknown;
+    sortBy: string | undefined;
+    airing: "yes" | "no" | "any";
+    pagesize: number;
+    offset: number;
+  },
+): Promise<Request> => {
+  const normalizedPayload = {
+    filters: payload.filters,
+    sortBy: payload.sortBy ?? null,
+    airing: payload.airing,
+    pagesize: payload.pagesize,
+    offset: payload.offset,
+  };
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(normalizedPayload)),
+  );
+  const key = toHex(digest);
+  const cacheUrl = new URL("https://mal-cache.local/api/search");
+  cacheUrl.searchParams.set("v", "1");
+  cacheUrl.searchParams.set("k", key);
+  cacheUrl.searchParams.set("o", origin || "none");
+  return new Request(cacheUrl.toString(), { method: "GET" });
+};
 
 // ── Google OAuth (using jose JWKS instead of google-auth-library) ──────
 

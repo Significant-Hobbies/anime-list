@@ -24,7 +24,7 @@
     "db:update:manga": "tsx src/scripts/updateMangaData.ts",
     "db:update:manga:full": "tsx src/scripts/updateMangaData.ts -- --full",
     "db:quarterly-sync": "tsx src/scripts/runQuarterlyAnimeSync.ts",
-    "deploy:worker": "wrangler deploy --config wrangler.cron.toml",
+    "deploy:worker": "wrangler deploy src/worker.ts --config wrangler.cron.toml",
     "prepare": "husky"
   },
   "keywords": [],
