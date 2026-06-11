@@ -280,6 +280,7 @@ export default function ScheduleView() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SCHEDULE_KEY });
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "enriched"] });
     },
   });
 
