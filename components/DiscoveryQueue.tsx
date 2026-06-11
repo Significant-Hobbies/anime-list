@@ -44,7 +44,10 @@ interface DiscoveryCardProps {
 
 function DiscoveryCard({ item, onDismiss, onAdd, onSkip, isPending }: DiscoveryCardProps) {
   const [selectedStatus, setSelectedStatus] = useState("Watching");
-  const { data: tagsData } = useQuery({ queryKey: ["watchlistTags"], queryFn: getWatchlistTags });
+  const { data: tagsData } = useQuery({
+    queryKey: ["watchlist", "tags"],
+    queryFn: getWatchlistTags,
+  });
 
   const availableTags = useMemo(
     () => tagsData?.tags?.map(t => t.tag) || ["Watching", "Completed", "Deferred", "Avoiding", "BRR"],
@@ -202,7 +205,8 @@ export function DiscoveryQueue() {
       if (variables.mediaType !== "manga") {
         queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       } else {
-        queryClient.invalidateQueries({ queryKey: ["mangaWatchlist"] });
+        queryClient.invalidateQueries({ queryKey: ["manga", "watchlist"] });
+        queryClient.invalidateQueries({ queryKey: ["manga", "watchlist", "enriched"] });
       }
       nextItem();
     },

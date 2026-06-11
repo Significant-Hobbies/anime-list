@@ -157,13 +157,28 @@ function extractBearerToken(header: string | undefined): string | null {
 const AUTH_COOKIE_NAME = "mal_auth_token";
 const AUTH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days, matches signToken TTL
 
-function buildAuthCookie(token: string): string {
-  // Cross-site frontends require SameSite=None+Secure.
+function isLocalhostHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function buildAuthCookie(token: string, host: string): string {
+  // Local dev runs on plain HTTP localhost, so we must avoid Secure there.
+  // Production and preview deployments still use cross-site cookies.
+  if (isLocalhostHost(host)) {
+    return `${AUTH_COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}`;
+  }
   return `${AUTH_COOKIE_NAME}=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}`;
 }
 
-function buildAuthClearCookie(): string {
+function buildAuthClearCookie(host: string): string {
+  if (isLocalhostHost(host)) {
+    return `${AUTH_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+  }
   return `${AUTH_COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`;
+}
+
+function getRequestHostname(c: { req: { url: string } }): string {
+  return new URL(c.req.url).hostname;
 }
 
 function readAuthCookie(cookieHeader: string | undefined): string | null {
@@ -370,7 +385,7 @@ app.post("/api/auth/google", async (c) => {
     // Set token in httpOnly cookie (XSS hardening). The token is also returned
     // in the body for backward compatibility during migration; the frontend
     // no longer needs to persist it.
-    c.header("Set-Cookie", buildAuthCookie(token), { append: true });
+    c.header("Set-Cookie", buildAuthCookie(token, getRequestHostname(c)), { append: true });
 
     return c.json({
       token,
@@ -389,7 +404,7 @@ app.post("/api/auth/google", async (c) => {
 
 // Logout: clear the auth cookie
 app.post("/api/auth/logout", (c) => {
-  c.header("Set-Cookie", buildAuthClearCookie(), { append: true });
+  c.header("Set-Cookie", buildAuthClearCookie(new URL(c.req.url).hostname), { append: true });
   return c.json({ ok: true });
 });
 
@@ -639,7 +654,6 @@ app.get("/api/anime/random", async (c) => {
 // :v1 suffix below.
 const ANIME_DETAIL_CACHE_TTL_SECONDS = 24 * 60 * 60;
 const ANIME_DETAIL_CACHE_KEY_PREFIX = "https://mal-cache.local/api/anime/";
-const MANGA_DETAIL_CACHE_KEY_PREFIX = "https://mal-cache.local/api/manga/";
 
 app.get("/api/anime/:malId", optionalAuth, async (c) => {
   const parsed = animeMalIdParamsSchema.safeParse({

@@ -67,12 +67,14 @@ describe("watchlist sync", () => {
   it("exports local watchlist rows as AniList status rows", () => {
     const rows = buildAniListExport({
       "1": { id: "1", status: "Completed", note: "done" },
-      "2": { id: "2", status: "BRR" },
+      "2": { id: "2", status: "Done" },
+      "3": { id: "3", status: "BRR" },
     });
 
     expect(rows).toEqual([
       { mediaIdMal: 1, status: "COMPLETED", notes: "done" },
-      { mediaIdMal: 2, status: "PLANNING", notes: "" },
+      { mediaIdMal: 2, status: "COMPLETED", notes: "" },
+      { mediaIdMal: 3, status: "PLANNING", notes: "" },
     ]);
   });
 });

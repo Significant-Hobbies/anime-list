@@ -66,8 +66,16 @@ export default function MangaCard({
   });
 
   const handleAdd = (status: string, tagColor?: string) => {
+    const previousStatus = currentStatus;
     setOptimisticStatus(status);
-    mutation.mutate({ status, tagColor });
+    mutation.mutate(
+      { status, tagColor },
+      {
+        onError: () => {
+          setOptimisticStatus(previousStatus);
+        },
+      },
+    );
     setShowMenu(false);
   };
 

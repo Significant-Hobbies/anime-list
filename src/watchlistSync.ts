@@ -41,6 +41,15 @@ const ANILIST_STATUS_MAP: Record<string, ExternalWatchStatus> = {
   REPEATING: "Watching",
 };
 
+const ANILIST_EXPORT_STATUS_MAP: Record<string, string> = {
+  watching: "CURRENT",
+  completed: "COMPLETED",
+  done: "COMPLETED",
+  deferred: "PAUSED",
+  avoiding: "DROPPED",
+  brr: "PLANNING",
+};
+
 function decodeXmlText(value: string) {
   return value
     .replaceAll("&amp;", "&")
@@ -159,8 +168,7 @@ export function buildAniListExport(watchlist: Record<string, WatchedAnime>) {
   return Object.values(watchlist).map((entry) => ({
     mediaIdMal: Number(entry.id),
     status:
-      Object.entries(ANILIST_STATUS_MAP).find(([, status]) => status === entry.status)?.[0] ??
-      "PLANNING",
+      ANILIST_EXPORT_STATUS_MAP[entry.status.trim().toLowerCase()] ?? "PLANNING",
     notes: entry.note ?? "",
   }));
 }
