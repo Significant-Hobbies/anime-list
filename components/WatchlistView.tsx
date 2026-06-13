@@ -79,6 +79,7 @@ export default function WatchlistView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "recommendations"] });
     },
   });
 
@@ -88,6 +89,7 @@ export default function WatchlistView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "recommendations"] });
     },
   });
 
@@ -105,6 +107,7 @@ export default function WatchlistView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "recommendations"] });
     },
   });
 
@@ -114,6 +117,7 @@ export default function WatchlistView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "recommendations"] });
     },
   });
 
