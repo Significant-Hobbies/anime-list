@@ -57,6 +57,7 @@ export default function MangaWatchlistView() {
       addToMangaWatchlist([Number(malId)], status, tagColor),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manga", "watchlist"] });
+      queryClient.invalidateQueries({ queryKey: ["manga", "watchlist", "enriched"] });
     },
   });
 
@@ -64,6 +65,7 @@ export default function MangaWatchlistView() {
     mutationFn: (malId: string) => removeFromMangaWatchlist([Number(malId)]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manga", "watchlist"] });
+      queryClient.invalidateQueries({ queryKey: ["manga", "watchlist", "enriched"] });
     },
   });
 
