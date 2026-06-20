@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-20
+Last updated: 2026-06-20 (perf pass)
 
 ## Current Scope
 
@@ -15,6 +15,7 @@ Shelf (MAL Explorer) is a production anime/manga discovery app: multi-field sear
 - Privacy-safe `/quiz` prototype that maps structured answers to Shelf archetypes and existing search URLs
 - Deployed on Cloudflare Pages + Worker; Vitest + Playwright test coverage
 - **De-OpenNext migration (2026-06-20):** web app rewritten from Next.js+OpenNext to Vite SPA + TanStack Router; `mal-api` worker unchanged
+- **Client bundle perf (2026-06-20):** removed 17MB `cleaned_anime_data.json` from SPA; route splitting + deferred PostHog. Desktop LCP p75 ~570ms (was ~3.9s)
 
 ## Planned Next
 
