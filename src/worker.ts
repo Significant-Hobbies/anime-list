@@ -1403,9 +1403,13 @@ app.get("/api/collections/:slug", async (c) => {
 
 // ── Export ──────────────────────────────────────────────────────────────
 
+import { withTiming } from "./lib/timing";
+
 export default {
-  fetch: (request: Request, env: Env, ctx: ExecutionContext) =>
-    app.fetch(request, env, ctx),
+  fetch: withTiming(
+    (request: Request, env: Env, ctx: ExecutionContext) =>
+      app.fetch(request, env, ctx),
+  ),
   async scheduled(
     _event: ScheduledEvent,
     env: Env,
