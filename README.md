@@ -104,7 +104,7 @@ graph TB
 ```bash
 git clone <repository-url>
 cd mal
-npm install
+pnpm install
 ```
 
 2. Create `.env` from `.env.example` and set Turso + Google OAuth values. For local dev, `VITE_API_URL=http://localhost:8787`.
