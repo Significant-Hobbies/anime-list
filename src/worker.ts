@@ -1381,6 +1381,11 @@ app.get('/api/collections/:slug', async (c) => {
   return c.json({ collection, items: enriched });
 });
 
+app.onError((err, c) => {
+  console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);
+  return c.json({ error: 'Internal Server Error' }, 500);
+});
+
 // ── Export ──────────────────────────────────────────────────────────────
 
 import { withTiming } from './lib/timing';
