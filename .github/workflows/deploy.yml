@@ -1,9 +1,6 @@
 name: Deploy anime_list to Cloudflare Pages
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/deploy.yml', 'src/**', 'components/**', 'lib/**', 'index.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', 'wrangler.toml']
-
+  workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
