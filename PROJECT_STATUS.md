@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 ## Why / What
 
@@ -24,7 +24,7 @@ Last updated: 2026-07-02
 - **PostHog:** client analytics.
 - **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 180s, stats 300s, detail 24h anonymous only).
 - **Worker secrets (names only):** `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, optional `TURSO_MANGA_*`, `POSTHOG_API_KEY`.
-- **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `TURSO_*`, `VITE_SAASMAKER_API_KEY`.
+- **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `TURSO_*`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
 
 ### Internal (fleet)
 
@@ -53,6 +53,8 @@ Last updated: 2026-07-02
 
 ## Timeline
 
+- **2026-07-03** — Shipped engagement telemetry for the quiz/collections/homepage funnels (`lib/engagement.ts`), the `VITE_HOME_QUIZ_ABOVE_FOLD` A/B switch (`lib/flags.ts`, default off), and a "Copy link" share button on `/collections`.
+- **2026-07-04** — Upgraded the homepage A/B test from a build-time toggle to a live 50/50 cookie-based split (`ab_home`, 14-day expiry). Added `homepage_variant_seen` impression tracking, `quiz_result_shown`, `collection_created`, and `collection_viewed` events. See "Engagement measurement" below.
 - **2026-07-02** — Added `app.onError()` global error handler to `mal-api` worker (catches unhandled Hono errors → 500 JSON + console.error logging).
 - **2026-06-20** — De-OpenNext migration: rewritten from Next.js+OpenNext to Vite SPA + TanStack Router; `mal-api` worker unchanged; removed 17MB `cleaned_anime_data.json` from SPA.
 - **2026-06-20** — Shipped PRD batch (2026-06-12): watchlist import/export, saved search alerts (in-app MVP), public collections.
@@ -131,18 +133,44 @@ Last updated: 2026-07-02
 
 ### Tests & ops
 
-- Vitest: 46 tests (import/export, filters, recommendations, schedule, detail cache).
+- Vitest: 51 tests (import/export, filters, recommendations, schedule, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll.
 - PostHog analytics.
+
+### Engagement measurement
+
+Instrumentation lives in `lib/engagement.ts` (surface funnels) and `lib/analytics.ts` (fixed 4-event fleet taxonomy). All events route through `posthog-js` (lazy-loaded, fail-silent) and carry `project_id: "anime_list"`.
+
+**Quiz funnel** (`/quiz`):
+- `quiz_viewed` → `quiz_started` (first answer) → `quiz_completed` (all answered, archetype id only) → `quiz_result_shown` (result card displayed) → `quiz_result_clicked` (clickthrough to search or exemplar detail).
+- Privacy: only the derived archetype id is sent — never individual answers.
+
+**Collections funnel** (`/collections`, `/c/$slug`):
+- `collections_viewed` (list page, signed-in flag) → `collection_created` (new collection published, slug + item count) → `collection_share_clicked` (copy link) → `collection_viewed` / `collection_public_viewed` (public page load, `via_share` flag for `?ref=share` visits).
+
+**Homepage A/B test** (`/`):
+- 50/50 cookie-based split (`ab_home`, 14-day expiry) via `homeVariant()` in `lib/flags.ts`.
+  - `control` — current homepage (quiz CTA only in footer).
+  - `treatment` — quiz CTA promoted into the hero, above the fold.
+- `homepage_variant_seen` fires on each homepage mount (impression).
+- `home_surface_click` fires on every CTA click with `home_variant` + `placement`.
+- Every funnel event carries `home_variant` so PostHog can split results by variant.
+- Manual override: `?ff_quiz_home=1` (treatment) / `=0` (control). Build-time `VITE_HOME_QUIZ_ABOVE_FOLD=true` forces treatment for all visitors (use for full rollout, not the test).
+
+**Fleet taxonomy** (`lib/analytics.ts`):
+- `signup` (first Google sign-in for an account) → `activated` (first watchlist add) → `core_action` (watchlist add / anime search / manga search) → `returned` (later session for a user with prior activity).
+
+**Decision rule (2-week window):** After 2 weeks of data, compare control vs treatment on `homepage_variant_seen` → `home_surface_click` (quiz) → `quiz_started` → `quiz_completed` → `quiz_result_clicked` → `signup`. Keep only the winner; park the loser. If no statistically meaningful lift, keep control (less surface area) and park the quiz-above-fold variant.
 
 ## Todo / Planned / Deferred / Blocked
 
 ### Planned
 
 1. Operational stability — Pages 500 regressions, MAL CDN image policy.
-2. Measure `/quiz` completion-to-search clickthrough before persistence, OG images, or share analytics.
-3. Measure collection share clickthrough before discovery ranking or social features.
-4. Add e2e for discover, watchlist import, collections, alerts (`e2e/`).
+2. **2-week A/B test in progress** — homepage control vs treatment (quiz CTA above fold). Decide winner after 2026-07-18; keep only the winner.
+3. Measure `/quiz` completion-to-search clickthrough before persistence, OG images, or share analytics.
+4. Measure collection share clickthrough before discovery ranking or social features.
+5. Add e2e for discover, watchlist import, collections, alerts (`e2e/`).
 
 ### Deferred
 

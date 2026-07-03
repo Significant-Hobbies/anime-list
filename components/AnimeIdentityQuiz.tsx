@@ -1,10 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import type { SearchFilter } from '@/lib/types';
 import { filtersParser } from '@/lib/filterMetadata';
+import {
+  trackQuizCompleted,
+  trackQuizResultClick,
+  trackQuizResultShown,
+  trackQuizStarted,
+  trackQuizViewed,
+} from '@/lib/engagement';
 
 type ArchetypeId = 'steady-strategist' | 'chaotic-optimist' | 'quiet-observer' | 'world-builder';
 
@@ -135,6 +142,23 @@ export default function AnimeIdentityQuiz() {
   const result = useMemo(() => scoreAnswers(answers), [answers]);
   const complete = Object.keys(answers).length === QUESTIONS.length;
 
+  // Funnel: viewed -> started (first answer) -> completed. Refs de-dupe
+  // per mount; only the derived archetype id is ever sent (never answers).
+  const startedRef = useRef(false);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    trackQuizViewed();
+  }, []);
+
+  useEffect(() => {
+    if (complete && !completedRef.current) {
+      completedRef.current = true;
+      trackQuizCompleted(result.id);
+      trackQuizResultShown(result.id);
+    }
+  }, [complete, result.id]);
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <section className="space-y-4">
@@ -151,7 +175,13 @@ export default function AnimeIdentityQuiz() {
                   <button
                     key={answer.label}
                     type="button"
-                    onClick={() => setAnswers((prev) => ({ ...prev, [question.id]: answer }))}
+                    onClick={() => {
+                      if (!startedRef.current) {
+                        startedRef.current = true;
+                        trackQuizStarted();
+                      }
+                      setAnswers((prev) => ({ ...prev, [question.id]: answer }));
+                    }}
                     className={[
                       'min-h-14 rounded-lg border px-4 py-3 text-left text-sm transition-colors',
                       selected
@@ -189,7 +219,12 @@ export default function AnimeIdentityQuiz() {
           <p className="mt-3 text-xs text-muted-foreground">Result URL only encodes: {result.id}</p>
         </div>
         <Button asChild className="mt-5 w-full" disabled={!complete}>
-          <Link to={complete ? buildSearchHref(result) : '/quiz'}>
+          <Link
+            to={complete ? buildSearchHref(result) : '/quiz'}
+            onClick={() => {
+              if (complete) trackQuizResultClick(result.id, 'search');
+            }}
+          >
             Explore shows for this archetype
           </Link>
         </Button>
@@ -199,6 +234,7 @@ export default function AnimeIdentityQuiz() {
               key={id}
               to="/anime/$malId"
               params={{ malId: String(id) }}
+              onClick={() => trackQuizResultClick(result.id, 'exemplar_detail')}
               className="rounded-md border border-border px-2 py-2 hover:text-foreground"
             >
               MAL {id}

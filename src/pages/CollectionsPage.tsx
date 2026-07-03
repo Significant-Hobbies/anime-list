@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import {
   createCollection,
   deleteCollection,
@@ -11,6 +11,11 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Card } from '@/components/ui/card';
+import {
+  trackCollectionCreated,
+  trackCollectionShareClick,
+  trackCollectionsViewed,
+} from '@/lib/engagement';
 
 export default function CollectionsPage() {
   const { user, loading } = useAuth();
@@ -18,6 +23,27 @@ export default function CollectionsPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  // Funnel: viewed -> share clicked -> shared-link visit (fires once per
+  // mount, after auth resolves so signed_in is accurate).
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (!loading && !viewedRef.current) {
+      viewedRef.current = true;
+      trackCollectionsViewed(!!user);
+    }
+  }, [loading, user]);
+
+  const copyShareLink = (slug: string) => {
+    trackCollectionShareClick(slug);
+    // ?ref=share marks visits from this copied link as shared-link visits.
+    const url = `${window.location.origin}/c/${slug}?ref=share`;
+    void navigator.clipboard?.writeText(url).then(() => {
+      setCopiedSlug(slug);
+      window.setTimeout(() => setCopiedSlug((prev) => (prev === slug ? null : prev)), 2000);
+    });
+  };
 
   const { data: collectionsData, isLoading } = useQuery({
     queryKey: ['collections', 'mine'],
@@ -39,7 +65,8 @@ export default function CollectionsPage() {
         visibility: 'public',
         items: selectedIds.map((mal_id) => ({ mal_id, media_type: 'anime' })),
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      trackCollectionCreated(data.collection.slug, selectedIds.length);
       setTitle('');
       setDescription('');
       setSelectedIds([]);
@@ -161,6 +188,14 @@ export default function CollectionsPage() {
                     <ExternalLink className="h-3.5 w-3.5" />
                     Public page
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => copyShareLink(collection.slug)}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    {copiedSlug === collection.slug ? 'Copied' : 'Copy link'}
+                  </button>
                   <button
                     type="button"
                     onClick={() =>

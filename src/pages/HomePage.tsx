@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { SITE_NAME } from '@/lib/brand';
+import { trackHomeSurfaceClick, trackHomepageVariantSeen } from '@/lib/engagement';
 import { filtersParser } from '@/lib/filterMetadata';
+import { homeVariant } from '@/lib/flags';
 import type { SearchFilter } from '@/lib/types';
 
 // score 8+, TV, finished airing — expressed in the params FilterBuilder reads
@@ -52,6 +55,17 @@ const FAQ = [
 ];
 
 export default function HomePage() {
+  // A/B test: 50/50 cookie-based split (control = current layout,
+  // treatment = quiz CTA above the fold). See lib/flags.ts +
+  // PROJECT_STATUS.md "Engagement measurement".
+  const quizAboveFold = homeVariant() === 'treatment';
+
+  // Fire the variant impression once per mount so PostHog can build the
+  // experiment funnel (variant seen -> surface click -> conversion).
+  useEffect(() => {
+    trackHomepageVariantSeen(quizAboveFold ? 'treatment' : 'control');
+  }, [quizAboveFold]);
+
   return (
     <div className="-mt-8 -mx-4 sm:-mx-6">
       <section className="px-4 sm:px-6 pt-16 pb-20 sm:pt-24 sm:pb-28">
@@ -70,16 +84,27 @@ export default function HomePage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               to="/search"
+              onClick={() => trackHomeSurfaceClick('search', 'hero')}
               className="inline-flex min-h-10 items-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               Filter the catalog
             </Link>
             <Link
               to="/discover"
+              onClick={() => trackHomeSurfaceClick('discover', 'hero')}
               className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Browse the queue
             </Link>
+            {quizAboveFold && (
+              <Link
+                to="/quiz"
+                onClick={() => trackHomeSurfaceClick('quiz', 'hero')}
+                className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Find your archetype
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -112,6 +137,7 @@ export default function HomePage() {
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <a
               href={TOP_TV_HREF}
+              onClick={() => trackHomeSurfaceClick('search', 'top_tv_card')}
               className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
             >
               <p className="text-sm font-medium text-foreground">Top-rated TV anime</p>
@@ -119,6 +145,7 @@ export default function HomePage() {
             </a>
             <Link
               to="/discover"
+              onClick={() => trackHomeSurfaceClick('discover', 'card')}
               className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
             >
               <p className="text-sm font-medium text-foreground">Currently airing queue</p>
@@ -126,6 +153,7 @@ export default function HomePage() {
             </Link>
             <Link
               to="/stats"
+              onClick={() => trackHomeSurfaceClick('stats', 'card')}
               className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
             >
               <p className="text-sm font-medium text-foreground">Catalog stats</p>
@@ -174,6 +202,7 @@ export default function HomePage() {
           </p>
           <Link
             to="/search"
+            onClick={() => trackHomeSurfaceClick('search', 'footer_cta')}
             className="mt-6 inline-flex min-h-10 items-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             Open {SITE_NAME}

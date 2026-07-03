@@ -1,7 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 import { getPublicCollection } from '@/lib/api';
 import { Card } from '@/components/ui/card';
+import { trackCollectionViewed, trackCollectionPublicViewed } from '@/lib/engagement';
 
 export default function PublicCollectionPage() {
   const { slug } = useParams({ from: '/app/c/$slug' });
@@ -9,6 +11,18 @@ export default function PublicCollectionPage() {
     queryKey: ['collection', slug],
     queryFn: () => getPublicCollection(slug),
   });
+
+  // Fires once per mount after the collection resolves (404s don't count).
+  // via_share=true when the visit came through a copied ?ref=share link.
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (data && !viewedRef.current) {
+      viewedRef.current = true;
+      const viaShare = new URLSearchParams(window.location.search).get('ref') === 'share';
+      trackCollectionViewed(slug, viaShare);
+      trackCollectionPublicViewed(slug, viaShare);
+    }
+  }, [data, slug]);
 
   if (isLoading) {
     return (
