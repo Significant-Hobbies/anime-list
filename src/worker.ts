@@ -27,7 +27,12 @@ import { getAnimeStats } from './statistics';
 import { getScoreSortedList } from './utils/statistics';
 import { animeStore } from './store/animeStore';
 import { mangaStore } from './store/mangaStore';
-import { getAnimeByMalId, getLastDataUpdate, getRecentChanges } from './db/animeData';
+import {
+  getAnimeByMalId,
+  getLastDataUpdate,
+  getRecentChanges,
+  getSimpleAnimeSearchPage,
+} from './db/animeData';
 import { getLastMangaDataUpdate } from './db/mangaData';
 import { findOrCreateUser } from './db/users';
 import { initUsersTable } from './db/users';
@@ -275,6 +280,42 @@ const toDetailAnime = (anime: NonNullable<Awaited<ReturnType<typeof getAnimeByMa
   demographics: Object.keys(anime.demographics ?? {}),
 });
 
+const toSearchAnime = (anime: {
+  mal_id: number;
+  score?: number;
+  points?: number;
+  title: string;
+  title_english?: string;
+  url: string;
+  synopsis?: string;
+  members?: number;
+  favorites?: number;
+  year?: number;
+  status?: string;
+  genres: Record<string, number>;
+  themes: Record<string, number>;
+  type?: string;
+  image?: string;
+}) => ({
+  id: anime.mal_id,
+  score: anime.score,
+  points: anime.points,
+  name: anime.title,
+  title_english: anime.title_english,
+  link: anime.url,
+  // Card renders line-clamp-3 (~180 chars). Truncate to keep payload small;
+  // full synopsis is on the detail endpoint.
+  synopsis: truncateSynopsis(anime.synopsis),
+  members: anime.members,
+  favorites: anime.favorites,
+  year: anime.year,
+  status: anime.status,
+  genres: Object.keys(anime.genres),
+  themes: Object.keys(anime.themes),
+  type: anime.type,
+  image: anime.image,
+});
+
 // Bridge env bindings → process.env so existing code (db/client, config) works unchanged
 app.use('*', async (c, next) => {
   process.env.TURSO_DATABASE_URL = c.env.TURSO_DATABASE_URL;
@@ -507,6 +548,37 @@ app.post('/api/search', optionalAuth, async (c) => {
     }
   }
 
+  const simpleSearchPage =
+    canUseCache && airing === 'any'
+      ? await trace(
+          'db:search:simple',
+          () => getSimpleAnimeSearchPage({ filters, sortBy, pagesize, offset }),
+          { project: 'mal-api' }
+        )
+      : null;
+
+  if (simpleSearchPage) {
+    const response = c.json({
+      totalFiltered: simpleSearchPage.totalFiltered,
+      filteredList: simpleSearchPage.page.map(toSearchAnime),
+    });
+
+    if (!cacheRequest) {
+      response.headers.set('X-Search-Cache', 'BYPASS');
+      return response;
+    }
+
+    response.headers.set('X-Search-Cache', 'MISS');
+    response.headers.set('X-Search-Path', 'simple');
+    const cacheableResponse = new Response(response.body, response);
+    cacheableResponse.headers.set(
+      'Cache-Control',
+      `public, max-age=0, s-maxage=${SEARCH_CACHE_TTL_SECONDS}`
+    );
+    c.executionCtx.waitUntil(edgeCache.put(cacheRequest, cacheableResponse.clone()));
+    return cacheableResponse;
+  }
+
   let filtered = await trace('db:search', () => filterAnimeList(filters), { project: 'mal-api' });
 
   // Airing filter
@@ -540,25 +612,7 @@ app.post('/api/search', optionalAuth, async (c) => {
 
   const response = c.json({
     totalFiltered: filtered.length,
-    filteredList: takePage(sorted, pagesize, offset).map((anime) => ({
-      id: anime.mal_id,
-      score: anime.score,
-      points: anime.points,
-      name: anime.title,
-      title_english: anime.title_english,
-      link: anime.url,
-      // Card renders line-clamp-3 (~180 chars). Truncate to keep payload small;
-      // full synopsis is on the detail endpoint.
-      synopsis: truncateSynopsis(anime.synopsis),
-      members: anime.members,
-      favorites: anime.favorites,
-      year: anime.year,
-      status: anime.status,
-      genres: Object.keys(anime.genres),
-      themes: Object.keys(anime.themes),
-      type: anime.type,
-      image: anime.image,
-    })),
+    filteredList: takePage(sorted, pagesize, offset).map(toSearchAnime),
   });
 
   if (!canUseCache || !cacheRequest) {

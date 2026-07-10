@@ -38,6 +38,7 @@ function withCreds(init: RequestInit = {}): RequestInit {
 async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number): Promise<T> {
   const controller = timeoutMs ? new AbortController() : null;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
 
   if (controller && init?.signal) {
     if (init.signal.aborted) {
@@ -48,7 +49,10 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
   }
 
   if (controller && timeoutMs) {
-    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
   }
 
   try {
@@ -72,6 +76,7 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
     return res.json();
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
+      if (!timedOut) throw error;
       throw new Error('Search service timed out. Please try again.');
     }
     throw error;
@@ -81,6 +86,10 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
 }
 
 const jsonHeaders = { 'Content-Type': 'application/json' } as const;
+
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
 
 export function getFields(): Promise<FieldOptions> {
   return fetchJson(`${BASE}/fields`);
@@ -99,13 +108,15 @@ export function searchAnime(
     airing?: 'yes' | 'no' | 'any';
     hideWatched?: string[];
     includeWatched?: string[];
-  } = {}
+  } = {},
+  signal?: AbortSignal
 ): Promise<SearchResponse> {
   return fetchJson(
     `${BASE}/search`,
     {
       method: 'POST',
       headers: jsonHeaders,
+      signal,
       body: JSON.stringify({
         filters,
         pagesize: opts.pagesize ?? DEFAULT_PAGE_SIZE,
@@ -460,11 +471,13 @@ export function searchManga(
     offset?: number;
     sortBy?: string;
     hideWatched?: string[];
-  } = {}
+  } = {},
+  signal?: AbortSignal
 ): Promise<SearchResponse> {
   return fetchJson(`${MANGA_BASE}/search`, {
     method: 'POST',
     headers: jsonHeaders,
+    signal,
     body: JSON.stringify({
       filters,
       pagesize: opts.pagesize ?? DEFAULT_PAGE_SIZE,

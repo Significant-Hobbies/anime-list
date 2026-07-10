@@ -163,7 +163,10 @@ async function fetchJikanAnimeByMalId(
         attempt < maxRetries && (!statusCode || statusCode === 429 || statusCode >= 500);
 
       if (!shouldRetry) {
-        throw error;
+        console.warn(
+          `Jikan lookup for ${malId} failed with ${statusCode ?? 'network error'} after ${attempt}/${maxRetries} attempts. Skipping this fallback candidate.`
+        );
+        return null;
       }
 
       const delayMs =
@@ -178,6 +181,9 @@ async function fetchJikanAnimeByMalId(
     }
   }
 
+  console.warn(
+    `Jikan lookup for ${malId} exhausted ${maxRetries} attempts. Skipping this fallback candidate.`
+  );
   return null;
 }
 

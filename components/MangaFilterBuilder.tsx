@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryState, parseAsString, parseAsArrayOf, parseAsInteger } from 'nuqs';
 import { useQuery } from '@tanstack/react-query';
 import type { SearchFilter, SearchResponse } from '@/lib/types';
-import { getMangaFields, getMangaFilterActions, getWatchlistTags, searchManga } from '@/lib/api';
+import {
+  getMangaFields,
+  getMangaFilterActions,
+  getWatchlistTags,
+  isAbortError,
+  searchManga,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { trackCoreAction } from '@/lib/analytics';
 import {
@@ -12,6 +18,7 @@ import {
   DEFAULT_MANGA_FIELD_OPTIONS,
   filtersParser,
 } from '@/lib/filterMetadata';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import FilterRow from './FilterRow';
 import MangaResultsGrid, { MangaResultsGridSkeleton } from './MangaResultsGrid';
 import { MANGA_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
@@ -33,6 +40,7 @@ const DEFAULT_FILTER: SearchFilter = {
   action: 'GREATER_THAN_OR_EQUALS',
   value: 7,
 };
+const SEARCH_QUERY_DEBOUNCE_MS = 150;
 const DEFAULT_PAGE_SIZE = 40;
 const DEFAULT_MIN_MEMBERS = 50_000;
 
@@ -101,8 +109,11 @@ export default function MangaFilterBuilder() {
   );
   const [currentPage, setCurrentPage] = useQueryState('page', parseAsInteger.withDefault(1));
 
-  const normalizedFilters = filters.map(normalizeFilter);
-  const activeAdvancedFilters = normalizedFilters.filter(isFilterValuePresent);
+  const normalizedFilters = useMemo(() => filters.map(normalizeFilter), [filters]);
+  const activeAdvancedFilters = useMemo(
+    () => normalizedFilters.filter(isFilterValuePresent),
+    [normalizedFilters]
+  );
 
   const [inputValue, setInputValue] = useState(searchText);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -125,7 +136,9 @@ export default function MangaFilterBuilder() {
   // so reloading a URL with in-progress rows doesn't hide them.
   const [showAdvanced, setShowAdvanced] = useState(() => filters.length > 0);
 
-  const resetPage = () => setCurrentPage(1);
+  const resetPage = () => {
+    if (currentPage !== 1) setCurrentPage(1);
+  };
 
   const { data: fields } = useQuery({
     queryKey: ['manga', 'fields'],
@@ -197,7 +210,13 @@ export default function MangaFilterBuilder() {
     minMembers,
   ]);
 
-  const filterKey = JSON.stringify(buildSearchOpts());
+  const searchRequest = useMemo(() => buildSearchOpts(), [buildSearchOpts]);
+  const filterKey = useMemo(() => JSON.stringify(searchRequest), [searchRequest]);
+  const debouncedFilterKey = useDebouncedValue(filterKey, SEARCH_QUERY_DEBOUNCE_MS);
+  const debouncedSearchRequest = useMemo(
+    () => JSON.parse(debouncedFilterKey) as ReturnType<typeof buildSearchOpts>,
+    [debouncedFilterKey]
+  );
 
   const {
     data,
@@ -206,13 +225,13 @@ export default function MangaFilterBuilder() {
     error,
     refetch,
   } = useQuery<SearchResponse>({
-    queryKey: ['manga', 'search', filterKey],
-    queryFn: () => {
-      const { filters: f, opts } = buildSearchOpts();
-      return searchManga(f, opts);
+    queryKey: ['manga', 'search', debouncedFilterKey],
+    queryFn: ({ signal }) => {
+      const { filters: f, opts } = debouncedSearchRequest;
+      return searchManga(f, opts, signal);
     },
     placeholderData: (prev) => prev,
-    retry: 1,
+    retry: (failureCount, error) => !isAbortError(error) && failureCount < 1,
   });
 
   const toggleGenre = (genre: string) => {

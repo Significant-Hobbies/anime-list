@@ -14,6 +14,7 @@ import {
   getFields,
   getFilterActions,
   getWatchlistTags,
+  isAbortError,
   searchAnime,
   createSavedSearch,
 } from '@/lib/api';
@@ -21,6 +22,7 @@ import { useAuth } from '@/lib/auth';
 import { trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_ANIME_MIN_MEMBERS, DEFAULT_ANIME_PAGE_SIZE } from '@/lib/animeSearchDefaults';
 import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS, filtersParser } from '@/lib/filterMetadata';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import FilterRow from './FilterRow';
 import ResultsGrid, { ResultsGridSkeleton } from './ResultsGrid';
 import { ANIME_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
@@ -44,6 +46,7 @@ const DEFAULT_FILTER: SearchFilter = {
   value: 7,
 };
 const RELEVANCE_SORT_VALUE = 'relevance';
+const SEARCH_QUERY_DEBOUNCE_MS = 150;
 const SINGLE_VALUE_OPTION_FIELDS = new Set(['type', 'season']);
 
 const SEASON_NAMES = ['winter', 'spring', 'summer', 'fall'] as const;
@@ -160,8 +163,11 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   );
   const [currentPage, setCurrentPage] = useQueryState('page', parseAsInteger.withDefault(1));
 
-  const normalizedFilters = filters.map(normalizeFilter);
-  const activeAdvancedFilters = normalizedFilters.filter(isFilterValuePresent);
+  const normalizedFilters = useMemo(() => filters.map(normalizeFilter), [filters]);
+  const activeAdvancedFilters = useMemo(
+    () => normalizedFilters.filter(isFilterValuePresent),
+    [normalizedFilters]
+  );
 
   const [inputValue, setInputValue] = useState(searchText);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -187,7 +193,9 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   const [saveSearchName, setSaveSearchName] = useState('');
   const [saveSearchMessage, setSaveSearchMessage] = useState<string | null>(null);
 
-  const resetPage = () => setCurrentPage(1);
+  const resetPage = () => {
+    if (currentPage !== 1) setCurrentPage(1);
+  };
 
   const { data: fields } = useQuery({
     queryKey: ['fields'],
@@ -272,7 +280,13 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     minMembers,
   ]);
 
-  const filterKey = JSON.stringify(buildSearchOpts());
+  const searchRequest = useMemo(() => buildSearchOpts(), [buildSearchOpts]);
+  const filterKey = useMemo(() => JSON.stringify(searchRequest), [searchRequest]);
+  const debouncedFilterKey = useDebouncedValue(filterKey, SEARCH_QUERY_DEBOUNCE_MS);
+  const debouncedSearchRequest = useMemo(
+    () => JSON.parse(debouncedFilterKey) as ReturnType<typeof buildSearchOpts>,
+    [debouncedFilterKey]
+  );
 
   const {
     data,
@@ -281,15 +295,15 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     error,
     refetch,
   } = useQuery<SearchResponse>({
-    queryKey: ['search', filterKey],
-    queryFn: () => {
-      const { filters: f, opts } = buildSearchOpts();
-      return searchAnime(f, opts);
+    queryKey: ['search', debouncedFilterKey],
+    queryFn: ({ signal }) => {
+      const { filters: f, opts } = debouncedSearchRequest;
+      return searchAnime(f, opts, signal);
     },
-    initialData: filterKey === initialSearchKey ? initialSearchData : undefined,
+    initialData: debouncedFilterKey === initialSearchKey ? initialSearchData : undefined,
     initialDataUpdatedAt: 0,
     placeholderData: (prev) => prev,
-    retry: 1,
+    retry: (failureCount, error) => !isAbortError(error) && failureCount < 1,
   });
 
   const toggleGenre = (genre: string) => {

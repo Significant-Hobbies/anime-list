@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-07-03
+Last updated: 2026-07-11
 
 ## Why / What
 
@@ -53,6 +53,7 @@ Last updated: 2026-07-03
 
 ## Timeline
 
+- **2026-07-11** — Search reliability pass shipped: debounced and abortable anime/manga requests, a bounded SQL fast path for simple numeric anime searches, production Google sign-in fallback configuration, and non-fatal quarterly Jikan fallback failures.
 - **2026-07-03** — Shipped engagement telemetry for the quiz/collections/homepage funnels (`lib/engagement.ts`), the `VITE_HOME_QUIZ_ABOVE_FOLD` A/B switch (`lib/flags.ts`, default off), and a "Copy link" share button on `/collections`.
 - **2026-07-04** — Upgraded the homepage A/B test from a build-time toggle to a live 50/50 cookie-based split (`ab_home`, 14-day expiry). Added `homepage_variant_seen` impression tracking, `quiz_result_shown`, `collection_created`, and `collection_viewed` events. See "Engagement measurement" below.
 - **2026-07-02** — Added `app.onError()` global error handler to `mal-api` worker (catches unhandled Hono errors → 500 JSON + console.error logging).

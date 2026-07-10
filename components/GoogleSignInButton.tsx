@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 
+const PRODUCTION_GOOGLE_CLIENT_ID =
+  '207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com';
+
+function getGoogleClientId(): string {
+  return import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || PRODUCTION_GOOGLE_CLIENT_ID;
+}
+
 declare global {
   interface Window {
     google?: {
@@ -27,7 +34,7 @@ export default function GoogleSignInButton() {
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const clientId = getGoogleClientId();
     if (!clientId) return;
 
     const initGoogle = () => {

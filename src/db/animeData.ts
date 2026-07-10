@@ -1,5 +1,7 @@
 import { getDb } from './client';
 import type { AnimeItem } from '../types/anime';
+import { AnimeField, FilterAction } from '../config';
+import type { Filter, NumericField } from '../types/anime';
 
 const mapAnimeRow = (row: Record<string, unknown>): AnimeItem => ({
   mal_id: row.mal_id as number,
@@ -222,6 +224,82 @@ export async function getAllAnime(): Promise<AnimeItem[]> {
   const result = await db.execute('SELECT * FROM anime_data');
 
   return result.rows.map((row) => mapAnimeRow(row as unknown as Record<string, unknown>));
+}
+
+const NUMERIC_COLUMN_BY_FIELD: Record<NumericField, string> = {
+  [AnimeField.Score]: 'score',
+  [AnimeField.ScoredBy]: 'scored_by',
+  [AnimeField.Rank]: 'rank',
+  [AnimeField.Popularity]: 'popularity',
+  [AnimeField.Members]: 'members',
+  [AnimeField.Favorites]: 'favorites',
+  [AnimeField.Year]: 'year',
+  [AnimeField.Episodes]: 'episodes',
+};
+
+const SQL_OPERATOR_BY_ACTION: Partial<Record<FilterAction, string>> = {
+  [FilterAction.Equals]: '=',
+  [FilterAction.GreaterThan]: '>',
+  [FilterAction.GreaterThanOrEquals]: '>=',
+  [FilterAction.LessThan]: '<',
+  [FilterAction.LessThanOrEquals]: '<=',
+};
+
+export async function getSimpleAnimeSearchPage({
+  filters,
+  sortBy,
+  pagesize,
+  offset,
+}: {
+  filters: Filter[];
+  sortBy?: NumericField;
+  pagesize: number;
+  offset: number;
+}): Promise<{ totalFiltered: number; page: Array<AnimeItem & { points: number }> } | null> {
+  if (!sortBy) return null;
+
+  const sortColumn = NUMERIC_COLUMN_BY_FIELD[sortBy];
+  if (!sortColumn) return null;
+
+  const whereParts: string[] = [];
+  const args: Array<string | number> = [];
+
+  for (const filter of filters) {
+    const column = NUMERIC_COLUMN_BY_FIELD[filter.field as NumericField];
+    const operator = SQL_OPERATOR_BY_ACTION[filter.action];
+    if (!column || !operator || typeof filter.value !== 'number' || filter.score_multiplier) {
+      return null;
+    }
+
+    whereParts.push(`${column} ${operator} ?`);
+    args.push(filter.value);
+  }
+
+  const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : '';
+  const db = getDb();
+  const [countResult, pageResult] = await Promise.all([
+    db.execute({
+      sql: `SELECT COUNT(*) AS count FROM anime_data ${whereClause}`,
+      args,
+    }),
+    db.execute({
+      sql: `SELECT * FROM anime_data ${whereClause}
+            ORDER BY ${sortColumn} DESC, mal_id ASC
+            LIMIT ? OFFSET ?`,
+      args: [...args, pagesize, offset],
+    }),
+  ]);
+
+  return {
+    totalFiltered: Number(countResult.rows[0]?.count ?? 0),
+    page: pageResult.rows.map((row) => {
+      const anime = mapAnimeRow(row as unknown as Record<string, unknown>);
+      return {
+        ...anime,
+        points: (anime[sortBy] as number | undefined) ?? 0,
+      };
+    }),
+  };
 }
 
 export async function getAnimeByMalId(malId: number): Promise<AnimeItem | null> {
