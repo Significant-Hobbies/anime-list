@@ -11,11 +11,16 @@ on:
         required: false
         default: false
         type: boolean
+      limit:
+        description: "Optional max anime records to scan for manual validation"
+        required: false
+        default: "0"
+        type: string
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - name: Checkout code
@@ -40,12 +45,17 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          LIMIT: ${{ github.event.inputs.limit || '0' }}
         run: |
           echo "Starting quarterly anime sync..."
+          LIMIT_ARG=""
+          if [ -n "$LIMIT" ] && [ "$LIMIT" != "0" ]; then
+            LIMIT_ARG="--limit=$LIMIT"
+          fi
           if [ "$DRY_RUN" = "true" ]; then
-            pnpm run db:quarterly-sync -- --dry-run
+            pnpm run db:quarterly-sync -- --dry-run $LIMIT_ARG
           else
-            pnpm run db:quarterly-sync
+            pnpm run db:quarterly-sync -- $LIMIT_ARG
           fi
           echo "✓ Quarterly anime sync finished"
 
