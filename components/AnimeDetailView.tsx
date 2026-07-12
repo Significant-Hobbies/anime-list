@@ -8,6 +8,7 @@ import {
   getAnimeDetail,
   updateAnimeNote,
   addToWatchlist,
+  removeFromWatchlist,
   getWatchlistTags,
   addToSchedule,
 } from '@/lib/api';
@@ -115,7 +116,7 @@ export default function AnimeDetailView({
   const [showMenu, setShowMenu] = useState(false);
   const [customTag, setCustomTag] = useState('');
   const [customColor, setCustomColor] = useState('#10b981');
-  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null | undefined>(undefined);
 
   const detailQuery = useQuery({
     queryKey: ['anime', 'detail', malId],
@@ -130,7 +131,7 @@ export default function AnimeDetailView({
 
   const availableTags = tagsData?.tags?.length ? tagsData.tags : DEFAULT_WATCH_TAGS;
   const persistedStatus = detailQuery.data?.watchlistEntry?.status ?? null;
-  const currentStatus = optimisticStatus ?? persistedStatus;
+  const currentStatus = optimisticStatus === undefined ? persistedStatus : optimisticStatus;
   const currentStatusColor = useMemo(() => {
     if (!currentStatus) return null;
     const matchingTag = availableTags.find((tag) => tag.tag === currentStatus);
@@ -167,9 +168,25 @@ export default function AnimeDetailView({
     },
   });
 
+  const removeMutation = useMutation({
+    mutationFn: () => removeFromWatchlist([malId]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
+      queryClient.invalidateQueries({ queryKey: ['anime', 'detail', malId] });
+    },
+  });
+
   const handleAdd = (status: string, tagColor?: string) => {
     const previousStatus = currentStatus;
     setShowMenu(false);
+    if (currentStatus === status) {
+      setOptimisticStatus(null);
+      removeMutation.mutate(undefined, {
+        onError: () => setOptimisticStatus(previousStatus),
+      });
+      return;
+    }
     setOptimisticStatus(status);
     watchlistMutation.mutate(
       { status, tagColor },
@@ -318,7 +335,7 @@ export default function AnimeDetailView({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              disabled={watchlistMutation.isPending}
+              disabled={watchlistMutation.isPending || removeMutation.isPending}
               aria-label={
                 currentStatus ? `Edit watchlist status: ${currentStatus}` : 'Add to watchlist'
               }
@@ -350,6 +367,7 @@ export default function AnimeDetailView({
                   return (
                     <button
                       key={tag.tag}
+                      aria-pressed={isCurrentTag}
                       onClick={() => handleAdd(tag.tag, tag.color)}
                       className="flex items-center justify-between gap-2 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors text-left"
                     >
@@ -360,7 +378,7 @@ export default function AnimeDetailView({
                         />
                         <span className="text-white/80">{tag.tag}</span>
                       </span>
-                      {isCurrentTag && <span className="text-[9px] text-primary">Current</span>}
+                      {isCurrentTag && <span className="text-[9px] text-primary">Remove</span>}
                     </button>
                   );
                 })}

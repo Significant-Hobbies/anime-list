@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import type React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { AnimeSummary } from '@/lib/types';
 
 const { mockInvalidateQueries, mockMutate } = vi.hoisted(() => ({
@@ -37,6 +37,7 @@ vi.mock('@tanstack/react-query', () => ({
 
 vi.mock('@/lib/api', () => ({
   addToWatchlist: vi.fn(),
+  removeFromWatchlist: vi.fn(),
   addToSchedule: vi.fn(),
   getWatchlist: vi.fn().mockResolvedValue({ user: { id: 'u1', name: 'user' }, anime: {} }),
   getWatchlistTags: vi.fn().mockResolvedValue({ tags: [] }),
@@ -155,5 +156,19 @@ describe('AnimeCard', () => {
       screen.getByRole('button', { name: 'Edit watchlist status: Watching' })
     ).toBeInTheDocument();
     expect(screen.getByText('Watching')).toBeInTheDocument();
+  });
+
+  it('unselects the current tag when it is clicked again', () => {
+    mockUser = { id: 'u1' };
+    mockWatchlistData = {
+      user: { id: 'u1', name: 'user' },
+      anime: { '1': { status: 'Watching' } },
+    };
+
+    render(<AnimeCard anime={baseAnime} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit watchlist status: Watching' }));
+    fireEvent.click(screen.getByRole('button', { pressed: true }));
+
+    expect(screen.getByRole('button', { name: 'Add to watchlist' })).toBeInTheDocument();
   });
 });

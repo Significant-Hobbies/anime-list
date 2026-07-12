@@ -5,7 +5,13 @@ import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import type { AnimeSummary } from '@/lib/types';
-import { addToWatchlist, addToSchedule, getWatchlist, getWatchlistTags } from '@/lib/api';
+import {
+  addToWatchlist,
+  addToSchedule,
+  getWatchlist,
+  getWatchlistTags,
+  removeFromWatchlist,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { trackActivated, trackCoreAction } from '@/lib/analytics';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +29,7 @@ export default function AnimeCard({
   const [showMenu, setShowMenu] = useState(false);
   const [customTag, setCustomTag] = useState('');
   const [customColor, setCustomColor] = useState('#10b981');
-  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null | undefined>(undefined);
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -41,7 +47,7 @@ export default function AnimeCard({
 
   const availableTags = tagsData?.tags?.length ? tagsData.tags : DEFAULT_WATCH_TAGS;
   const persistedStatus = watchlistData?.anime?.[String(anime.id)]?.status ?? null;
-  const currentStatus = optimisticStatus ?? persistedStatus;
+  const currentStatus = optimisticStatus === undefined ? persistedStatus : optimisticStatus;
   const currentStatusColor = useMemo(() => {
     if (!currentStatus) return null;
     const matchingTag = availableTags.find((tag) => tag.tag === currentStatus);
@@ -71,9 +77,24 @@ export default function AnimeCard({
     },
   });
 
+  const removeMutation = useMutation({
+    mutationFn: () => removeFromWatchlist([anime.id]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
+    },
+  });
+
   const handleAdd = (status: string, tagColor?: string) => {
     const previousStatus = currentStatus;
     setShowMenu(false);
+    if (currentStatus === status) {
+      setOptimisticStatus(null);
+      removeMutation.mutate(undefined, {
+        onError: () => setOptimisticStatus(previousStatus),
+      });
+      return;
+    }
     setOptimisticStatus(status);
     mutation.mutate(
       { status, tagColor },
@@ -190,7 +211,7 @@ export default function AnimeCard({
                 e.preventDefault();
                 setShowMenu(!showMenu);
               }}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || removeMutation.isPending}
               aria-label={
                 currentStatus ? `Edit watchlist status: ${currentStatus}` : 'Add to watchlist'
               }
@@ -222,6 +243,7 @@ export default function AnimeCard({
                   return (
                     <button
                       key={tag.tag}
+                      aria-pressed={isCurrentTag}
                       onClick={(e) => {
                         e.preventDefault();
                         handleAdd(tag.tag, tag.color);
@@ -235,7 +257,7 @@ export default function AnimeCard({
                         />
                         <span className="text-white/80">{tag.tag}</span>
                       </span>
-                      {isCurrentTag && <span className="text-[9px] text-primary">Current</span>}
+                      {isCurrentTag && <span className="text-[9px] text-primary">Remove</span>}
                     </button>
                   );
                 })}
