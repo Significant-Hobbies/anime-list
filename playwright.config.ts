@@ -12,7 +12,7 @@ export default defineConfig({
   retries: ci ? 2 : 0,
   reporter: ci ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'https://anime-list-9lk.pages.dev',
+    baseURL: process.env.E2E_BASE_URL || 'https://anime.significanthobbies.com',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

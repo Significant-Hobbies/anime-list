@@ -64,7 +64,7 @@ Last updated: 2026-07-11
 
 ## Products
 
-- **SPA (Pages):** https://anime-list-9lk.pages.dev — project `anime-list`, branch `main`; PR previews at `pr-{N}.anime-list-9lk.pages.dev`.
+- **SPA (Pages):** https://anime.significanthobbies.com - project `anime-list`, branch `main`; PR previews remain on `pr-{N}.anime-list-9lk.pages.dev`.
 - **API (Worker):** https://mal-api.sarthakagrawal927.workers.dev — Hono worker `mal-api`, cron `0 3 * * *`.
 - **Local dev:** Vite :5173 + Worker :8787.
 

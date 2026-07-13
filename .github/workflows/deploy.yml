@@ -32,5 +32,5 @@ jobs:
         run: |
           set -euo pipefail
           for path in / /anime/1; do
-            curl --fail --retry 5 --retry-delay 5 --max-time 20 "https://anime-list-9lk.pages.dev${path}" >/dev/null
+            curl --fail --retry 5 --retry-delay 5 --max-time 20 "https://anime.significanthobbies.com${path}" >/dev/null
           done

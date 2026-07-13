@@ -127,7 +127,7 @@ Scoring: weighted distance from user **signal vector** to each archetype centroi
 
 | Field | Spec |
 |-------|------|
-| Public URL | `https://anime-list-9lk.pages.dev/quiz/r/{archetypeId}` — no user id, no watchlist leak |
+| Public URL | `https://anime.significanthobbies.com/quiz/r/{archetypeId}` — no user id, no watchlist leak |
 | OG image | 1200×630 static or SSR: archetype title, tagline, 3 exemplar posters (MAL CDN), Shelf logo |
 | Page body | Archetype description + primary CTA button |
 | Copy action | “Copy link” + optional pre-written post text with URL |

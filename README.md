@@ -2,13 +2,13 @@
 
 A modern anime discovery platform that helps you find your next favorite show.
 
-**Live Demo**: [anime-list-9lk.pages.dev](https://anime-list-9lk.pages.dev)
+**Live Demo**: [anime.significanthobbies.com](https://anime.significanthobbies.com)
 
 ## Deployment & External Services
 
 | Concern | Service |
 |---------|---------|
-| Hosting | Cloudflare Pages (`anime-list`, anime-list-9lk.pages.dev) — Vite SPA static build |
+| Hosting | Cloudflare Pages (`anime-list`, `anime.significanthobbies.com`) - Vite SPA static build |
 | API | Cloudflare Worker (`mal-api`) — Hono, daily cron at 03:00 UTC |
 | Database | Turso (libSQL) |
 | Auth | Google OAuth 2.0 + JWT |

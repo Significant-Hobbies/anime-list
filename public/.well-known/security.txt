@@ -2,4 +2,4 @@ Contact: https://github.com/sarthakagrawal927/anime_list/security/advisories/new
 Contact: mailto:sarthakagrawal927@gmail.com
 Preferred-Languages: en
 Expires: 2027-05-15T00:00:00Z
-Canonical: https://anime-list-9lk.pages.dev/.well-known/security.txt
+Canonical: https://anime.significanthobbies.com/.well-known/security.txt

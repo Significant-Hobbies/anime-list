@@ -14,7 +14,7 @@ Anime/manga discovery platform with multi-field filtering, personal watchlists, 
 - DB: Turso (libSQL) — anime + manga catalogs, users, watchlists (single DB in prod; optional `TURSO_MANGA_*` override)
 - Auth: Google OAuth 2.0 + JWT (`jose`)
 - Testing: Vitest (unit), Playwright (e2e)
-- Deploy: Cloudflare Pages (`anime-list-9lk.pages.dev`, Vite static build) + Worker `mal-api` (`wrangler deploy`)
+- Deploy: Cloudflare Pages (`anime.significanthobbies.com`, Vite static build) + Worker `mal-api` (`wrangler deploy`)
 - Package manager: pnpm
 
 ## Repo structure
