@@ -22,7 +22,8 @@
       "!**/lib/feedback-widget",
       "!**/coverage",
       "!**/coverage-final.json",
-      "!**/*.css"
+      "!**/*.css",
+      "!**/*.svg"
     ]
   },
   "formatter": {
