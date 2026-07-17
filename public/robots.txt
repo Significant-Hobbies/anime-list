@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 
 Sitemap: https://anime.significanthobbies.com/sitemap.xml
+Sitemap: https://anime.significanthobbies.com/sitemap-index.xml
 # Agent indexing
 Allow: /llms.txt
 Allow: /index.md
