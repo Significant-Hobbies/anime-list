@@ -1,0 +1,37 @@
+# MAL Explorer — full agent brief
+
+Anime and manga discovery with multi-axis filtering and watchlists.
+
+## Index
+
+# MAL Explorer
+
+Anime/manga discovery with multi-axis filtering and watchlists.
+
+## Note for agents
+
+The UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.
+
+## Agent entrypoints
+
+- https://anime.significanthobbies.com/llms.txt
+- https://anime.significanthobbies.com/api/ai
+- https://anime.significanthobbies.com/index.md
+
+## Product links
+
+- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)
+
+## Machine surfaces
+
+- https://anime.significanthobbies.com/llms.txt
+- https://anime.significanthobbies.com/llms-full.txt
+- https://anime.significanthobbies.com/api/ai
+- https://anime.significanthobbies.com/index.md
+- https://anime.significanthobbies.com/sitemap.xml
+- https://anime.significanthobbies.com/robots.txt
+
+## Contact / fleet
+
+- Fleet: https://sassmaker.com
+- Agent email for directory verification: sarthakagrawal@agentmail.to

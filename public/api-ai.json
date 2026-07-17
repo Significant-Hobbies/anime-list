@@ -3,8 +3,9 @@
   "version": "1",
   "url": "https://anime.significanthobbies.com",
   "llms": "https://anime.significanthobbies.com/llms.txt",
-  "llmsFull": null,
+  "llmsFull": "https://anime.significanthobbies.com/llms-full.txt",
   "sitemap": "https://anime.significanthobbies.com/sitemap.xml",
+  "robots": "https://anime.significanthobbies.com/robots.txt",
   "markdown": {
     "suffix": ".md",
     "negotiation": true
