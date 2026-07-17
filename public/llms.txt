@@ -15,3 +15,15 @@
 ## Optional
 
 - [Foundry](https://sassmaker.com): Parent fleet showcase
+
+## Product surfaces
+
+- [Search](https://anime.significanthobbies.com/search)
+- [Discover](https://anime.significanthobbies.com/discover)
+- [Schedule](https://anime.significanthobbies.com/schedule)
+- [Random](https://anime.significanthobbies.com/random)
+- [Stats](https://anime.significanthobbies.com/stats)
+- [Quiz](https://anime.significanthobbies.com/quiz)
+- [Collections](https://anime.significanthobbies.com/collections)
+- [About](https://anime.significanthobbies.com/about)
+
