@@ -1,0 +1,9 @@
+# Prefer real static files; do not SPA-fallback agent/SEO surfaces.
+/sitemap.xml /sitemap.xml 200
+/llms.txt /llms.txt 200
+/index.md /index.md 200
+/api-ai.json /api-ai.json 200
+/robots.txt /robots.txt 200
+
+# SPA shell for app routes
+/*    /index.html   200
