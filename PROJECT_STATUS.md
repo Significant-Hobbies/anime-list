@@ -53,6 +53,7 @@ Last updated: 2026-07-11
 
 ## Timeline
 
+- **2026-07-17** — Crawlable detail pages: Pages Functions rewrite `/anime/:malId` and `/manga/:malId` HTML with unique title, meta, canonical, OG, JSON-LD (TVSeries/Movie/Book), and hidden SSR summary for 5,306 anime + 2,288 manga. Unknown IDs get noindex. Chunked sitemaps (`sitemap-index.xml` + `sitemap-anime-N.xml` + `sitemap-manga-N.xml`) generated at build time. Deploy pending (manual).
 - **2026-07-11** — Search reliability pass shipped: debounced and abortable anime/manga requests, a bounded SQL fast path for simple numeric anime searches, production Google sign-in fallback configuration, and non-fatal quarterly Jikan fallback failures.
 - **2026-07-03** — Shipped engagement telemetry for the quiz/collections/homepage funnels (`lib/engagement.ts`), the `VITE_HOME_QUIZ_ABOVE_FOLD` A/B switch (`lib/flags.ts`, default off), and a "Copy link" share button on `/collections`.
 - **2026-07-04** — Upgraded the homepage A/B test from a build-time toggle to a live 50/50 cookie-based split (`ab_home`, 14-day expiry). Added `homepage_variant_seen` impression tracking, `quiz_result_shown`, `collection_created`, and `collection_viewed` events. See "Engagement measurement" below.
@@ -69,6 +70,16 @@ Last updated: 2026-07-11
 - **Local dev:** Vite :5173 + Worker :8787.
 
 ## Features (shipped)
+
+### SEO: crawlable detail pages (2026-07-17, deploy pending)
+
+- **Pages Functions** (`functions/anime/[malId].ts`, `functions/manga/[malId].ts`) intercept detail routes before the SPA catch-all.
+- **HTML rewriting**: unique `<title>`, meta description, canonical, OG/Twitter tags, JSON-LD (`TVSeries`/`Movie` for anime, `Book` for manga), and a `<div hidden data-ssr>` summary with h1 + synopsis + facts table.
+- **SEO dataset**: `scripts/build-seo-dataset.mjs` (prebuild) filters 14,841 anime → 5,306 (members ≥ 20k) and 20,656 manga → 2,288 (members ≥ 10k) into compact `src/data/seo-{anime,manga}.json`.
+- **Sitemaps**: `scripts/build-sitemaps.mjs` (postbuild) emits chunked XML (`sitemap-index.xml` + `sitemap-anime-{1,2}.xml` + `sitemap-manga-1.xml`, ≤5000 urls per chunk).
+- **Unknown IDs**: served with `<meta name="robots" content="noindex">`.
+- **Pure rewrite function**: `src/seoRewrite.ts` with HTML escaping, `</script>` injection protection, 17 vitest tests.
+- **e2e tests**: unique title assertion + app mounts + noindex on unknown id.
 
 ### Frontend routes (22 paths, TanStack Router `src/router.tsx`)
 
@@ -172,6 +183,8 @@ Instrumentation lives in `lib/engagement.ts` (surface funnels) and `lib/analytic
 3. Measure `/quiz` completion-to-search clickthrough before persistence, OG images, or share analytics.
 4. Measure collection share clickthrough before discovery ranking or social features.
 5. Add e2e for discover, watchlist import, collections, alerts (`e2e/`).
+6. **Deploy crawlable detail pages** — `pnpm deploy` (manual, per fleet policy). Post-deploy: curl two detail pages + one sitemap chunk; run `agent-index-audit.mjs --project anime-list`.
+7. **GSC sitemap submission** — submit `sitemap-index.xml` to Google Search Console once the zone AI-block/GSC onboarding fleet actions land.
 
 ### Deferred
 

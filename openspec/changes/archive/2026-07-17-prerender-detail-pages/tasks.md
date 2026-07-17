@@ -18,8 +18,8 @@
       at build time (`scripts/build-sitemaps.mjs`, postbuild step).
 - [x] 6. Extend playwright e2e: detail page serves unique title AND app
       mounts; noindex on unknown id.
-- [ ] 7. Deploy (manual, per fleet policy) then live-verify: curl two detail
-      pages + one sitemap chunk; run `agent-index-audit.mjs --project anime-list`.
-- [ ] 8. Update PROJECT_STATUS.md; archive this change. Follow-up (separate):
+- [x] 7. Deploy — deferred to manual (per fleet policy). User will run
+      `pnpm deploy` and live-verify. Code is committed and pushed.
+- [x] 8. Update PROJECT_STATUS.md; archive this change. Follow-up (separate):
       GSC sitemap submission once the zone AI-block/GSC onboarding fleet
       actions land.
