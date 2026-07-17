@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { isAllowedOrigin } from './corsOrigins';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
+import { handleAgentEdge } from './agent-edge.mjs';
 import { configurePostHog, trace, flushPostHog } from './telemetry';
 
 // Business logic imports (all unchanged files)
@@ -256,6 +257,13 @@ const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth
 // ── Hono app ───────────────────────────────────────────────────────────
 
 const app = new Hono<{ Bindings: Env; Variables: { user?: AuthPayload } }>();
+
+// Fleet agent indexing (GEO) — must register before SPA asset fallback.
+app.use('*', async (c, next) => {
+  const agent = handleAgentEdge(c.req.raw);
+  if (agent) return agent;
+  return next();
+});
 
 const toDetailAnime = (anime: NonNullable<Awaited<ReturnType<typeof getAnimeByMalId>>>) => ({
   mal_id: anime.mal_id,

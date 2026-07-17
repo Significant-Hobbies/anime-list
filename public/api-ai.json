@@ -1,0 +1,25 @@
+{
+  "name": "MAL Explorer",
+  "version": "1",
+  "url": "https://anime.significanthobbies.com",
+  "llms": "https://anime.significanthobbies.com/llms.txt",
+  "llmsFull": null,
+  "sitemap": "https://anime.significanthobbies.com/sitemap.xml",
+  "markdown": {
+    "suffix": ".md",
+    "negotiation": true
+  },
+  "surfaces": [
+    {
+      "id": "home",
+      "url": "https://anime.significanthobbies.com/",
+      "md": "https://anime.significanthobbies.com/index.md",
+      "kind": "spa",
+      "description": "Product home"
+    }
+  ],
+  "auth": {
+    "public": true,
+    "notes": "Auth-walled app routes are not agent-indexed unless listed here."
+  }
+}

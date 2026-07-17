@@ -1,0 +1,17 @@
+# MAL Explorer
+
+> Anime and manga discovery with multi-axis filtering and watchlists.
+
+## Product
+
+- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)
+
+## Machine surfaces
+
+- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces
+- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS
+- [This index](https://anime.significanthobbies.com/llms.txt)
+
+## Optional
+
+- [Foundry](https://sassmaker.com): Parent fleet showcase
