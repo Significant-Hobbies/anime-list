@@ -10,37 +10,40 @@
 
 /** @type {{ name: string, url: string, llmsTxt: string, llmsFullTxt?: string, indexMd: string, catalog: object }} */
 export const AGENT_SURFACE = {
-  "name": "MAL Explorer",
-  "url": "https://anime.significanthobbies.com",
-  "llmsFullTxt": "# MAL Explorer — full agent brief\n\nAnime and manga discovery with multi-axis filtering and watchlists.\n\n## Index\n\n# MAL Explorer\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n\n## Product links\n\n- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)\n\n## Machine surfaces\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/llms-full.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n- https://anime.significanthobbies.com/sitemap.xml\n- https://anime.significanthobbies.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
-  "llmsTxt": "# MAL Explorer\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
-  "indexMd": "# MAL Explorer\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n",
-  "catalog": {
-    "name": "MAL Explorer",
-    "version": "1",
-    "url": "https://anime.significanthobbies.com",
-    "llms": "https://anime.significanthobbies.com/llms.txt",
-    "llmsFull": "https://anime.significanthobbies.com/llms-full.txt",
-    "sitemap": "https://anime.significanthobbies.com/sitemap.xml",
-    "robots": "https://anime.significanthobbies.com/robots.txt",
-    "markdown": {
-      "suffix": ".md",
-      "negotiation": true
+  name: 'MAL Explorer',
+  url: 'https://anime.significanthobbies.com',
+  llmsFullTxt:
+    '# MAL Explorer — full agent brief\n\nAnime and manga discovery with multi-axis filtering and watchlists.\n\n## Index\n\n# MAL Explorer\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n\n## Product links\n\n- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)\n\n## Machine surfaces\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/llms-full.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n- https://anime.significanthobbies.com/sitemap.xml\n- https://anime.significanthobbies.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n',
+  llmsTxt:
+    '# MAL Explorer\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n',
+  indexMd:
+    '# MAL Explorer\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n',
+  catalog: {
+    name: 'MAL Explorer',
+    version: '1',
+    url: 'https://anime.significanthobbies.com',
+    llms: 'https://anime.significanthobbies.com/llms.txt',
+    llmsFull: 'https://anime.significanthobbies.com/llms-full.txt',
+    sitemap: 'https://anime.significanthobbies.com/sitemap.xml',
+    robots: 'https://anime.significanthobbies.com/robots.txt',
+    markdown: {
+      suffix: '.md',
+      negotiation: true,
     },
-    "surfaces": [
+    surfaces: [
       {
-        "id": "home",
-        "url": "https://anime.significanthobbies.com/",
-        "md": "https://anime.significanthobbies.com/index.md",
-        "kind": "spa",
-        "description": "Product home"
-      }
+        id: 'home',
+        url: 'https://anime.significanthobbies.com/',
+        md: 'https://anime.significanthobbies.com/index.md',
+        kind: 'spa',
+        description: 'Product home',
+      },
     ],
-    "auth": {
-      "public": true,
-      "notes": "Auth-walled app routes are not agent-indexed unless listed here."
-    }
-  }
+    auth: {
+      public: true,
+      notes: 'Auth-walled app routes are not agent-indexed unless listed here.',
+    },
+  },
 };
 
 /**
