@@ -49,7 +49,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Blume validate (if installed)
         run: |
-          if pnpm list blume >/dev/null 2>&1; then
+          if pnpm exec blume --version >/dev/null 2>&1; then
             pnpm exec blume validate --strict
           else
             echo "blume not installed — skipping (presentation layer is optional)."
