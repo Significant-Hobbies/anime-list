@@ -38,9 +38,14 @@ export default function Footer() {
             </>
           )}
         </div>
-        <Link to="/changelog" className="hover:text-foreground transition-colors">
-          Changelog
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/mcp" className="hover:text-foreground transition-colors">
+            MCP
+          </Link>
+          <Link to="/changelog" className="hover:text-foreground transition-colors">
+            Changelog
+          </Link>
+        </div>
       </div>
       <p className="mt-3 text-xs text-muted-foreground/60">
         35,000+ titles. One search bar. No sign-up required.

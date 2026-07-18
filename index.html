@@ -38,11 +38,10 @@
 <!-- fleet-jsonld:end -->
 </head>
   <body data-analytics="true" style="margin:0;background:#09090b;color:#fafafa;font-family:system-ui,sans-serif;">
-    <!-- LCP shell: mirrors home hero so first paint doesn't wait on React + fonts + CSS. -->
-    <div id="root">
-      <!-- ssr:start -->
-      <!-- ssr:end -->
-      <div style="min-height:100vh;">
+    <!-- LCP shell: mirrors home hero so first paint doesn't wait on React + fonts + CSS.
+         Placed OUTSIDE #root so React hydration doesn't wipe it before app content paints. -->
+    <div id="lcp-shell" style="position:fixed;inset:0;z-index:0;pointer-events:none;">
+      <div style="min-height:100vh;background:#09090b;color:#fafafa;">
         <header style="border-bottom:1px solid #27272a;">
           <div style="margin:0 auto;max-width:80rem;padding:1rem 1.5rem;">
             <span style="font-size:1rem;font-weight:600;">Shelf</span>
@@ -57,6 +56,10 @@
           </h1>
         </main>
       </div>
+    </div>
+    <div id="root">
+      <!-- ssr:start -->
+      <!-- ssr:end -->
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

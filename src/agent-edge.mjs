@@ -10,6 +10,7 @@
 
 /** @type {{ name: string, url: string, llmsTxt: string, llmsFullTxt?: string, indexMd: string, catalog: object }} */
 // biome-ignore format: generated payload from apply-agent-surfaces (JSON keys/quotes)
+// TODO: regenerate via fleet agent-surface generator — MCP surface hand-added for expose-mcp-server.
 export const AGENT_SURFACE = {
   "name": "MAL Explorer",
   "url": "https://anime.significanthobbies.com",
@@ -35,6 +36,12 @@ export const AGENT_SURFACE = {
         "md": "https://anime.significanthobbies.com/index.md",
         "kind": "spa",
         "description": "Product home"
+      },
+      {
+        "id": "mcp",
+        "url": "https://anime.significanthobbies.com/api/mcp",
+        "kind": "mcp",
+        "description": "MCP server — public catalog tools (search, detail, stats) open; watchlist tools require a Personal Access Token (see /mcp)."
       }
     ],
     "auth": {

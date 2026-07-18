@@ -554,3 +554,36 @@ export function dismissDiscoveryItems(
     body: JSON.stringify({ mal_ids: malIds }),
   });
 }
+
+// ── Personal Access Tokens (for MCP server auth) ───────────────────────
+
+export interface ApiTokenMetadata {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+export interface CreatedApiToken {
+  token: string;
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export function listTokens(): Promise<{ tokens: ApiTokenMetadata[] }> {
+  return fetchJson(`${BASE}/tokens`);
+}
+
+export function createToken(name: string): Promise<CreatedApiToken> {
+  return fetchJson(`${BASE}/tokens`, {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function revokeToken(id: string): Promise<{ success: boolean }> {
+  return fetchJson(`${BASE}/tokens/${id}/revoke`, { method: 'POST', headers: jsonHeaders });
+}

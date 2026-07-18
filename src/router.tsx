@@ -32,6 +32,7 @@ const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
+const McpPage = lazy(() => import('./pages/McpPage'));
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -173,6 +174,12 @@ const termsRoute = createRoute({
   component: TermsPage,
 });
 
+const mcpRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/mcp',
+  component: McpPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   appRoute.addChildren([
@@ -197,6 +204,7 @@ const routeTree = rootRoute.addChildren([
   aboutRoute,
   privacyRoute,
   termsRoute,
+  mcpRoute,
 ]);
 
 export const router = createRouter({

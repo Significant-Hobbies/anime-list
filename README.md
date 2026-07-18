@@ -155,7 +155,7 @@ pnpm db:update     # Update anime data from Jikan API
 
 **Note**: This project uses MyAnimeList data via the Jikan API. Not affiliated with MyAnimeList.net.
 
-**For Developers**: See [AGENTS.md](AGENTS.md) for comprehensive technical documentation.
+**For Developers**: See [AGENTS.md](AGENTS.md) for agent operating rules, [STATUS.md](STATUS.md) for the current objective and active work, and [docs/index.md](docs/index.md) for the full knowledge base (architecture, decisions, operations runbooks, and learnings).
 
 ## License
 
