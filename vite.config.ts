@@ -40,7 +40,7 @@ export default defineConfig(() => ({
   },
   build: {
     cssMinify: 'lightningcss',
-    modulePreload: false,
+    modulePreload: { polyfill: false },
     rollupOptions: {
       output: {
         manualChunks(id) {

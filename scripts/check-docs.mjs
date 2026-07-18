@@ -20,7 +20,7 @@
  *
  * Exit code is non-zero if any broken internal link is found.
  */
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { resolve, dirname, join, normalize, extname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,13 +28,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const DOCS = join(ROOT, 'docs');
 
-const ROOT_FILES = [
-  'AGENTS.md',
-  'STATUS.md',
-  'README.md',
-  'PROJECT_STATUS.md',
-  'CLAUDE.md',
-].map((f) => join(ROOT, f)).filter(existsSync);
+const ROOT_FILES = ['AGENTS.md', 'STATUS.md', 'README.md', 'PROJECT_STATUS.md', 'CLAUDE.md']
+  .map((f) => join(ROOT, f))
+  .filter(existsSync);
 
 function walkMd(dir, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -58,7 +54,12 @@ const ALL_FILES = [...ROOT_FILES, ...DOC_FILES];
 const LINK_RE = /(?<!!)\[(?:[^\]\[]|\[[^\]\[]*\])*\]\(([^)]+)\)/g;
 
 function slugify(text) {
-  return text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function headingsIn(file) {
@@ -135,7 +136,10 @@ if (existsSync(indexFile)) {
     for (let i = 1; i < parts.length; i++) {
       const dir = parts.slice(0, i).join('/') + '/';
       const dirRe = new RegExp(`\\]\\([^)]*${dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^)]*\\)`);
-      if (dirRe.test(indexText)) { reached = true; break; }
+      if (dirRe.test(indexText)) {
+        reached = true;
+        break;
+      }
     }
     if (!reached) warnings.push(`${relative(ROOT, f)}: not linked from docs/index.md`);
   }
@@ -152,5 +156,6 @@ if (failures.length) {
   console.error(`\n${failures.length} broken internal link(s) found.`);
   process.exit(1);
 }
-if (!quiet) console.log(`\nOK: ${ALL_FILES.length} markdown files checked, 0 broken internal links.`);
+if (!quiet)
+  console.log(`\nOK: ${ALL_FILES.length} markdown files checked, 0 broken internal links.`);
 process.exit(0);

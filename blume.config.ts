@@ -1,4 +1,4 @@
-import { defineConfig } from "blume";
+import { defineConfig } from 'blume';
 
 /**
  * Blume configuration for the Shelf (anime_list) knowledge base.
@@ -21,19 +21,18 @@ import { defineConfig } from "blume";
  * Generated artifacts (.blume/, .blume-verify/, docs-dist/) are gitignored.
  */
 export default defineConfig({
-  title: "Shelf (anime_list) Docs",
-  description:
-    "Knowledge base for Shelf / MAL Explorer — anime/manga discovery platform.",
+  title: 'Shelf (anime_list) Docs',
+  description: 'Knowledge base for Shelf / MAL Explorer — anime/manga discovery platform.',
 
   content: {
-    root: "docs",
+    root: 'docs',
   },
 
   // The product already has a favicon; Blume auto-detects one in public/.
   // logo: "/favicon.svg",
 
   search: {
-    provider: "orama",
+    provider: 'orama',
   },
 
   ai: {
@@ -48,7 +47,7 @@ export default defineConfig({
   },
 
   deployment: {
-    output: "static",
+    output: 'static',
     // Set when publishing to a real docs domain. Left unset here so local
     // dev falls back to the dev server origin.
     // site: "https://docs.anime.significanthobbies.com",

@@ -4,16 +4,23 @@
 > [`PROJECT_STATUS.md`](PROJECT_STATUS.md). Keep this page concise — update
 > it when the objective, active work, blockers, or next steps change.
 
-**Last updated:** 2026-07-18
+**Last updated:** 2026-07-19
 
 ## Current objective
 
 Operational stability over feature expansion. Measure engagement on the
 quiz and collections surfaces before expanding them; ship and verify the
-crawlable detail-page SEO work.
+crawlable detail-page SEO work. Expose an MCP server so AI tools can query
+the catalog and the user's watchlist.
 
 ## Active work
 
+- **MCP server** — implemented (2026-07-19), **deploy pending** manual
+  `pnpm deploy:worker` + `pnpm deploy`. `POST /api/mcp` (Streamable HTTP,
+  thin subrequest adapter over existing `/api/*` endpoints), PAT auth
+  (`shelf_…` tokens, hashed at rest), `/mcp` page with docs + token
+  management. See
+  [`openspec/changes/expose-mcp-server/`](openspec/changes/expose-mcp-server/).
 - **Homepage A/B test in progress** — `control` vs `treatment` (quiz CTA
   above fold), 50/50 cookie split. **Decision due after 2026-07-18** (2-week
   window). Keep only the winner; if no lift, keep control. See
@@ -24,14 +31,17 @@ crawlable detail-page SEO work.
 
 ## Next steps
 
-1. **Deploy crawlable detail pages** — `pnpm deploy`; post-deploy curl two
+1. **Deploy MCP server** — `pnpm deploy:worker` + `pnpm deploy`; post-deploy
+   verify `initialize` + `tools/list` via curl, create a PAT on `/mcp`, test
+   `list_watchlist` from a real MCP client.
+2. **Deploy crawlable detail pages** — `pnpm deploy`; post-deploy curl two
    detail pages + one sitemap chunk; run `agent-index-audit.mjs --project anime-list`.
-2. **Decide the homepage A/B winner** after the 2-week window; park the loser.
-3. **GSC sitemap submission** — submit `sitemap-index.xml` to Google Search
+3. **Decide the homepage A/B winner** after the 2-week window; park the loser.
+4. **GSC sitemap submission** — submit `sitemap-index.xml` to Google Search
    Console once the zone AI-block / GSC onboarding fleet actions land.
-4. **Add e2e** for discover, watchlist import, collections, alerts, auth
+5. **Add e2e** for discover, watchlist import, collections, alerts, auth
    flows, manga routes (currently only anime-detail + mobile are covered).
-5. Measure `/quiz` completion-to-search clickthrough before persistence, OG
+6. Measure `/quiz` completion-to-search clickthrough before persistence, OG
    images, or share analytics. Measure collection share clickthrough before
    discovery ranking or social features.
 

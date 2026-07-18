@@ -17,6 +17,7 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 - `/alerts` — saved search alert management.
 - `/collections`, `/c/$slug` — collection editor + public view.
 - `/quiz` — character identity quiz prototype (no persistence).
+- `/mcp` — MCP server docs + Personal Access Token management for AI tools.
 
 ## Worker API (`src/worker.ts` + `src/worker/mangaRoutes.ts`)
 
@@ -36,6 +37,13 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
   catalog refresh.
 - **Collections:** CRUD + public `GET /api/collections/:slug`.
 - **Manga:** parallel search/stats/random/watchlist/detail under `/api/manga/*`.
+- **MCP server:** `POST /api/mcp` — Streamable HTTP MCP server exposing the
+  catalog + watchlist as tools for AI clients. Public tools (search, detail,
+  stats, random) work without auth; watchlist tools require a Personal
+  Access Token. User-facing docs + token management at `/mcp`.
+- **Personal Access Tokens:** `POST /api/tokens`, `GET /api/tokens`,
+  `POST /api/tokens/:id/revoke` — long-lived revocable bearer tokens
+  (`shelf_…`, SHA-256 hashed at rest) for MCP watchlist auth.
 
 ## Crawlable detail pages (2026-07-17, deploy pending)
 

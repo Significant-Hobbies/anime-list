@@ -28,6 +28,7 @@ type AuthMiddleware = (
     set: (key: string, value: unknown) => void;
     get: (key: string) => { userId: string } | undefined;
     json: (data: unknown, status?: number) => Response;
+    executionCtx: { waitUntil: (p: Promise<unknown>) => void };
   },
   next: () => Promise<void>
 ) => Promise<Response | undefined>;

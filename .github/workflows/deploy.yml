@@ -1,4 +1,7 @@
 name: Deploy anime_list to Cloudflare Pages
+# Rollback: Cloudflare Pages preserves every deployment. Roll back via
+# dash.cloudflare.com → Pages → anime-list → Deployments → "Rollback to this
+# deployment".
 on:
   workflow_dispatch:
 concurrency:
@@ -8,6 +11,7 @@ concurrency:
 jobs:
   deploy-production:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6

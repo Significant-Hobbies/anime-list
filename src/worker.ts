@@ -100,6 +100,17 @@ import { getAnimeDetailSupplementalData } from './controllers/animeDetailService
 import { buildScheduleTimelineResponse, addScheduleItems } from './services/scheduleService';
 import { buildTasteRecommendations } from './recommendations';
 import { registerMangaRoutes } from './worker/mangaRoutes';
+import { handleMcpRequest } from './worker/mcpRoutes';
+import {
+  initApiTokensTable,
+  createApiToken,
+  listApiTokens,
+  revokeApiToken,
+  resolveApiToken,
+  touchApiTokenLastUsed,
+  TOKEN_PREFIX,
+} from './db/apiTokens';
+import { createTokenSchema, revokeTokenParamsSchema } from './validators/apiTokens';
 import {
   NUMERIC_FIELDS,
   ARRAY_FIELDS,
@@ -214,6 +225,22 @@ function extractToken(c: { req: { header: (name: string) => string | undefined }
   return (
     extractBearerToken(c.req.header('Authorization')) || readAuthCookie(c.req.header('Cookie'))
   );
+}
+
+// Resolve a bearer or cookie token to a user. Accepts a Personal Access Token
+// (shelf_..., bearer-only) or an existing JWT. PATs are looked up by hash and
+// their last_used_at is touched best-effort via waitUntil.
+async function resolveUser(
+  token: string,
+  ctx?: { waitUntil: (p: Promise<unknown>) => void }
+): Promise<AuthPayload | null> {
+  if (token.startsWith(TOKEN_PREFIX)) {
+    const resolved = await resolveApiToken(token);
+    if (!resolved) return null;
+    if (ctx) ctx.waitUntil(touchApiTokenLastUsed(resolved.tokenId));
+    return { userId: resolved.userId, email: '', name: '' };
+  }
+  return verifyToken(token);
 }
 
 const toHex = (buffer: ArrayBuffer): string =>
@@ -359,6 +386,7 @@ app.use('*', async (_c, next) => {
     await initScheduleTable();
     await initSavedSearchTables();
     await initCollectionTables();
+    await initApiTokensTable();
     await migrateScheduleEpisodesWatched();
     await migrateAnimeWatchlistNotes();
     await migrateAnimeDetailCache();
@@ -385,12 +413,13 @@ const optionalAuth = async (
   c: {
     req: { header: (name: string) => string | undefined };
     set: (key: string, value: unknown) => void;
+    executionCtx: { waitUntil: (p: Promise<unknown>) => void };
   },
   next: () => Promise<void>
 ) => {
   const token = extractToken(c);
   if (token) {
-    const user = await verifyToken(token);
+    const user = await resolveUser(token, c.executionCtx);
     if (user) c.set('user', user);
   }
   await next();
@@ -401,12 +430,13 @@ const requireAuth = async (
     req: { header: (name: string) => string | undefined };
     set: (key: string, value: unknown) => void;
     json: (data: unknown, status?: number) => Response;
+    executionCtx: { waitUntil: (p: Promise<unknown>) => void };
   },
   next: () => Promise<void>
 ) => {
   const token = extractToken(c);
   if (!token) return c.json({ error: 'Authentication required' }, 401);
-  const user = await verifyToken(token);
+  const user = await resolveUser(token, c.executionCtx);
   if (!user) return c.json({ error: 'Invalid or expired token' }, 401);
   c.set('user', user);
   await next();
@@ -1325,6 +1355,50 @@ app.post('/api/discover/dismiss', requireAuth, async (c) => {
 });
 
 registerMangaRoutes(app, { requireAuth, optionalAuth });
+
+// ── MCP server ─────────────────────────────────────────────────────────
+// Thin protocol adapter over the existing /api/* endpoints. Public tools
+// work without auth; watchlist tools forward the caller's Authorization
+// header (PAT or JWT) to the existing requireAuth-gated routes.
+app.all('/api/mcp', async (c) => {
+  // Reject non-POST/GET/DELETE early — the transport handles the rest, but
+  // we don't want e.g. PUT hitting the SPA asset fallback.
+  const method = c.req.method;
+  if (method !== 'POST' && method !== 'GET' && method !== 'DELETE') {
+    return c.json({ error: 'Method not allowed' }, 405);
+  }
+  const authHeader = c.req.header('Authorization') ?? null;
+  return handleMcpRequest(c.req.raw, authHeader);
+});
+
+// ── Personal Access Tokens ─────────────────────────────────────────────
+app.post('/api/tokens', requireAuth, async (c) => {
+  const body = await c.req.json();
+  const parsed = createTokenSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: 'Invalid token payload', details: parsed.error.issues }, 400);
+  }
+  const user = c.get('user')!;
+  const created = await createApiToken(user.userId, parsed.data.name);
+  return c.json(created);
+});
+
+app.get('/api/tokens', requireAuth, async (c) => {
+  const user = c.get('user')!;
+  const tokens = await listApiTokens(user.userId);
+  return c.json({ tokens });
+});
+
+app.post('/api/tokens/:id/revoke', requireAuth, async (c) => {
+  const parsed = revokeTokenParamsSchema.safeParse({ id: c.req.param('id') });
+  if (!parsed.success) {
+    return c.json({ error: 'Invalid token id', details: parsed.error.issues }, 400);
+  }
+  const user = c.get('user')!;
+  const result = await revokeApiToken(user.userId, parsed.data.id);
+  if (result.notFound) return c.json({ error: 'Token not found' }, 404);
+  return c.json({ success: true });
+});
 
 // Saved searches + alerts
 app.get('/api/saved-searches', requireAuth, async (c) => {
