@@ -42,7 +42,7 @@ Authoritative list lives in `package.json`. Common commands:
 | `pnpm size` | size-limit bundle check |
 | `pnpm db:seed` / `db:seed:manga` | Seed Turso from JSON |
 | `pnpm db:update` / `db:update:manga` | Refresh catalog from Jikan |
-| `pnpm db:update:manga:full` | Full top-list manga refresh (~25k) |
+| `pnpm db:update:manga:full` | Full top-list manga refresh (~20.7k) |
 | `pnpm db:quarterly-sync` | Quarterly anime status/score sync |
 | `pnpm deploy` | Clean-`main` guard + build + `wrangler pages deploy` |
 | `pnpm deploy:worker` | `wrangler deploy --config wrangler.cron.toml` |

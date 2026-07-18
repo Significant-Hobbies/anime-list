@@ -11,7 +11,7 @@ pnpm db:update          # anime: current + previous season
 pnpm db:update:manga    # manga: top ~100 pages
 ```
 
-For a full manga top-list refresh (~25k titles, slow):
+For a full manga top-list refresh (~20.7k titles, slow):
 
 ```bash
 pnpm db:update:manga:full

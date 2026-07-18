@@ -5,7 +5,7 @@
 **Shelf (MAL Explorer)** is a production anime/manga discovery app. It gives
 multi-field filtering, shareable URLs, personal watchlists (Google OAuth),
 stats, schedule tracking, and a signed-in seasonal discovery queue over a
-catalog of ~14.8k anime + ~25k manga titles synced daily from MyAnimeList via
+catalog of ~14.8k anime + ~20.7k manga titles synced daily from MyAnimeList via
 the Jikan API.
 
 - **Live site:** https://anime.significanthobbies.com
@@ -14,7 +14,7 @@ the Jikan API.
 
 ## Who it serves
 
-Anime/manga fans filtering 40k+ catalog titles; signed-in users tracking
+Anime/manga fans filtering a ~35k-title catalog; signed-in users tracking
 watchlists and discovering seasonal picks.
 
 ## Operating posture
@@ -48,11 +48,11 @@ Local env shape is defined in `.env.example`.
 
 ## Catalog & search posture
 
-- ~14.8k anime + ~25k manga with quality gates (must have `score`,
+- ~14.8k anime + ~20.7k manga with quality gates (must have `score`,
   `scored_by`, `members`, `favorites`, `year`).
 - Discover UI defaults to a minimum popularity floor (100k anime / 50k manga
   members) to surface quality titles.
-- Manga scope is the Jikan `/top/manga` top ~25k titles, **not** the full MAL
+- Manga scope is the Jikan `/top/manga` top ~20.7k titles, **not** the full MAL
   catalog.
 - Smart ranking balances log-scale popularity and MAL score so hidden gems
   get a chance.
