@@ -1,0 +1,56 @@
+name: Docs
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'STATUS.md'
+      - 'README.md'
+      - 'PROJECT_STATUS.md'
+      - 'scripts/check-docs.mjs'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'STATUS.md'
+      - 'README.md'
+      - 'PROJECT_STATUS.md'
+      - 'scripts/check-docs.mjs'
+      - '.github/workflows/docs.yml'
+
+jobs:
+  validate-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Check internal markdown links
+        run: node scripts/check-docs.mjs
+
+  # Optional Blume validation — runs only when blume is installed.
+  # Add `blume` to devDependencies to enable type/link validation of the
+  # rendered docs site. The committed Markdown remains the source of truth.
+  blume-validate:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Blume validate (if installed)
+        run: |
+          if pnpm list blume >/dev/null 2>&1; then
+            pnpm exec blume validate --strict
+          else
+            echo "blume not installed — skipping (presentation layer is optional)."
+          fi

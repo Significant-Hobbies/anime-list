@@ -25,3 +25,18 @@ test-results
 .DS_Store
 coverage/
 coverage-final.json
+
+# Blume (docs presentation layer) — generated, not committed.
+# blume dev regenerates .blume/; blume build --isolated uses .blume-verify/.
+# `blume build` (without --isolated) writes dist/, which collides with the
+# SPA build above — prefer --isolated or a separate checkout for publishing.
+.blume/
+.blume-verify/
+docs-dist/
+
+# Local agent session logs / scratch (not part of the knowledge base).
+.symphony/
+.clawpatch/
+.agent-logs/
+*.agent.log
+

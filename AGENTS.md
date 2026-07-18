@@ -87,25 +87,36 @@ pnpm deploy:worker        # Cloudflare Worker
 
 <!-- FLEET-GUIDANCE:END -->
 
+## Documentation
+
+The canonical knowledge base is [`docs/`](docs/) — start at
+[`docs/index.md`](docs/index.md). Markdown in this repo is the source of
+truth; Blume ([`blume.config.ts`](blume.config.ts)) is only the presentation
+and search layer.
+
+- **Current objective / active work / blockers / next steps:** [`STATUS.md`](STATUS.md)
+- **Full product/feature status + timeline:** [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
+- **Product / architecture / development / operations / knowledge / archive:**
+  see [`docs/index.md`](docs/index.md) for the map.
+
+Documentation-maintenance rules (see [`docs/index.md`](docs/index.md) for the
+full list):
+
+1. One fact, one home. Do not duplicate what code, `package.json`,
+   `wrangler.cron.toml`, or the GitHub workflow files already state — link
+   to them instead.
+2. Document *why*, not *what is easily discoverable from code*.
+3. Prefer small, focused pages (150–300 lines).
+4. When a decision is superseded, mark the ADR `Superseded` and point to the
+   replacement; move completed briefs into [`docs/archive/`](docs/archive/)
+   rather than deleting.
+5. Mark unresolved questions explicitly (`> Unresolved:`). Do not invent.
+6. Run `node scripts/check-docs.mjs` before committing docs; CI runs the same
+   check (`.github/workflows/docs.yml`).
+
 ## Active context
 
-
-<claude-mem-context>
-# Memory Context
-
-# [anime_list] recent context, 2026-05-03 9:35am GMT+5:30
-
-Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
-Format: ID TIME TYPE TITLE
-Fetch details: get_observations([IDs]) | Search: mem-search skill
-
-Stats: 4 obs (1,681t read) | 54,515t work | 97% savings
-
-### May 2, 2026
-715 7:51p 🔵 anime-list CF Pages returning HTTP 500 "Internal Server Error"
-716 10:03p 🔵 anime-list-9lk.pages.dev Production 500 — Latest Deploy Broken, Previous Works
-717 10:05p 🔵 swe-interview-prep Has 120 ESLint Warnings — All Non-Blocking
-721 10:11p 🔵 anime-list-9lk.pages.dev — MyAnimeList CDN images return 403
-
-Access 55k tokens of past work via get_observations([IDs]) or mem-search skill.
-</claude-mem-context>
+- Recurring operational risks: MAL CDN poster 403s and (historically)
+  intermittent Pages 500s. Runbooks: [`docs/operations/runbooks/`](docs/operations/runbooks/).
+- Past session memory (e.g. observations `715`, `716`, `721` from 2026-05-02)
+  is accessible via the `mem-search` skill / `get_observations` when needed.

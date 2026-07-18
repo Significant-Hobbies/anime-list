@@ -1,5 +1,14 @@
 # Project Recommendation Context
 
+> **Historical snapshot — 2026-06-06.** This audit was generated *before* the
+> 2026-06-20 Vite SPA migration (ADR 0001). It references Next.js / OpenNext
+> paths (`app/.../page.tsx`), `next`, `@opennextjs/cloudflare`, and `jest`
+> dependencies that have since been removed. It is preserved here for
+> journey/audit context only; do not treat the stack inventory or runtime
+> entrypoints as current. For the current stack, see
+> [`../product/overview.md`](../product/overview.md) and
+> [`../architecture/overview.md`](../architecture/overview.md).
+
 Generated: 2026-06-06T21:14:19.532Z
 
 This file is a CodeVetter Repo Unpacked-inspired audit written for Starboard recommendations. It is intentionally local, evidence-oriented, and safe to commit: it records product context, feature areas, stack inventory, and recommendation guidance without secrets or environment values.
