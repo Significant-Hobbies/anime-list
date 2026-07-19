@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { FilterAction } from '../config';
 
-export const comparisonActionSchema = z.enum([
+const comparisonActionSchema = z.enum([
   FilterAction.Equals,
   FilterAction.GreaterThan,
   FilterAction.GreaterThanOrEquals,
@@ -9,12 +9,12 @@ export const comparisonActionSchema = z.enum([
   FilterAction.LessThanOrEquals,
 ] as const);
 
-export const arrayIncludesActionSchema = z.enum([
+const arrayIncludesActionSchema = z.enum([
   FilterAction.IncludesAll,
   FilterAction.IncludesAny,
 ] as const);
 
-export const textSearchActionSchema = z.enum([FilterAction.Equals, FilterAction.Contains] as const);
+const textSearchActionSchema = z.enum([FilterAction.Equals, FilterAction.Contains] as const);
 
 type RefinePath = Array<string | number>;
 

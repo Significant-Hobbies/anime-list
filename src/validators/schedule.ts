@@ -29,8 +29,3 @@ export const reorderScheduleSchema = z.object({
     message: 'mal_ids must contain at least one id',
   }),
 });
-
-export type AddToSchedulePayload = z.infer<typeof addToScheduleSchema>;
-export type UpdateScheduleItemPayload = z.infer<typeof updateScheduleItemSchema>;
-export type RemoveFromSchedulePayload = z.infer<typeof removeFromScheduleSchema>;
-export type ReorderSchedulePayload = z.infer<typeof reorderScheduleSchema>;

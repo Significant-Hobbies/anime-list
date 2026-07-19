@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
  * route. Scoping the provider to `appRoute` left those trees without a
  * QueryClient and crashed prod with "No QueryClient set".
  */
-export const queryClient = new QueryClient({
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes

@@ -6,8 +6,6 @@ export const watchlistTagSchema = z.object({
   color: watchTagColorSchema,
 });
 
-export type WatchlistTagPayload = z.infer<typeof watchlistTagSchema>;
-
 export const watchlistTagUpdateSchema = z
   .object({
     tag: watchTagSchema.optional(),

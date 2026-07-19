@@ -6,13 +6,7 @@ import {
 } from './config';
 import type { AnimeItem } from './types/anime';
 import type { MangaItem } from './types/manga';
-import type {
-  AnimeStats,
-  Distribution,
-  FieldCount,
-  Percentiles,
-  TypeDistribution,
-} from './types/statistics';
+import type { AnimeStats, Percentiles } from './types/statistics';
 import {
   getDistribution,
   getFieldCounts,
@@ -88,4 +82,4 @@ export const getMangaStats = async (mangaList: MangaItem[] | null = null): Promi
   };
 };
 
-export type { AnimeStats, Distribution, FieldCount, Percentiles, TypeDistribution };
+export type { AnimeStats };

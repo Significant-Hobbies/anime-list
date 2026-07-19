@@ -39,7 +39,7 @@ const {
 } = createStringFilterSchemas(stringFieldSchema);
 const booleanFilterSchema = createBooleanFilterSchema(booleanFieldSchema);
 
-export const mangaFilterSchema = createFilterUnion<MangaFilter>([
+const mangaFilterSchema = createFilterUnion<MangaFilter>([
   numericFilterSchema,
   arrayFilterIncludesSchema,
   arrayFilterExcludesSchema,
@@ -49,7 +49,7 @@ export const mangaFilterSchema = createFilterUnion<MangaFilter>([
   booleanFilterSchema,
 ]);
 
-export const mangaFiltersSchema = createFiltersArraySchema(mangaFilterSchema);
+const mangaFiltersSchema = createFiltersArraySchema(mangaFilterSchema);
 
 export const mangaFilterRequestSchema = z.object({
   filters: mangaFiltersSchema,

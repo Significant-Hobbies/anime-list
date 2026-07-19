@@ -2,16 +2,6 @@ import { getDb } from './client';
 
 export const TOKEN_PREFIX = 'shelf_';
 
-export interface ApiTokenRow {
-  id: string;
-  userId: string;
-  name: string;
-  tokenHash: string;
-  lastUsedAt: string | null;
-  createdAt: string;
-  revokedAt: string | null;
-}
-
 export interface CreatedApiToken {
   token: string;
   id: string;

@@ -211,7 +211,7 @@ type FiltersWithScoreRange =
     });
 
 // takes roughly 1ms, for 18000 anime, was taking upto 18s which is not ideal
-export const getAnimeScore = (anime: AnimeItem, filters: FiltersWithScoreRange[]): number => {
+const getAnimeScore = (anime: AnimeItem, filters: FiltersWithScoreRange[]): number => {
   const fieldWiseMultipliers: Map<
     AnimeField,
     ScoreMultiplier<number | string | string[]>

@@ -1,7 +1,7 @@
 import type { AnimeItem } from './types/anime';
 import type { WatchlistData } from './types/watchlist';
 
-export interface TasteSignal {
+interface TasteSignal {
   name: string;
   weight: number;
 }

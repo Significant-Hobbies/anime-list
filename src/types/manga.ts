@@ -146,7 +146,3 @@ export const isMangaArrayField = (field: MangaField): field is MangaArrayField =
 export const isMangaStringField = (field: MangaField): field is MangaStringField => {
   return MANGA_STRING_FIELDS.includes(field as MangaStringField);
 };
-
-export const isMangaBooleanField = (field: MangaField): field is MangaBooleanField => {
-  return MANGA_BOOLEAN_FIELDS.includes(field as MangaBooleanField);
-};

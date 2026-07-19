@@ -28,11 +28,3 @@ export function getAnimeEntry(id: number): SeoEntry | null {
 export function getMangaEntry(id: number): SeoEntry | null {
   return mangaMap.get(id) ?? null;
 }
-
-export function getAllAnimeIds(): number[] {
-  return [...animeMap.keys()].sort((a, b) => a - b);
-}
-
-export function getAllMangaIds(): number[] {
-  return [...mangaMap.keys()].sort((a, b) => a - b);
-}

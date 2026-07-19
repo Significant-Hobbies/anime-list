@@ -9,7 +9,7 @@ import type {
   WatchlistTag,
 } from '../types/watchlist';
 
-export const DEFAULT_USER_TAGS = [
+const DEFAULT_USER_TAGS = [
   { tag: 'Watching', color: '#10b981' },
   { tag: 'Done', color: '#3b82f6' },
 ] as const;

@@ -165,7 +165,7 @@ export function buildSsrSummary(entry: SeoEntry, kind: SeoKind): string {
 
 // ── Noindex head ────────────────────────────────────────────────────────
 
-export function buildNoindexHead(): string {
+function buildNoindexHead(): string {
   return '<meta name="robots" content="noindex" />';
 }
 

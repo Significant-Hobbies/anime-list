@@ -107,7 +107,7 @@ const matchesStringFilter = (
 
 // ── Generic filter matcher ─────────────────────────────────────────────
 
-export const matchesFilter = <
+const matchesFilter = <
   TItem,
   TField,
   TFilter extends { field: TField; value: unknown; action: FilterAction },
@@ -160,7 +160,7 @@ export const filterCollection = <
 
 // ── Anime field accessor ───────────────────────────────────────────────
 
-export const getAnimeFieldValue = (anime: AnimeItem, field: AnimeField): unknown => {
+const getAnimeFieldValue = (anime: AnimeItem, field: AnimeField): unknown => {
   switch (field) {
     case AnimeField.MalId:
       return anime.mal_id;

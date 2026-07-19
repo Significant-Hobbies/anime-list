@@ -1,6 +1,6 @@
 import type { WatchedAnime } from './types/watchlist';
 
-export type ExternalWatchStatus = 'Watching' | 'Completed' | 'Deferred' | 'Avoiding' | 'BRR';
+type ExternalWatchStatus = 'Watching' | 'Completed' | 'Deferred' | 'Avoiding' | 'BRR';
 
 export interface ExternalWatchlistEntry {
   malId: string;
@@ -11,10 +11,10 @@ export interface ExternalWatchlistEntry {
   note?: string;
 }
 
-export type WatchlistImportSource = 'mal' | 'anilist' | 'shelf';
+type WatchlistImportSource = 'mal' | 'anilist' | 'shelf';
 export type WatchlistImportMode = 'merge' | 'replace' | 'skip';
 
-export interface WatchlistImportConflict {
+interface WatchlistImportConflict {
   malId: string;
   title?: string;
   incomingStatus: ExternalWatchStatus;
@@ -153,7 +153,7 @@ export function parseShelfJson(rawJson: string): WatchlistImportPreview {
   return summarize('shelf', entries, skipped);
 }
 
-export function safeParseShelfJson(rawJson: string): WatchlistImportParseResult {
+function safeParseShelfJson(rawJson: string): WatchlistImportParseResult {
   try {
     return { ok: true, preview: parseShelfJson(rawJson) };
   } catch {
@@ -192,7 +192,7 @@ export function buildShelfCsvExport(watchlist: Record<string, WatchedAnime>): st
   return [header, ...rows].join('\n');
 }
 
-export function parseMalCsv(csv: string): WatchlistImportPreview {
+function parseMalCsv(csv: string): WatchlistImportPreview {
   const lines = csv.trim().split(/\r?\n/);
   const entries: ExternalWatchlistEntry[] = [];
   let skipped = 0;

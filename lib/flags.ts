@@ -68,8 +68,3 @@ export function homeVariant(): HomeVariant {
     return 'control';
   }
 }
-
-/** True when the homepage should show the quiz CTA above the fold (treatment). */
-export function homeQuizAboveFold(): boolean {
-  return homeVariant() === 'treatment';
-}
