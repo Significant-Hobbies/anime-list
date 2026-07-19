@@ -13,7 +13,7 @@ A modern anime discovery platform that helps you find your next favorite show.
 | Database | Turso (libSQL) |
 | Auth | Google OAuth 2.0 + JWT |
 | Analytics | PostHog (`local posthog-js wrapper`) |
-| CI/CD | GitHub Actions — auto-deploy to Cloudflare Pages on push to `main`; daily Turso sync workflow |
+| CI/CD | GitHub Actions — CI (lint/test/build/size) on push/PR; manual (`workflow_dispatch`) Cloudflare Pages deploy; daily Turso sync workflow |
 
 > Local and production API traffic is served by the `mal-api` Cloudflare Worker on port **8787** during `pnpm dev`.
 
@@ -133,8 +133,12 @@ pnpm db:update     # Update anime data from Jikan API
 ## Deployment
 
 **Frontend (Cloudflare Pages — project `anime-list`)**
-- Auto-deploys on push to main via GitHub Actions (`.github/workflows/deploy.yml`)
-- `VITE_*` build vars are set in the workflow; runtime vars live in `wrangler.toml`
+- Manual deploy only: run `pnpm deploy` locally (clean-`main` guard + build +
+  `wrangler pages deploy`), or trigger the `workflow_dispatch` deploy workflow
+  (`.github/workflows/deploy.yml`). There is no auto-deploy on push.
+- `VITE_*` client vars are inlined at build time (`import.meta.env`) and set
+  explicitly by the deploy workflow. `wrangler.toml` `[vars]` only apply at
+  runtime to the worker, not to the client bundle.
 
 **API Worker (Cloudflare Worker — `mal-api`)**
 - Deploy with `pnpm deploy:worker` (`wrangler deploy --config wrangler.cron.toml`)
@@ -149,7 +153,7 @@ pnpm db:update     # Update anime data from Jikan API
 **GitHub Actions (Automated)**
 - Add repository secrets: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`
 - Workflow runs automatically daily at midnight UTC
-- Manual trigger: Go to Actions tab → "Update Anime Data" → Run workflow
+- Manual trigger: Go to Actions tab → "Update Catalog Data" → Run workflow
 
 ---
 

@@ -41,7 +41,7 @@ worker cache picks up the fresh Turso data.
 
 - Schedule: `0 1 1 1,4,7,10 *` (Jan/Apr/Jul/Oct 1, 01:00 UTC, after anime) +
   `workflow_dispatch`.
-- Runs `pnpm db:update:manga:full` (full top-list refresh, ~25k titles).
+- Runs `pnpm db:update:manga:full` (full top-list refresh, ~20.7k titles).
 - Timeout: 240 min.
 
 ### Weekly quality check — `weekly.yml`

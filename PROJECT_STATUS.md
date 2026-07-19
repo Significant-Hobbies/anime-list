@@ -5,7 +5,7 @@ Last updated: 2026-07-11
 
 **Shelf (MAL Explorer)** is a production anime/manga discovery app with multi-field search, shareable URLs, personal watchlists (Google OAuth), stats, schedule, and a signed-in seasonal discover queue.
 
-**Users:** Anime/manga fans filtering 40k+ catalog titles; signed-in users tracking watchlists and discovering seasonal picks.
+**Users:** Anime/manga fans filtering a ~35k-title catalog; signed-in users tracking watchlists and discovering seasonal picks.
 
 **Constraints:** Operational stability over feature expansion. Measure engagement on newer surfaces (quiz, collections) before expanding them.
 
@@ -44,9 +44,9 @@ Last updated: 2026-07-11
 | `pnpm preview` | Vite preview |
 | `pnpm deploy` | Clean `main` guard + build + `wrangler pages deploy` |
 | `pnpm deploy:worker` | Deploy `mal-api` worker |
-| `pnpm test` | Vitest (46 tests, 11 files) |
+| `pnpm test` | Vitest (69 tests across 13 files) |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
-| `pnpm typecheck` / `pnpm lint` | TS + ESLint |
+| `pnpm typecheck` / `pnpm lint` | TS (`tsc`) + Biome |
 | `pnpm db:seed` / `db:seed:manga` | Seed Turso from scripts |
 | `pnpm db:update` / `db:update:manga` | Refresh from Jikan |
 | `pnpm db:quarterly-sync` | Quarterly anime re-score |
@@ -81,7 +81,7 @@ Last updated: 2026-07-11
 - **Pure rewrite function**: `src/seoRewrite.ts` with HTML escaping, `</script>` injection protection, 17 vitest tests.
 - **e2e tests**: unique title assertion + app mounts + noindex on unknown id.
 
-### Frontend routes (22 paths, TanStack Router `src/router.tsx`)
+### Frontend routes (21 paths, TanStack Router `src/router.tsx`)
 
 - `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
 - `/search` — advanced anime filter search with URL-encoded state (nuqs).
@@ -109,18 +109,18 @@ Last updated: 2026-07-11
 ### Architecture
 
 - Vite SPA calls `mal-api` worker; TanStack Query caches responses client-side.
-- Worker loads full anime (~14.8k) + manga (~25k) catalogs into in-memory stores with 1hr stale-while-revalidate.
+- Worker loads full anime (~14.8k) + manga (~20.7k) catalogs into in-memory stores with 1hr stale-while-revalidate.
 - Turso stores catalog tables + per-user watchlists, schedule, saved searches, collections.
 - Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
 - Worker cron `0 3 * * *` reloads caches + evaluates saved-search alerts after catalog refresh.
-- GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, auto Pages deploy on `main`.
+- GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, and a manual (`workflow_dispatch`) Pages deploy — no auto-deploy on push.
 - Edge caches: search 180s, stats 300s, detail 24h (anonymous only).
 - CORS allowlist for Pages, worker, localhost, PR previews.
 - Deploy branch guard on `pnpm deploy` (clean `main` only).
 
 ### Catalog & search
 
-- ~14.8k anime + ~25k manga with quality gates (score, scored_by, members, favorites, year).
+- ~14.8k anime + ~20.7k manga with quality gates (score, scored_by, members, favorites, year).
 - Advanced multi-field filters with active filter explanation chips (`ActiveFilterChip`).
 - Smart ranking: log-scale popularity + MAL score balance.
 - Sub-ms worker responses via in-memory cache; removed 17MB `cleaned_anime_data.json` from SPA (2026-06-20).
@@ -145,7 +145,7 @@ Last updated: 2026-07-11
 
 ### Tests & ops
 
-- Vitest: 51 tests (import/export, filters, recommendations, schedule, detail cache).
+- Vitest: 69 tests across 13 files (import/export, filters, recommendations, schedule, SEO rewrite, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll.
 - PostHog analytics.
 

@@ -51,7 +51,7 @@ pnpm db:seed              # Seed anime catalog from JSON
 pnpm db:seed:manga        # Seed manga catalog from JSON
 pnpm db:update            # Daily anime refresh (current + previous season)
 pnpm db:update:manga      # Daily manga refresh (top ~100 pages)
-pnpm db:update:manga:full # Full top-list manga refresh (~25k titles)
+pnpm db:update:manga:full # Full top-list manga refresh (~20.7k titles)
 pnpm db:quarterly-sync    # Quarterly anime status/score sync
 pnpm deploy               # Cloudflare Pages
 pnpm deploy:worker        # Cloudflare Worker
@@ -60,7 +60,7 @@ pnpm deploy:worker        # Cloudflare Worker
 ## Architecture notes
 - **Backend**: Worker `mal-api` serves all API traffic; cron reloads anime + manga caches from Turso daily.
 - **Catalog quality gate** (anime + manga): Jikan rows must have `score`, `scored_by`, `members`, `favorites`, and `year`. Discover UI defaults to min popularity (100k anime / 50k manga members).
-- **Manga scope**: ~25k top/popular titles from Jikan `/top/manga`, not the full MAL catalog.
+- **Manga scope**: ~20.7k top/popular titles from Jikan `/top/manga` (current catalog: 20,656), not the full MAL catalog.
 - **Daily sync**: `update-anime-data.yml` — anime seasons + manga top pages @ midnight UTC.
 - **Quarterly sync**: `quarterly-anime-sync.yml` (anime), `quarterly-manga-sync.yml` (manga full top-list).
 - **Watch statuses**: `Watching`, `Completed`, `Deferred`, `Avoiding`, `BRR`.
