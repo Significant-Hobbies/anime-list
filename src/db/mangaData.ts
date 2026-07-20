@@ -134,12 +134,6 @@ export async function getMangaByMalId(malId: number): Promise<MangaItem | null> 
   return mapMangaRow(result.rows[0] as unknown as Record<string, unknown>);
 }
 
-export async function getMangaCount(): Promise<number> {
-  const db = getMangaCatalogDb();
-  const result = await db.execute('SELECT COUNT(*) as count FROM manga_data');
-  return result.rows[0].count as number;
-}
-
 export async function getLastMangaDataUpdate(): Promise<string | null> {
   const db = getMangaCatalogDb();
   const result = await db.execute('SELECT MAX(updated_at) as last_updated FROM manga_data');

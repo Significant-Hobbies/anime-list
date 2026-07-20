@@ -1,4 +1,4 @@
-export interface AnimeDetailAnime {
+interface AnimeDetailAnime {
   mal_id: number;
   url: string;
   title: string;
@@ -21,7 +21,7 @@ export interface AnimeDetailAnime {
   demographics: string[];
 }
 
-export interface AnimeRelationEntry {
+interface AnimeRelationEntry {
   mal_id: number;
   type: string;
   name: string;
@@ -33,7 +33,7 @@ export interface AnimeRelation {
   entries: AnimeRelationEntry[];
 }
 
-export interface AnimeRecommendationEntry {
+interface AnimeRecommendationEntry {
   mal_id: number;
   url: string;
   title: string;
@@ -46,7 +46,7 @@ export interface AnimeRecommendation {
   votes?: number;
 }
 
-export interface AnimeDetailRelationItem {
+interface AnimeDetailRelationItem {
   mal_id: number;
   relation: string;
   title: string;
@@ -59,7 +59,7 @@ export interface AnimeDetailRelationItem {
   url?: string;
 }
 
-export interface AnimeDetailRecommendationItem {
+interface AnimeDetailRecommendationItem {
   mal_id: number;
   title: string;
   title_english?: string;
@@ -72,7 +72,7 @@ export interface AnimeDetailRecommendationItem {
   votes: number;
 }
 
-export interface AnimeWatchlistDetails {
+interface AnimeWatchlistDetails {
   status: string;
   note: string | null;
 }

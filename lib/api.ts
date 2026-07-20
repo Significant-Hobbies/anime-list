@@ -531,16 +531,6 @@ export function getMangaDetail(malId: number | string): Promise<MangaDetailRespo
   return fetchJson(`${MANGA_BASE}/${malId}`);
 }
 
-export function getRandomMangaPick(options?: {
-  genre?: string;
-  limit?: number;
-}): Promise<{ results: RandomAnimePick[] }> {
-  const params = new URLSearchParams();
-  if (options?.genre) params.set('genre', options.genre);
-  if (options?.limit != null) params.set('limit', String(options.limit));
-  const query = params.toString();
-  return fetchJson(`${MANGA_BASE}/random${query ? `?${query}` : ''}`);
-}
 export function getDiscoveryQueue(limit = 50): Promise<DiscoveryQueueResponse> {
   return fetchJson(`${BASE}/discover/queue?limit=${limit}`);
 }

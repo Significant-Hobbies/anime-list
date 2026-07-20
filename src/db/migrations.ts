@@ -55,7 +55,7 @@ const createUserTagsTableSql = `
   )
 `;
 
-export async function migrateWatchlistTables(): Promise<void> {
+async function migrateWatchlistTables(): Promise<void> {
   const db = getDb();
 
   const animeExists = await tableExists('anime_watchlist');
@@ -124,7 +124,7 @@ export async function migrateWatchlistTables(): Promise<void> {
   console.log('Watchlist user migration complete');
 }
 
-export async function migrateUserTagsTable(): Promise<void> {
+async function migrateUserTagsTable(): Promise<void> {
   const db = getDb();
 
   await db.execute(createUserTagsTableSql);
@@ -192,7 +192,7 @@ export async function migrateUserTagsTable(): Promise<void> {
   ]);
 }
 
-export async function migrateWatchlistToTagIds(): Promise<void> {
+async function migrateWatchlistToTagIds(): Promise<void> {
   const db = getDb();
   const hasTagId = await hasColumn('anime_watchlist', 'tag_id');
   if (hasTagId) {
@@ -279,7 +279,7 @@ export async function migrateWatchlistToTagIds(): Promise<void> {
   console.log('Watchlist tag_id migration complete');
 }
 
-export async function migrateAnimeDataTable(): Promise<void> {
+async function migrateAnimeDataTable(): Promise<void> {
   const db = getDb();
 
   const tables = await db.execute(
@@ -328,7 +328,7 @@ export async function migrateAnimeDataTable(): Promise<void> {
   ]);
 }
 
-export async function migrateWatchlistIndexes(): Promise<void> {
+async function migrateWatchlistIndexes(): Promise<void> {
   const db = getDb();
 
   await db.batch([
@@ -341,7 +341,7 @@ export async function migrateWatchlistIndexes(): Promise<void> {
   ]);
 }
 
-export async function migrateAnimeCreatedAt(): Promise<void> {
+async function migrateAnimeCreatedAt(): Promise<void> {
   const db = getDb();
   const info = await db.execute('PRAGMA table_info(anime_data)');
   const hasCreatedAt = info.rows.some((row) => row.name === 'created_at');
@@ -351,7 +351,7 @@ export async function migrateAnimeCreatedAt(): Promise<void> {
   await db.execute('UPDATE anime_data SET created_at = updated_at WHERE created_at IS NULL');
 }
 
-export async function migrateScheduleTable(): Promise<void> {
+async function migrateScheduleTable(): Promise<void> {
   const exists = await tableExists('anime_schedule');
   if (exists) return;
 

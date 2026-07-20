@@ -12,7 +12,7 @@ export interface EnrichedScheduleItem {
   watchStatus: string;
 }
 
-export interface TimelineEntry {
+interface TimelineEntry {
   mal_id: string;
   title: string;
   image?: string;

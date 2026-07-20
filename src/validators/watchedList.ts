@@ -3,7 +3,7 @@ import { watchTagColorSchema, watchTagSchema } from './watchTags';
 
 const malIdSchema = z.union([z.string().min(1), z.number()]).transform((value) => value.toString());
 
-export const watchlistIdsSchema = z.object({
+const watchlistIdsSchema = z.object({
   mal_ids: z.array(malIdSchema).nonempty({
     message: 'mal_ids must contain at least one id',
   }),
@@ -15,6 +15,3 @@ export const watchedListSchema = watchlistIdsSchema.extend({
 });
 
 export const watchedListRemoveSchema = watchlistIdsSchema;
-
-export type WatchedListPayload = z.infer<typeof watchedListSchema>;
-export type WatchedListRemovePayload = z.infer<typeof watchedListRemoveSchema>;

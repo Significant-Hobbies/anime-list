@@ -32,71 +32,6 @@ const mapAnimeRow = (row: Record<string, unknown>): AnimeItem => ({
   demographics: JSON.parse((row.demographics as string) || '{}'),
 });
 
-/**
- * Insert or update anime in the database
- */
-export async function upsertAnime(anime: AnimeItem): Promise<void> {
-  const db = getDb();
-
-  await db.execute({
-    sql: `
-      INSERT INTO anime_data (
-        mal_id, url, title, title_english, type, episodes,
-        aired_from, aired_to, score, scored_by, rank, status,
-        popularity, members, favorites, synopsis, year, season,
-        image, genres, themes, demographics, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      ON CONFLICT(mal_id) DO UPDATE SET
-        url = excluded.url,
-        title = excluded.title,
-        title_english = excluded.title_english,
-        type = excluded.type,
-        episodes = excluded.episodes,
-        aired_from = excluded.aired_from,
-        aired_to = excluded.aired_to,
-        score = excluded.score,
-        scored_by = excluded.scored_by,
-        rank = excluded.rank,
-        status = excluded.status,
-        popularity = excluded.popularity,
-        members = excluded.members,
-        favorites = excluded.favorites,
-        synopsis = excluded.synopsis,
-        year = excluded.year,
-        season = excluded.season,
-        image = excluded.image,
-        genres = excluded.genres,
-        themes = excluded.themes,
-        demographics = excluded.demographics,
-        updated_at = datetime('now')
-    `,
-    args: [
-      anime.mal_id,
-      anime.url,
-      anime.title,
-      anime.title_english || null,
-      anime.type || null,
-      anime.episodes || null,
-      anime.aired?.from || null,
-      anime.aired?.to || null,
-      anime.score || null,
-      anime.scored_by || null,
-      anime.rank || null,
-      anime.status || null,
-      anime.popularity || null,
-      anime.members || null,
-      anime.favorites || null,
-      anime.synopsis || null,
-      anime.year || null,
-      anime.season || null,
-      anime.image || null,
-      JSON.stringify(anime.genres),
-      JSON.stringify(anime.themes),
-      JSON.stringify(anime.demographics),
-    ],
-  });
-}
-
 export interface UpsertSummary {
   added: { mal_id: number; title: string }[];
   updated: { mal_id: number; title: string }[];
@@ -314,15 +249,6 @@ export async function getAnimeByMalId(malId: number): Promise<AnimeItem | null> 
   }
 
   return mapAnimeRow(result.rows[0] as unknown as Record<string, unknown>);
-}
-
-/**
- * Get count of anime in database
- */
-export async function getAnimeCount(): Promise<number> {
-  const db = getDb();
-  const result = await db.execute('SELECT COUNT(*) as count FROM anime_data');
-  return result.rows[0].count as number;
 }
 
 /**

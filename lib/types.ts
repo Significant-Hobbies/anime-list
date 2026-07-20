@@ -44,7 +44,7 @@ export interface FieldCount {
   count: number;
 }
 
-export interface Percentiles {
+interface Percentiles {
   p99: number;
   p95: number;
   p90: number;
@@ -57,7 +57,7 @@ export interface Percentiles {
   top1000: number;
 }
 
-export interface TypeDistribution {
+interface TypeDistribution {
   type: string;
   count: number;
 }
@@ -82,7 +82,7 @@ export interface SearchFilter {
   score_multiplier?: number | Record<string, number>;
 }
 
-export interface WatchedAnime {
+interface WatchedAnime {
   status: string;
   id: string;
   [key: string]: string | number;
@@ -138,7 +138,7 @@ export interface AnimeRecommendationItem {
   votes: number;
 }
 
-export interface AnimeDetail {
+interface AnimeDetail {
   mal_id: number;
   url: string;
   title: string;
@@ -178,12 +178,12 @@ export interface WatchlistTag {
   color: string;
 }
 
-export interface TasteSignal {
+interface TasteSignal {
   name: string;
   weight: number;
 }
 
-export interface TasteRecommendation {
+interface TasteRecommendation {
   mal_id: number;
   title: string;
   title_english?: string;
@@ -208,7 +208,7 @@ export interface TasteRecommendationsResponse {
   recommendations: TasteRecommendation[];
 }
 
-export interface WatchlistImportConflict {
+interface WatchlistImportConflict {
   malId: string;
   title?: string;
   incomingStatus: string;
@@ -309,7 +309,7 @@ export interface ScheduleItem {
   watchStatus: string;
 }
 
-export interface ScheduleTimelineEntry {
+interface ScheduleTimelineEntry {
   mal_id: string;
   title: string;
   image?: string;

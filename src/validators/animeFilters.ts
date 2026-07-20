@@ -87,7 +87,7 @@ const {
   excludesSchema: stringExcludesFilterSchema,
 } = createStringFilterSchemas(stringFieldSchema);
 
-export const filterSchema = createFilterUnion<Filter>([
+const filterSchema = createFilterUnion<Filter>([
   numericFilterSchema,
   arrayFilterIncludesSchema,
   arrayFilterExcludesSchema,
@@ -96,7 +96,7 @@ export const filterSchema = createFilterUnion<Filter>([
   stringExcludesFilterSchema,
 ]);
 
-export const filtersSchema = createFiltersArraySchema(filterSchema);
+const filtersSchema = createFiltersArraySchema(filterSchema);
 
 const airingSchema = z.enum(['yes', 'no', 'any'] as const);
 
@@ -113,9 +113,3 @@ export const filterRequestSchema = z
   .refine((data) => !(data.hideWatched.length > 0 && data.includeWatched.length > 0), {
     message: 'Cannot use both hideWatched and includeWatched at the same time',
   });
-
-export type FilterRequestBody = z.infer<typeof filterRequestSchema> & {
-  sortBy?: NumericField;
-};
-
-export type FiltersPayload = z.infer<typeof filtersSchema>;
