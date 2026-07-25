@@ -1,5 +1,8 @@
-## ADDED Requirements
+# mcp-server Specification
 
+## Purpose
+TBD - created by archiving change expose-mcp-server. Update Purpose after archive.
+## Requirements
 ### Requirement: MCP endpoint speaks Streamable HTTP
 The system SHALL expose `POST /api/mcp` on the `mal-api` Worker implementing
 the MCP Streamable HTTP transport with JSON-RPC 2.0. Non-POST methods SHALL

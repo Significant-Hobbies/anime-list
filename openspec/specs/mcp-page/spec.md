@@ -1,5 +1,8 @@
-## ADDED Requirements
+# mcp-page Specification
 
+## Purpose
+TBD - created by archiving change expose-mcp-server. Update Purpose after archive.
+## Requirements
 ### Requirement: Public MCP documentation page at /mcp
 The system SHALL serve a page at the SPA route `/mcp` that documents the MCP
 server: what it is, the endpoint URL (`/api/mcp`), the full tool list with

@@ -58,7 +58,8 @@ JSON and is not in the HTML path.
 - Risk: HTML injection must not break SPA hydration — injected tags live in
   `<head>` + one hidden SSR block; e2e asserts the app still mounts.
 
-## OpenSpec artifact
+## Durable status
 
-The full proposal, design, spec, and task breakdown are preserved at
-[`../../../openspec/changes/archive/2026-07-17-prerender-detail-pages/`](../../../openspec/changes/archive/2026-07-17-prerender-detail-pages/).
+The implementation outcome is recorded in
+[`../../../PROJECT_STATUS.md`](../../../PROJECT_STATUS.md); the completed
+OpenSpec working files were removed during lifecycle cleanup.

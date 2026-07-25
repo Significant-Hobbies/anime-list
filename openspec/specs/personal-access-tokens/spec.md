@@ -1,5 +1,8 @@
-## ADDED Requirements
+# personal-access-tokens Specification
 
+## Purpose
+TBD - created by archiving change expose-mcp-server. Update Purpose after archive.
+## Requirements
 ### Requirement: Personal Access Token storage
 The system SHALL store PATs in a `user_api_tokens` table with columns: `id`
 (TEXT PK), `user_id` (TEXT NOT NULL), `name` (TEXT NOT NULL), `token_hash`

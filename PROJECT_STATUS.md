@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-07-11
+Last updated: 2026-07-25
 
 ## Why / What
 
@@ -53,6 +53,10 @@ Last updated: 2026-07-11
 
 ## Timeline
 
+- **2026-07-25** — Closed MCP implementation planning after confirming the
+  Streamable HTTP endpoint, read-only catalog/watchlist tools, hashed personal
+  access tokens, `/mcp` setup page, tests, and durable base specifications.
+  Production deployment remains manual.
 - **2026-07-17** — Crawlable detail pages: Pages Functions rewrite `/anime/:malId` and `/manga/:malId` HTML with unique title, meta, canonical, OG, JSON-LD (TVSeries/Movie/Book), and hidden SSR summary for 5,306 anime + 2,288 manga. Unknown IDs get noindex. Chunked sitemaps (`sitemap-index.xml` + `sitemap-anime-N.xml` + `sitemap-manga-N.xml`) generated at build time. Deploy pending (manual).
 - **2026-07-11** — Search reliability pass shipped: debounced and abortable anime/manga requests, a bounded SQL fast path for simple numeric anime searches, production Google sign-in fallback configuration, and non-fatal quarterly Jikan fallback failures.
 - **2026-07-03** — Shipped engagement telemetry for the quiz/collections/homepage funnels (`lib/engagement.ts`), the `VITE_HOME_QUIZ_ABOVE_FOLD` A/B switch (`lib/flags.ts`, default off), and a "Copy link" share button on `/collections`.
@@ -70,6 +74,17 @@ Last updated: 2026-07-11
 - **Local dev:** Vite :5173 + Worker :8787.
 
 ## Features (shipped)
+
+### MCP access (implemented, deploy pending)
+
+- `POST /api/mcp` provides Streamable HTTP MCP over the existing catalog and
+  watchlist read paths; catalog tools are public and watchlist tools require a
+  bearer token.
+- Personal access tokens use a `shelf_` prefix, are SHA-256 hashed at rest,
+  shown only once, scoped to their owner, and revocable.
+- `/mcp` provides anonymous setup documentation and signed-in token management.
+- The agent-edge catalog advertises the MCP surface. Production activation
+  still requires the existing manual Worker and Pages deploy commands.
 
 ### SEO: crawlable detail pages (2026-07-17, deploy pending)
 

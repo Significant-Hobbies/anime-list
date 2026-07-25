@@ -4,14 +4,14 @@
 > [`PROJECT_STATUS.md`](PROJECT_STATUS.md). Keep this page concise — update
 > it when the objective, active work, blockers, or next steps change.
 
-**Last updated:** 2026-07-19
+**Last updated:** 2026-07-25
 
 ## Current objective
 
 Operational stability over feature expansion. Measure engagement on the
 quiz and collections surfaces before expanding them; ship and verify the
-crawlable detail-page SEO work. Expose an MCP server so AI tools can query
-the catalog and the user's watchlist.
+crawlable detail-page SEO work. The MCP implementation is complete; production
+deployment remains a separate manual operation.
 
 ## Active work
 
@@ -19,8 +19,7 @@ the catalog and the user's watchlist.
   `pnpm deploy:worker` + `pnpm deploy`. `POST /api/mcp` (Streamable HTTP,
   thin subrequest adapter over existing `/api/*` endpoints), PAT auth
   (`shelf_…` tokens, hashed at rest), `/mcp` page with docs + token
-  management. See
-  [`openspec/changes/expose-mcp-server/`](openspec/changes/expose-mcp-server/).
+  management. Durable requirements live under `openspec/specs/`.
 - **Homepage A/B test in progress** — `control` vs `treatment` (quiz CTA
   above fold), 50/50 cookie split. **Decision due after 2026-07-18** (2-week
   window). Keep only the winner; if no lift, keep control. See
