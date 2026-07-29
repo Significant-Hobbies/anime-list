@@ -189,25 +189,8 @@ Instrumentation lives in `lib/engagement.ts` (surface funnels) and `lib/analytic
 
 **Decision rule (2-week window):** After 2 weeks of data, compare control vs treatment on `homepage_variant_seen` → `home_surface_click` (quiz) → `quiz_started` → `quiz_completed` → `quiz_result_clicked` → `signup`. Keep only the winner; park the loser. If no statistically meaningful lift, keep control (less surface area) and park the quiz-above-fold variant.
 
-## Todo / Planned / Deferred / Blocked
+## Work queue
 
-### Planned
-
-1. Operational stability — Pages 500 regressions, MAL CDN image policy.
-2. **2-week A/B test in progress** — homepage control vs treatment (quiz CTA above fold). Decide winner after 2026-07-18; keep only the winner.
-3. Measure `/quiz` completion-to-search clickthrough before persistence, OG images, or share analytics.
-4. Measure collection share clickthrough before discovery ranking or social features.
-5. Add e2e for discover, watchlist import, collections, alerts (`e2e/`).
-6. **Deploy crawlable detail pages** — `pnpm deploy` (manual, per fleet policy). Post-deploy: curl two detail pages + one sitemap chunk; run `agent-index-audit.mjs --project anime-list`.
-7. **GSC sitemap submission** — submit `sitemap-index.xml` to Google Search Console once the zone AI-block/GSC onboarding fleet actions land.
-
-### Deferred
-
-- **Character identity quiz expansion** — `/quiz` proof shipped; expansion (share URLs, persistence, OG) deferred pending engagement data.
-- **Saved search email digest** — in-app MVP shipped; email deferred until engagement proves lift.
-- **Collection social features** — comments, likes, follower feeds deferred.
-
-### Blocked
-
-- MAL CDN image policy and intermittent Pages 500s are recurring operational risks.
-- No e2e for discover, watchlist import, collections, alerts, auth flows, manga routes.
+Open work is tracked only in [GitHub Issues](https://github.com/Significant-Hobbies/anime-list/issues).
+An open issue is a to-do, a linked pull request is in progress, and merge plus
+issue closure makes the work done.

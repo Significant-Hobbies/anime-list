@@ -93,8 +93,8 @@ The canonical knowledge base is [`docs/`](docs/) — start at
 truth; Blume ([`blume.config.ts`](blume.config.ts)) is only the presentation
 and search layer.
 
-- **Current objective / active work / blockers / next steps:** [`STATUS.md`](STATUS.md)
-- **Full product/feature status + timeline:** [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
+- **Current/shipped product truth:** [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
+- **Open work and blockers:** GitHub Issues
 - **Product / architecture / development / operations / knowledge / archive:**
   see [`docs/index.md`](docs/index.md) for the map.
 
