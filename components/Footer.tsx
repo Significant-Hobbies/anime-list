@@ -45,6 +45,21 @@ export default function Footer() {
           <Link to="/changelog" className="hover:text-foreground transition-colors">
             Changelog
           </Link>
+          <Link to="/catalog-updates" className="hover:text-foreground transition-colors">
+            Catalog updates
+          </Link>
+          <a
+            href="https://github.com/Significant-Hobbies/anime-list/issues"
+            className="hover:text-foreground transition-colors"
+          >
+            Roadmap
+          </a>
+          <a
+            href="https://github.com/Significant-Hobbies/anime-list"
+            className="hover:text-foreground transition-colors"
+          >
+            Source
+          </a>
         </div>
       </div>
       <p className="mt-3 text-xs text-muted-foreground/60">

@@ -53,6 +53,9 @@ Last updated: 2026-07-25
 
 ## Timeline
 
+- **2026-07-29** — Added an owned, editorial `/changelog` for verified product
+  releases and preserved daily title-ingestion history at `/catalog-updates`.
+  Roadmap and source links now point directly to the repository.
 - **2026-07-25** — Closed MCP implementation planning after confirming the
   Streamable HTTP endpoint, read-only catalog/watchlist tools, hashed personal
   access tokens, `/mcp` setup page, tests, and durable base specifications.

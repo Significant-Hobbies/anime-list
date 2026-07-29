@@ -29,6 +29,7 @@ const CollectionsPage = lazy(() => import('./pages/CollectionsPage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
+const CatalogUpdatesPage = lazy(() => import('./pages/CatalogUpdatesPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
@@ -156,6 +157,12 @@ const changelogRoute = createRoute({
   component: ChangelogPage,
 });
 
+const catalogUpdatesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/catalog-updates',
+  component: CatalogUpdatesPage,
+});
+
 const aboutRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/about',
@@ -199,6 +206,7 @@ const routeTree = rootRoute.addChildren([
     mangaDetailRoute,
     mangaRoute,
     quizRoute,
+    catalogUpdatesRoute,
   ]),
   changelogRoute,
   aboutRoute,

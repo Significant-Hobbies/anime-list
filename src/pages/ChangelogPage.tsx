@@ -1,120 +1,104 @@
-import { Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { getChangelog } from '@/lib/api';
-import type { ChangelogEntry } from '@/lib/api';
+import { useEffect } from 'react';
 
-const TYPE_COLORS: Record<string, string> = {
-  TV: 'bg-blue-500/15 text-blue-400',
-  Movie: 'bg-purple-500/15 text-purple-400',
-  OVA: 'bg-amber-500/15 text-amber-400',
-  ONA: 'bg-emerald-500/15 text-emerald-400',
-  Special: 'bg-pink-500/15 text-pink-400',
-  Music: 'bg-cyan-500/15 text-cyan-400',
-};
+const RELEASES = [
+  {
+    date: '2026-07-25',
+    title: 'Agent-ready catalog access',
+    outcomes: [
+      'Added a documented MCP setup page for searching the public catalog and reading a signed-in watchlist.',
+      'Personal access tokens can be created, viewed once, and revoked without exposing account credentials.',
+    ],
+  },
+  {
+    date: '2026-07-17',
+    title: 'Anime and manga pages became easier to discover',
+    outcomes: [
+      'Thousands of title pages gained unique search and social metadata, readable summaries, and structured data.',
+      'Chunked anime and manga sitemaps now cover the qualifying public catalog.',
+    ],
+  },
+  {
+    date: '2026-07-11',
+    title: 'Faster, steadier search',
+    outcomes: [
+      'Anime and manga searches now cancel stale requests and avoid showing results from an older query.',
+      'Simple numeric filters use a faster catalog path, while background refresh failures no longer take search down.',
+    ],
+  },
+  {
+    date: '2026-06-20',
+    title: 'Watchlists, alerts, and public collections',
+    outcomes: [
+      'Watchlists can be imported or exported with a conflict preview before anything changes.',
+      'Saved searches can surface new matches in-app, and curated collections can be published with a shareable link.',
+    ],
+  },
+] as const;
 
-function groupByDate(changes: ChangelogEntry[]): Record<string, ChangelogEntry[]> {
-  const grouped: Record<string, ChangelogEntry[]> = {};
-  for (const entry of changes) {
-    if (!grouped[entry.date]) grouped[entry.date] = [];
-    grouped[entry.date].push(entry);
-  }
-  return grouped;
-}
+const REPOSITORY = 'https://github.com/Significant-Hobbies/anime-list';
 
-function formatDate(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-US', {
-    weekday: 'short',
+function formatDate(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
     year: 'numeric',
-    month: 'short',
+    month: 'long',
     day: 'numeric',
   });
 }
 
 export default function ChangelogPage() {
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['changelog'],
-    queryFn: () => getChangelog(200),
-  });
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Changelog | Shelf';
 
-  const grouped = data ? groupByDate(data.changes) : {};
-  const dates = Object.keys(grouped);
+    return () => {
+      document.title = previousTitle;
+    };
+  }, []);
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Changelog</h1>
-        <p className="text-sm text-muted-foreground mt-1">Recently added anime to the database</p>
-      </div>
+    <div className="mx-auto w-full max-w-4xl px-6 py-12">
+      <header className="max-w-2xl">
+        <p className="text-sm font-medium text-primary">Shelf product history</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Changelog</h1>
+        <p className="mt-4 text-base leading-7 text-muted-foreground">
+          Meaningful improvements to discovery, personal lists, and catalog reliability. Catalog
+          ingestion has its own separate update feed.
+        </p>
+        <nav className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm" aria-label="Project links">
+          <a className="text-primary hover:underline" href={`${REPOSITORY}/issues`}>
+            Roadmap
+          </a>
+          <a className="text-primary hover:underline" href={REPOSITORY}>
+            Source
+          </a>
+          <a className="text-primary hover:underline" href="/catalog-updates">
+            Catalog updates
+          </a>
+        </nav>
+      </header>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-border bg-card/50 p-4 space-y-3 animate-pulse"
-            >
-              <div className="h-4 w-40 bg-muted rounded" />
-              <div className="space-y-2">
-                <div className="h-3 w-full bg-muted rounded" />
-                <div className="h-3 w-3/4 bg-muted rounded" />
-                <div className="h-3 w-1/2 bg-muted rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : isError ? (
-        <div className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Couldn&apos;t load the changelog. Please try again.
-          </p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="text-sm font-medium text-primary hover:underline disabled:opacity-60"
-          >
-            {isFetching ? 'Retrying…' : 'Retry'}
-          </button>
-        </div>
-      ) : dates.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {dates.map((date) => (
-            <div key={date} className="rounded-xl border border-border bg-card/50 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-foreground">{formatDate(date)}</h2>
-                <span className="text-xs text-muted-foreground">
-                  {grouped[date].length} title{grouped[date].length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <ul className="space-y-1.5">
-                {grouped[date].map((entry) => (
-                  <li key={entry.mal_id} className="flex items-center gap-2 text-sm">
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
-                      Added
+      <ol className="mt-12 space-y-5">
+        {RELEASES.map((release) => (
+          <li key={`${release.date}-${release.title}`}>
+            <article className="rounded-xl border border-border bg-card p-5 sm:p-6">
+              <time className="text-xs font-medium text-muted-foreground" dateTime={release.date}>
+                {formatDate(release.date)}
+              </time>
+              <h2 className="mt-2 text-lg font-semibold text-foreground">{release.title}</h2>
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
+                {release.outcomes.map((outcome) => (
+                  <li key={outcome} className="flex gap-3">
+                    <span className="text-primary" aria-hidden="true">
+                      •
                     </span>
-                    {entry.type && (
-                      <span
-                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${TYPE_COLORS[entry.type] || 'bg-muted text-muted-foreground'}`}
-                      >
-                        {entry.type}
-                      </span>
-                    )}
-                    <Link
-                      to="/anime/$malId"
-                      params={{ malId: String(entry.mal_id) }}
-                      className="text-foreground hover:text-primary transition-colors truncate"
-                    >
-                      {entry.title_english || entry.title}
-                    </Link>
+                    <span>{outcome}</span>
                   </li>
                 ))}
               </ul>
-            </div>
-          ))}
-        </div>
-      )}
+            </article>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

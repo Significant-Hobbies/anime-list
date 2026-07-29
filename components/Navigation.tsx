@@ -91,7 +91,7 @@ export default function Navigation() {
           </Link>
         </div>
 
-        <div className="hidden md:flex items-center gap-1 flex-1">
+        <div className="hidden xl:flex items-center gap-1 flex-1">
           {links.map((link) => {
             const active = isActiveLink(pathname, link.href);
             return (
@@ -109,7 +109,7 @@ export default function Navigation() {
           })}
         </div>
 
-        <div className="flex md:hidden flex-1">
+        <div className="flex xl:hidden flex-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
