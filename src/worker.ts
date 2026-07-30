@@ -102,7 +102,6 @@ import { buildTasteRecommendations } from './recommendations';
 import { registerMangaRoutes } from './worker/mangaRoutes';
 import { handleMcpRequest } from './worker/mcpRoutes';
 import {
-  initApiTokensTable,
   createApiToken,
   listApiTokens,
   revokeApiToken,
@@ -386,7 +385,6 @@ app.use('*', async (_c, next) => {
     await initScheduleTable();
     await initSavedSearchTables();
     await initCollectionTables();
-    await initApiTokensTable();
     await migrateScheduleEpisodesWatched();
     await migrateAnimeWatchlistNotes();
     await migrateAnimeDetailCache();

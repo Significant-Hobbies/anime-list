@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "anime-list",
-  "target": "Owned product changelog",
+  "target": "Manga search accessibility",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,29 +14,29 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": "artifacts/design/before.png"
+    "before": "artifacts/design-wave2/before.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/design/after-390.png"
+        "path": "artifacts/design-wave2/after-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/design/after-768.png"
+        "path": "artifacts/design-wave2/after-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/after-1440.png"
+        "path": "artifacts/design-wave2/after-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm check && pnpm build && git diff --check",
+      "command": "pnpm exec biome check <changed files> && pnpm typecheck && pnpm build && git diff --check",
       "status": "pass"
     },
     "critique": {
-      "score": 36,
+      "score": 35,
       "maximum": 40
     },
     "audit": {
@@ -50,12 +50,13 @@
     "detector": {
       "posture": "advisory",
       "findings": [
-        "No deterministic design-quality findings were introduced on the changelog surface."
+        "No deterministic detector findings in the changed surfaces.",
+        "The manga page exposes one visible h1 and the search control has an accessible name."
       ]
     }
   },
   "ownerFeedback": {
     "decision": "delegated",
-    "note": "The owner explicitly delegated changelog implementation across all projects on 2026-07-29."
+    "note": "The owner explicitly delegated final judgment for design remediation wave 2 on 2026-07-29."
   }
 }
