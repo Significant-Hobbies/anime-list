@@ -5,6 +5,11 @@ import { isAllowedOrigin } from './corsOrigins';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { handleAgentEdge } from './agent-edge.mjs';
 import { configurePostHog, trace, flushPostHog } from './telemetry';
+import {
+  CATALOG_UNAVAILABLE_CODE,
+  CATALOG_UNAVAILABLE_MESSAGE,
+  isCatalogReadBlockedError,
+} from '../lib/apiErrors';
 
 // Business logic imports (all unchanged files)
 import { filterAnimeList } from './filterEngine';
@@ -1517,6 +1522,16 @@ app.get('/api/collections/:slug', async (c) => {
 
 app.onError((err, c) => {
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);
+  if (isCatalogReadBlockedError(err)) {
+    c.header('Retry-After', '300');
+    return c.json(
+      {
+        error: CATALOG_UNAVAILABLE_MESSAGE,
+        code: CATALOG_UNAVAILABLE_CODE,
+      },
+      503
+    );
+  }
   return c.json({ error: 'Internal Server Error' }, 500);
 });
 
