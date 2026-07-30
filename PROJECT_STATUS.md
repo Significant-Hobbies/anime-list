@@ -164,7 +164,9 @@ Last updated: 2026-07-25
 ### Tests & ops
 
 - Vitest: 69 tests across 13 files (import/export, filters, recommendations, schedule, SEO rewrite, detail cache).
-- Playwright: anime detail load, mobile touch targets, no horizontal scroll.
+- Playwright: anime detail load, mobile touch targets, no horizontal scroll,
+  plus hermetic signed-in coverage for discovery, watchlist import preview,
+  collection publishing, and alert acknowledgement.
 - PostHog analytics.
 
 ### Engagement measurement
