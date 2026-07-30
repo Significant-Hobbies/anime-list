@@ -22,6 +22,7 @@ import type {
   DiscoveryQueueResponse,
 } from './types';
 import { getApiUrl } from './apiConfig';
+import { ApiError, CATALOG_UNAVAILABLE_CODE, CATALOG_UNAVAILABLE_MESSAGE } from './apiErrors';
 
 const API_URL = getApiUrl();
 const BASE = `${API_URL}/api`;
@@ -72,7 +73,21 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
       }
       throw new Error('Session expired. Please sign in again.');
     }
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    if (!res.ok) {
+      let code: string | undefined;
+      try {
+        const payload = (await res.json()) as { code?: unknown };
+        if (typeof payload.code === 'string') code = payload.code;
+      } catch {
+        // Non-JSON upstream errors still get a stable status-based message.
+      }
+
+      const message =
+        code === CATALOG_UNAVAILABLE_CODE
+          ? CATALOG_UNAVAILABLE_MESSAGE
+          : `API error: ${res.status}`;
+      throw new ApiError(message, res.status, code);
+    }
     return res.json();
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {

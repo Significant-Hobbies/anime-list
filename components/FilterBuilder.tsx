@@ -23,6 +23,7 @@ import { trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_ANIME_MIN_MEMBERS, DEFAULT_ANIME_PAGE_SIZE } from '@/lib/animeSearchDefaults';
 import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS, filtersParser } from '@/lib/filterMetadata';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { catalogErrorMessage } from '@/lib/apiErrors';
 import FilterRow from './FilterRow';
 import ResultsGrid, { ResultsGridSkeleton } from './ResultsGrid';
 import { ANIME_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
@@ -711,7 +712,9 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
 
       {error && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <p className="text-sm text-destructive">Couldn&apos;t reach the search service.</p>
+          <p className="text-sm text-destructive" role="status">
+            {catalogErrorMessage(error, "Couldn't reach the search service.")}
+          </p>
           <button
             type="button"
             onClick={() => refetch()}

@@ -19,6 +19,7 @@ import {
   filtersParser,
 } from '@/lib/filterMetadata';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { catalogErrorMessage } from '@/lib/apiErrors';
 import FilterRow from './FilterRow';
 import MangaResultsGrid, { MangaResultsGridSkeleton } from './MangaResultsGrid';
 import { MANGA_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
@@ -466,7 +467,9 @@ export default function MangaFilterBuilder() {
 
       {error && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <p className="text-sm text-destructive">Couldn&apos;t reach the manga search service.</p>
+          <p className="text-sm text-destructive" role="status">
+            {catalogErrorMessage(error, "Couldn't reach the manga search service.")}
+          </p>
           <button
             type="button"
             onClick={() => refetch()}
