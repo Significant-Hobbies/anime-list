@@ -6,17 +6,27 @@
  */
 
 import { rewriteShell, rewriteShellNoindex } from '../../src/seoRewrite';
+import { markdownResponse, renderDetailMarkdown } from '../../src/agentMarkdown';
 import { getAnimeEntry } from '../_seo-dataset';
 
 export const onRequestGet: PagesFunction = async (context) => {
   const { request, env, params } = context;
-  const malId = parseInt(params.malId as string, 10);
+  const rawMalId = params.malId as string;
+  const wantsMarkdown = rawMalId.endsWith('.md');
+  const idText = wantsMarkdown ? rawMalId.slice(0, -3) : rawMalId;
+  const malId = /^\d+$/.test(idText) ? Number(idText) : Number.NaN;
+  const entry = getAnimeEntry(malId);
+
+  if (wantsMarkdown) {
+    return entry && !Number.isNaN(malId)
+      ? markdownResponse(renderDetailMarkdown(entry, 'anime'))
+      : markdownResponse('# Anime not found', 404);
+  }
 
   // Fetch the SPA shell from ASSETS
   const shellResponse = await env.ASSETS.fetch(new URL('/', request.url));
   const shellHtml = await shellResponse.text();
 
-  const entry = getAnimeEntry(malId);
   if (!entry || Number.isNaN(malId)) {
     // Unknown ID: serve shell with noindex
     const html = rewriteShellNoindex(shellHtml);

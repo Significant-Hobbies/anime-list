@@ -1,17 +1,30 @@
-# MAL Explorer
+# Shelf
 
-> Anime and manga discovery with multi-axis filtering and watchlists.
+> Anime and manga discovery with advanced filtering, statistics, and optional personal tracking.
 
-## Product
+## Public pages
 
-- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)
+- [Shelf — Discover anime and manga](https://anime.significanthobbies.com/)
+- [Advanced anime search — Shelf](https://anime.significanthobbies.com/search)
+- [Random anime picker — Shelf](https://anime.significanthobbies.com/random)
+- [Anime catalog statistics — Shelf](https://anime.significanthobbies.com/stats)
+- [Advanced manga search — Shelf](https://anime.significanthobbies.com/manga)
+- [Manga catalog statistics — Shelf](https://anime.significanthobbies.com/manga/stats)
+- [Anime character quiz — Shelf](https://anime.significanthobbies.com/quiz)
+- [Shelf changelog](https://anime.significanthobbies.com/changelog)
+- [Shelf catalog updates](https://anime.significanthobbies.com/catalog-updates)
+- [About Shelf](https://anime.significanthobbies.com/about)
+- [Shelf privacy](https://anime.significanthobbies.com/privacy)
+- [Shelf terms](https://anime.significanthobbies.com/terms)
+- [Shelf MCP setup](https://anime.significanthobbies.com/mcp)
+
+## Catalog collections
+
+- Anime detail: https://anime.significanthobbies.com/anime/{malId} and https://anime.significanthobbies.com/anime/{malId}.md
+- Manga detail: https://anime.significanthobbies.com/manga/{malId} and https://anime.significanthobbies.com/manga/{malId}.md
 
 ## Machine surfaces
 
-- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces
-- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS
-- [This index](https://anime.significanthobbies.com/llms.txt)
-
-## Optional
-
-- [Foundry](https://sassmaker.com): Parent fleet showcase
+- [Agent catalog](https://anime.significanthobbies.com/api/ai)
+- [Sitemap](https://anime.significanthobbies.com/sitemap.xml)
+- [Homepage Markdown](https://anime.significanthobbies.com/index.md)

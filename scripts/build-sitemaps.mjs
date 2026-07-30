@@ -4,7 +4,7 @@
  *
  * Emits:
  *   dist/sitemap-index.xml        — index pointing to all chunks
- *   dist/sitemap-static.xml       — static routes (homepage, tools, legal, agent surfaces)
+ *   dist/sitemap-static.xml       — canonical public HTML routes
  *   dist/sitemap-anime-<n>.xml    — chunked anime detail URLs (≤5000 per file)
  *   dist/sitemap-manga-<n>.xml    — chunked manga detail URLs (≤5000 per file)
  *
@@ -25,29 +25,6 @@ const ROOT = resolve(__dirname, '..');
 const DIST = resolve(ROOT, 'dist');
 const ORIGIN = 'https://anime.significanthobbies.com';
 const CHUNK_SIZE = 5000;
-
-// Static routes worth advertising. Kept explicit rather than crawled off the
-// router so a new internal-only route is not published by accident.
-const STATIC_PATHS = [
-  '/',
-  '/search',
-  '/discover',
-  '/random',
-  '/schedule',
-  '/stats',
-  '/manga',
-  '/manga/stats',
-  '/collections',
-  '/quiz',
-  '/changelog',
-  '/about',
-  '/privacy',
-  '/terms',
-  // Agent-indexing surfaces (foundry/ops/docs/agent-indexing-standard.md)
-  '/llms.txt',
-  '/index.md',
-  '/api/ai',
-];
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -109,6 +86,8 @@ mkdirSync(DIST, { recursive: true });
 
 const animeData = readJson(resolve(ROOT, 'src/data/seo-anime.json'));
 const mangaData = readJson(resolve(ROOT, 'src/data/seo-manga.json'));
+const staticSurfaces = readJson(resolve(ROOT, 'src/data/public-surfaces.json'));
+const staticPaths = staticSurfaces.map((surface) => surface.path);
 
 const animeIds = animeData.map((e) => e.id).sort((a, b) => a - b);
 const mangaIds = mangaData.map((e) => e.id).sort((a, b) => a - b);
@@ -123,10 +102,10 @@ const indexEntries = [];
 // were absent from the SEO dataset and therefore served `noindex`, so the
 // sitemap told crawlers to index pages that refused indexing.
 const staticXml = buildChunkXml(
-  STATIC_PATHS.map((p) => sitemapUrl(`${ORIGIN}${p === '/' ? '' : p}`))
+  staticPaths.map((p) => sitemapUrl(`${ORIGIN}${p === '/' ? '' : p}`))
 );
 writeFileSync(resolve(DIST, 'sitemap-static.xml'), staticXml, 'utf8');
-console.log(`  sitemap-static.xml: ${STATIC_PATHS.length} urls`);
+console.log(`  sitemap-static.xml: ${staticPaths.length} urls`);
 indexEntries.push(`${ORIGIN}/sitemap-static.xml`);
 
 // Build anime + manga chunks

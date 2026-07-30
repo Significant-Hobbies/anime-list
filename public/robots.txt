@@ -8,3 +8,9 @@ Allow: /llms.txt
 Allow: /index.md
 Allow: /api/ai
 Allow: /llms-full.txt
+Disallow: /discover
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /alerts
+Disallow: /collections

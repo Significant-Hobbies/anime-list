@@ -1,6 +1,6 @@
 {
-  "name": "MAL Explorer",
-  "version": "1",
+  "name": "Shelf",
+  "version": "2",
   "url": "https://anime.significanthobbies.com",
   "llms": "https://anime.significanthobbies.com/llms.txt",
   "llmsFull": "https://anime.significanthobbies.com/llms-full.txt",
@@ -8,19 +8,146 @@
   "robots": "https://anime.significanthobbies.com/robots.txt",
   "markdown": {
     "suffix": ".md",
-    "negotiation": true
+    "negotiation": false
   },
   "surfaces": [
     {
       "id": "home",
       "url": "https://anime.significanthobbies.com/",
       "md": "https://anime.significanthobbies.com/index.md",
-      "kind": "spa",
-      "description": "Product home"
+      "kind": "static",
+      "description": "Filter and explore 35,000+ anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists."
+    },
+    {
+      "id": "search",
+      "url": "https://anime.significanthobbies.com/search",
+      "md": "https://anime.significanthobbies.com/search.md",
+      "kind": "static",
+      "description": "Filter anime by score, year, genres, themes, demographics, popularity, status, and format with shareable search URLs."
+    },
+    {
+      "id": "random",
+      "url": "https://anime.significanthobbies.com/random",
+      "md": "https://anime.significanthobbies.com/random.md",
+      "kind": "static",
+      "description": "Pick a random anime from the public Shelf catalog and narrow the choice with the same discovery filters used by search."
+    },
+    {
+      "id": "stats",
+      "url": "https://anime.significanthobbies.com/stats",
+      "md": "https://anime.significanthobbies.com/stats.md",
+      "kind": "static",
+      "description": "Explore anime score distributions, formats, years, genres, themes, demographics, popularity, and catalog coverage."
+    },
+    {
+      "id": "manga",
+      "url": "https://anime.significanthobbies.com/manga",
+      "md": "https://anime.significanthobbies.com/manga.md",
+      "kind": "static",
+      "description": "Search and filter more than 20,000 manga titles by score, year, genres, themes, demographics, status, and format."
+    },
+    {
+      "id": "manga-stats",
+      "url": "https://anime.significanthobbies.com/manga/stats",
+      "md": "https://anime.significanthobbies.com/manga/stats.md",
+      "kind": "static",
+      "description": "Explore manga score distributions, formats, years, genres, themes, demographics, popularity, and catalog coverage."
+    },
+    {
+      "id": "quiz",
+      "url": "https://anime.significanthobbies.com/quiz",
+      "md": "https://anime.significanthobbies.com/quiz.md",
+      "kind": "static",
+      "description": "Answer four lightweight questions to get a Shelf viewing archetype and a prefilled public anime search."
+    },
+    {
+      "id": "changelog",
+      "url": "https://anime.significanthobbies.com/changelog",
+      "md": "https://anime.significanthobbies.com/changelog.md",
+      "kind": "static",
+      "description": "Verified product releases for Shelf, including anime and manga discovery, watchlists, schedules, and catalog improvements."
+    },
+    {
+      "id": "catalog-updates",
+      "url": "https://anime.significanthobbies.com/catalog-updates",
+      "md": "https://anime.significanthobbies.com/catalog-updates.md",
+      "kind": "static",
+      "description": "Review daily anime and manga catalog ingestion history, update timing, and the latest public dataset refreshes."
+    },
+    {
+      "id": "about",
+      "url": "https://anime.significanthobbies.com/about",
+      "md": "https://anime.significanthobbies.com/about.md",
+      "kind": "static",
+      "description": "Learn how Shelf combines MyAnimeList catalog data, advanced filtering, smart ranking, statistics, and personal tracking."
+    },
+    {
+      "id": "privacy",
+      "url": "https://anime.significanthobbies.com/privacy",
+      "md": "https://anime.significanthobbies.com/privacy.md",
+      "kind": "static",
+      "description": "Understand Shelf account data, Google sign-in, watchlist storage, product analytics, and public collection visibility."
+    },
+    {
+      "id": "terms",
+      "url": "https://anime.significanthobbies.com/terms",
+      "md": "https://anime.significanthobbies.com/terms.md",
+      "kind": "static",
+      "description": "Terms for using Shelf catalog discovery, personal watchlists, public collections, and MyAnimeList-derived metadata."
+    },
+    {
+      "id": "mcp",
+      "url": "https://anime.significanthobbies.com/mcp",
+      "md": "https://anime.significanthobbies.com/mcp.md",
+      "kind": "static",
+      "description": "Connect agents to Shelf public catalog tools and manage a personal access token for authenticated watchlist tools."
+    }
+  ],
+  "collections": [
+    {
+      "id": "anime",
+      "count": 5306,
+      "urlTemplate": "https://anime.significanthobbies.com/anime/{malId}",
+      "mdTemplate": "https://anime.significanthobbies.com/anime/{malId}.md",
+      "source": "MyAnimeList catalog via the checked-in Shelf SEO dataset"
+    },
+    {
+      "id": "manga",
+      "count": 2288,
+      "urlTemplate": "https://anime.significanthobbies.com/manga/{malId}",
+      "mdTemplate": "https://anime.significanthobbies.com/manga/{malId}.md",
+      "source": "MyAnimeList catalog via the checked-in Shelf SEO dataset"
+    }
+  ],
+  "dataResources": [
+    {
+      "id": "anime-stats",
+      "kind": "api",
+      "url": "https://mal-api.sarthakagrawal927.workers.dev/api/stats"
+    },
+    {
+      "id": "anime-detail",
+      "kind": "api-template",
+      "urlTemplate": "https://mal-api.sarthakagrawal927.workers.dev/api/anime/{malId}"
+    },
+    {
+      "id": "manga-detail",
+      "kind": "api-template",
+      "urlTemplate": "https://mal-api.sarthakagrawal927.workers.dev/api/manga/{malId}"
+    },
+    {
+      "id": "catalog-updates",
+      "kind": "api",
+      "url": "https://mal-api.sarthakagrawal927.workers.dev/api/changelog"
+    },
+    {
+      "id": "mcp",
+      "kind": "mcp",
+      "url": "https://mal-api.sarthakagrawal927.workers.dev/api/mcp"
     }
   ],
   "auth": {
     "public": true,
-    "notes": "Auth-walled app routes are not agent-indexed unless listed here."
+    "notes": "Catalog discovery is public. Watchlists, schedules, alerts, collection management, MCP watchlist tools, and personal access tokens require authentication and are excluded."
   }
 }
