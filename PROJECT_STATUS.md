@@ -53,6 +53,10 @@ Last updated: 2026-07-25
 
 ## Timeline
 
+- **2026-07-31** — Submitted
+  `https://anime.significanthobbies.com/sitemap-index.xml` to the verified
+  `significanthobbies.com` Google Search Console property. Google accepted the
+  submission; discovery and indexing remain provider-processed outcomes.
 - **2026-07-31** — Deployed the source-complete public SEO and agent surfaces
   from `main` to Cloudflare Pages. Live verification confirmed crawlable anime
   and manga detail HTML, the chunked sitemap, and a 100% S-tier Fleet
