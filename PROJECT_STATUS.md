@@ -53,6 +53,11 @@ Last updated: 2026-07-25
 
 ## Timeline
 
+- **2026-07-31** — Closed the remaining manga-search accessibility review:
+  visible labels now name the sort controls, expandable and selectable filters
+  expose state, and the two failing text treatments now exceed WCAG AA
+  contrast. Fresh 390, 768, and 1440 pixel evidence has no Axe A/AA violations
+  or horizontal overflow. Production deployment remains manual.
 - **2026-07-31** — Completed source-level public SEO and agent coverage from
   one 13-route registry: accurate static-route metadata, 7,607 canonical
   sitemap URLs, 7,607 source-derived Markdown companions, and compact anime
