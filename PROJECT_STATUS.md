@@ -53,13 +53,17 @@ Last updated: 2026-07-25
 
 ## Timeline
 
+- **2026-07-31** — Deployed the source-complete public SEO and agent surfaces
+  from `main` to Cloudflare Pages. Live verification confirmed crawlable anime
+  and manga detail HTML, the chunked sitemap, and a 100% S-tier Fleet
+  agent-index audit.
 - **2026-07-31** — Moved the manga-statistics Markdown alternate to a flat
   static asset so Cloudflare Pages does not route the dotted nested path
   through the application fallback.
 - **2026-07-31** — Completed source-level public SEO and agent coverage from
   one 13-route registry: accurate static-route metadata, 7,607 canonical
   sitemap URLs, 7,607 source-derived Markdown companions, and compact anime
-  and manga catalog collections. Production deployment remains manual.
+  and manga catalog collections. Deployed to production on 2026-07-31.
 - **2026-07-29** — Added an owned, editorial `/changelog` for verified product
   releases and preserved daily title-ingestion history at `/catalog-updates`.
   Roadmap and source links now point directly to the repository.
@@ -67,7 +71,7 @@ Last updated: 2026-07-25
   Streamable HTTP endpoint, read-only catalog/watchlist tools, hashed personal
   access tokens, `/mcp` setup page, tests, and durable base specifications.
   Production deployment remains manual.
-- **2026-07-17** — Crawlable detail pages: Pages Functions rewrite `/anime/:malId` and `/manga/:malId` HTML with unique title, meta, canonical, OG, JSON-LD (TVSeries/Movie/Book), and hidden SSR summary for 5,306 anime + 2,288 manga. Unknown IDs get noindex. Chunked sitemaps (`sitemap-index.xml` + `sitemap-anime-N.xml` + `sitemap-manga-N.xml`) generated at build time. Deploy pending (manual).
+- **2026-07-17** — Crawlable detail pages: Pages Functions rewrite `/anime/:malId` and `/manga/:malId` HTML with unique title, meta, canonical, OG, JSON-LD (TVSeries/Movie/Book), and hidden SSR summary for 5,306 anime + 2,288 manga. Unknown IDs get noindex. Chunked sitemaps (`sitemap-index.xml` + `sitemap-anime-N.xml` + `sitemap-manga-N.xml`) generated at build time. Deployed on 2026-07-31.
 - **2026-07-11** — Search reliability pass shipped: debounced and abortable anime/manga requests, a bounded SQL fast path for simple numeric anime searches, production Google sign-in fallback configuration, and non-fatal quarterly Jikan fallback failures.
 - **2026-07-03** — Shipped engagement telemetry for the quiz/collections/homepage funnels (`lib/engagement.ts`), the `VITE_HOME_QUIZ_ABOVE_FOLD` A/B switch (`lib/flags.ts`, default off), and a "Copy link" share button on `/collections`.
 - **2026-07-04** — Upgraded the homepage A/B test from a build-time toggle to a live 50/50 cookie-based split (`ab_home`, 14-day expiry). Added `homepage_variant_seen` impression tracking, `quiz_result_shown`, `collection_created`, and `collection_viewed` events. See "Engagement measurement" below.
@@ -85,7 +89,7 @@ Last updated: 2026-07-25
 
 ## Features (shipped)
 
-### Public SEO and agent coverage (source complete, deploy pending)
+### Public SEO and agent coverage (deployed)
 
 - One registry owns 13 public static routes across metadata, Markdown,
   sitemaps, and the machine-readable agent catalog.
@@ -107,7 +111,7 @@ Last updated: 2026-07-25
 - The agent-edge catalog advertises the MCP surface. Production activation
   still requires the existing manual Worker and Pages deploy commands.
 
-### SEO: crawlable detail pages (2026-07-17, deploy pending)
+### SEO: crawlable detail pages (deployed 2026-07-31)
 
 - **Pages Functions** (`functions/anime/[malId].ts`, `functions/manga/[malId].ts`) intercept detail routes before the SPA catch-all.
 - **HTML rewriting**: unique `<title>`, meta description, canonical, OG/Twitter tags, JSON-LD (`TVSeries`/`Movie` for anime, `Book` for manga), and a `<div hidden data-ssr>` summary with h1 + synopsis + facts table.
