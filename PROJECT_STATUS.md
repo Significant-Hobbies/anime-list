@@ -53,6 +53,10 @@ Last updated: 2026-07-25
 
 ## Timeline
 
+- **2026-07-31** — Completed source-level public SEO and agent coverage from
+  one 13-route registry: accurate static-route metadata, 7,607 canonical
+  sitemap URLs, 7,607 source-derived Markdown companions, and compact anime
+  and manga catalog collections. Production deployment remains manual.
 - **2026-07-29** — Added an owned, editorial `/changelog` for verified product
   releases and preserved daily title-ingestion history at `/catalog-updates`.
   Roadmap and source links now point directly to the repository.
@@ -77,6 +81,17 @@ Last updated: 2026-07-25
 - **Local dev:** Vite :5173 + Worker :8787.
 
 ## Features (shipped)
+
+### Public SEO and agent coverage (source complete, deploy pending)
+
+- One registry owns 13 public static routes across metadata, Markdown,
+  sitemaps, and the machine-readable agent catalog.
+- The 5,306 crawlable anime and 2,288 crawlable manga detail routes each have a
+  source-derived Markdown companion; personal and signed-in routes stay out of
+  public discovery.
+- `/api/ai` advertises two templated catalog collections separately from API
+  and MCP resources, while static SPA routes receive route-specific canonical
+  and social metadata.
 
 ### MCP access (implemented, deploy pending)
 

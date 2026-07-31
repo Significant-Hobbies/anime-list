@@ -1,13 +1,9 @@
-# MAL Explorer
+# Shelf — Discover anime and manga
 
-Anime/manga discovery with multi-axis filtering and watchlists.
+Shelf is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
 
-## Note for agents
+## Links
 
-The UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.
-
-## Agent entrypoints
-
-- https://anime.significanthobbies.com/llms.txt
-- https://anime.significanthobbies.com/api/ai
-- https://anime.significanthobbies.com/index.md
+- [HTML page](https://anime.significanthobbies.com/)
+- [Agent catalog](https://anime.significanthobbies.com/api/ai)
+- [Shelf home](https://anime.significanthobbies.com/)

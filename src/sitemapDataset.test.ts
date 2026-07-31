@@ -72,17 +72,17 @@ describe('sitemap / SEO dataset consistency', () => {
 
   it('advertises the static routes', () => {
     const xml = readFileSync(resolve(DIST, 'sitemap-static.xml'), 'utf8');
-    for (const path of [
-      '/discover',
-      '/schedule',
-      '/manga',
-      '/manga/stats',
-      '/llms.txt',
-      '/api/ai',
-    ]) {
+    for (const path of ['/search', '/manga', '/manga/stats', '/catalog-updates', '/mcp']) {
       expect(xml).toContain(`<loc>https://anime.significanthobbies.com${path}</loc>`);
     }
     expect(xml).not.toContain('/manga-search');
     expect(xml).not.toContain('/manga-stats');
+    expect(xml).not.toContain('/discover');
+    expect(xml).not.toContain('/schedule');
+    expect(xml).not.toContain('/collections');
+    expect(xml).not.toContain('/llms.txt');
+    expect(xml).not.toContain('/index.md');
+    expect(xml).not.toContain('/api/ai');
+    expect([...xml.matchAll(/<url>/g)]).toHaveLength(13);
   });
 });

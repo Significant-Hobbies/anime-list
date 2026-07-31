@@ -1,37 +1,59 @@
-# MAL Explorer — full agent brief
+# Shelf — full agent brief
 
-Anime and manga discovery with multi-axis filtering and watchlists.
+Shelf indexes 5,306 popular anime and 2,288 popular manga for crawlable public discovery.
 
-## Index
+## Shelf — Discover anime and manga
 
-# MAL Explorer
+Shelf is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
 
-Anime/manga discovery with multi-axis filtering and watchlists.
+## Advanced anime search — Shelf
 
-## Note for agents
+Use multi-field filters to search the anime catalog by score, year, genre, theme, demographic, popularity, airing status, and format. Search state is shareable in the HTML URL.
 
-The UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.
+## Random anime picker — Shelf
 
-## Agent entrypoints
+The HTML route selects a random anime from the public catalog. Use advanced search when you want to constrain the pick by score, year, genre, or other catalog fields.
 
-- https://anime.significanthobbies.com/llms.txt
-- https://anime.significanthobbies.com/api/ai
-- https://anime.significanthobbies.com/index.md
+## Anime catalog statistics — Shelf
 
-## Product links
+Explore aggregate anime catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
 
-- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)
+## Advanced manga search — Shelf
 
-## Machine surfaces
+Search the public manga catalog with multi-field filters for score, year, genre, theme, demographic, status, format, popularity, and favorites.
 
-- https://anime.significanthobbies.com/llms.txt
-- https://anime.significanthobbies.com/llms-full.txt
-- https://anime.significanthobbies.com/api/ai
-- https://anime.significanthobbies.com/index.md
-- https://anime.significanthobbies.com/sitemap.xml
-- https://anime.significanthobbies.com/robots.txt
+## Manga catalog statistics — Shelf
 
-## Contact / fleet
+Explore aggregate manga catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
 
-- Fleet: https://sassmaker.com
-- Agent email for directory verification: sarthakagrawal@agentmail.to
+## Anime character quiz — Shelf
+
+The quiz maps four local answers to a viewing archetype and a prefilled public search. Answers are not persisted; analytics retain only the resulting archetype.
+
+## Shelf changelog
+
+The HTML changelog owns verified product releases. Catalog ingestion history is maintained separately on the catalog updates page.
+
+## Shelf catalog updates
+
+The HTML page shows catalog ingestion history from the public API, including the latest anime and manga refresh times and recent changes.
+
+## About Shelf
+
+Shelf helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in.
+
+## Shelf privacy
+
+Public catalog browsing does not require an account. Google sign-in and an httpOnly authentication cookie are used for personal watchlists, schedules, alerts, tokens, and collection management.
+
+## Shelf terms
+
+Shelf provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
+
+## Shelf MCP setup
+
+Shelf exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in.
+
+## Authentication boundary
+
+Public catalog pages and detail Markdown require no account. Personal watchlists, schedules, alerts, collection management, token management, and authenticated MCP tools are not public indexing surfaces.
