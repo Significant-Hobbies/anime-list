@@ -49,7 +49,7 @@
     {
       "id": "manga-stats",
       "url": "https://anime.significanthobbies.com/manga/stats",
-      "md": "https://anime.significanthobbies.com/manga/stats.md",
+      "md": "https://anime.significanthobbies.com/manga-stats.md",
       "kind": "static",
       "description": "Explore manga score distributions, formats, years, genres, themes, demographics, popularity, and catalog coverage."
     },

@@ -53,6 +53,9 @@ Last updated: 2026-07-25
 
 ## Timeline
 
+- **2026-07-31** — Moved the manga-statistics Markdown alternate to a flat
+  static asset so Cloudflare Pages does not route the dotted nested path
+  through the application fallback.
 - **2026-07-31** — Completed source-level public SEO and agent coverage from
   one 13-route registry: accurate static-route metadata, 7,607 canonical
   sitemap URLs, 7,607 source-derived Markdown companions, and compact anime
