@@ -45,7 +45,7 @@ Last updated: 2026-08-02
 | `pnpm preview` | Vite preview |
 | `pnpm deploy` | Clean `main` guard + build + `wrangler pages deploy` |
 | `pnpm deploy:worker` | Deploy `mal-api` worker |
-| `pnpm test` | Vitest (69 tests across 13 files) |
+| `pnpm test` | Vitest (96 tests across 21 files) |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
 | `pnpm typecheck` / `pnpm lint` | TS (`tsc`) + Biome |
 | `pnpm db:migrate:local` / `db:migrate:remote` | Apply D1 migrations |
@@ -196,7 +196,7 @@ Last updated: 2026-08-02
 
 ### Tests & ops
 
-- Vitest: 69 tests across 13 files (import/export, filters, recommendations, schedule, SEO rewrite, detail cache).
+- Vitest: 96 tests across 21 files (D1, import/export, filters, recommendations, schedule, SEO rewrite, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll,
   plus hermetic signed-in coverage for discovery, watchlist import preview,
   collection publishing, and alert acknowledgement.
