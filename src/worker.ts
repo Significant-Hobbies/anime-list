@@ -5,6 +5,7 @@ import { isAllowedOrigin } from './corsOrigins';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { handleAgentEdge } from './agent-edge.mjs';
 import { configurePostHog, trace, flushPostHog } from './telemetry';
+import { isWriteFrozenRequest } from './writeFreeze';
 import {
   CATALOG_UNAVAILABLE_CODE,
   CATALOG_UNAVAILABLE_MESSAGE,
@@ -132,6 +133,7 @@ interface AuthPayload {
 
 type Env = {
   DB: D1Database;
+  WRITE_FREEZE?: string;
   JWT_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   POSTHOG_API_KEY?: string;
@@ -346,6 +348,16 @@ const toSearchAnime = (anime: {
 // Bind relational persistence before any route touches domain state.
 app.use('*', async (c, next) => {
   bindD1Database(c.env.DB);
+  if (isWriteFrozenRequest(c.req.method, c.env.WRITE_FREEZE)) {
+    c.header('Retry-After', '60');
+    return c.json(
+      {
+        error: 'Writes are briefly paused while database maintenance completes.',
+        code: 'write_frozen',
+      },
+      503
+    );
+  }
   process.env.JWT_SECRET = c.env.JWT_SECRET;
   process.env.GOOGLE_CLIENT_ID = c.env.GOOGLE_CLIENT_ID;
   await next();

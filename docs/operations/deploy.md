@@ -37,6 +37,10 @@ is `workflow_dispatch` only (no auto-deploy on push).
   `wrangler.cron.toml` and the repository is on clean `main`.
 - One-time Turso dumps are converted with `pnpm db:prepare-import` into
   allowlisted, repeatable data-only chunks for `wrangler d1 execute --file`.
+- Production cutover temporarily deploys the same release with
+  `WRITE_FREEZE=true`; non-read HTTP methods return `503` with `Retry-After`
+  until final Turso reconciliation and D1 verification complete. The tracked
+  production value is `false`, so the normal release reopens writes.
 - Seed/refresh scripts are run from CI or locally, not on deploy (see
   [`jobs.md`](jobs.md)).
 

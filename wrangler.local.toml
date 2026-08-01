@@ -11,6 +11,7 @@ crons = ["0 3 * * *"]
 
 [vars]
 NODE_ENV = "development"
+WRITE_FREEZE = "false"
 JWT_SECRET = "local-d1-rehearsal-only"
 GOOGLE_CLIENT_ID = "local-client-id"
 
