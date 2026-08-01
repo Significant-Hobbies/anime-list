@@ -16,7 +16,7 @@ WRITE_FREEZE = "false"
 [[d1_databases]]
 binding = "DB"
 database_name = "anime-list"
-database_id = "REPLACE_AFTER_APPROVAL"
+database_id = "e2d43435-a71b-4d27-8465-5ec8c3a1abdd"
 migrations_dir = "migrations/d1"
 
 # Secrets (set via `wrangler secret put <KEY>`):
