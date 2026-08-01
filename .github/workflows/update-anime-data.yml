@@ -31,22 +31,20 @@ jobs:
 
       - name: Update anime data
         env:
-          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           echo "Starting anime data update..."
-          pnpm run db:update
+          pnpm run db:update:remote
           echo "✓ Anime data updated successfully"
 
       - name: Update manga data
         env:
-          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          TURSO_MANGA_DATABASE_URL: ${{ secrets.TURSO_MANGA_DATABASE_URL }}
-          TURSO_MANGA_AUTH_TOKEN: ${{ secrets.TURSO_MANGA_AUTH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           echo "Starting manga data update..."
-          pnpm run db:update:manga
+          pnpm run db:update:manga:remote
           echo "✓ Manga data updated successfully"
 
       - name: Notify on failure

@@ -133,49 +133,6 @@ async function ensureTag(userId: string, tag: string, color?: string): Promise<D
   return { id, name: normalizedTag, color: resolvedColor };
 }
 
-export async function initWatchlistTables(): Promise<void> {
-  const db = getDb();
-  await db.batch([
-    `CREATE TABLE IF NOT EXISTS user_tags (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL COLLATE NOCASE,
-      color TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(user_id, name)
-    )`,
-    `CREATE TABLE IF NOT EXISTS anime_watchlist (
-      user_id TEXT NOT NULL DEFAULT 'default',
-      mal_id TEXT NOT NULL,
-      tag_id TEXT NOT NULL,
-      title TEXT,
-      type TEXT,
-      episodes INTEGER,
-      note TEXT,
-      PRIMARY KEY (user_id, mal_id)
-    )`,
-    `CREATE TABLE IF NOT EXISTS manga_watchlist (
-      user_id TEXT NOT NULL DEFAULT 'default',
-      mal_id TEXT NOT NULL,
-      tag_id TEXT NOT NULL,
-      PRIMARY KEY (user_id, mal_id)
-    )`,
-    `CREATE TABLE IF NOT EXISTS anime_dismissals (
-      user_id TEXT NOT NULL,
-      mal_id TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      PRIMARY KEY (user_id, mal_id)
-    )`,
-    'CREATE INDEX IF NOT EXISTS idx_user_tags_user ON user_tags(user_id)',
-    'CREATE INDEX IF NOT EXISTS idx_user_tags_user_lower_name ON user_tags(user_id, lower(name))',
-    'CREATE INDEX IF NOT EXISTS idx_watchlist_tag_id ON anime_watchlist(tag_id)',
-    'CREATE INDEX IF NOT EXISTS idx_watchlist_user_tag ON anime_watchlist(user_id, tag_id)',
-    'CREATE INDEX IF NOT EXISTS idx_manga_watchlist_tag_id ON manga_watchlist(tag_id)',
-    'CREATE INDEX IF NOT EXISTS idx_manga_watchlist_user_tag ON manga_watchlist(user_id, tag_id)',
-    'CREATE INDEX IF NOT EXISTS idx_anime_dismissals_user ON anime_dismissals(user_id)',
-  ]);
-}
-
 export async function addDismissedAnime(userId: string, malIds: string[]): Promise<void> {
   const db = getDb();
   const statements = malIds.map((id) => ({

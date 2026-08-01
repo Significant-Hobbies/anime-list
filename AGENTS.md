@@ -14,7 +14,7 @@ Anime/manga discovery platform with multi-field filtering, personal watchlists, 
 - Framework: Vite SPA + TanStack Router (React 19) + Cloudflare Worker API (Hono)
 - Language: TypeScript (full stack)
 - Styling: Tailwind CSS v4 + shadcn/ui
-- DB: Turso (libSQL) — anime + manga catalogs, users, watchlists (single DB in prod; optional `TURSO_MANGA_*` override)
+- DB: Cloudflare D1 — one `DB` binding for anime/manga catalogs and user state
 - Auth: Google OAuth 2.0 + JWT (`jose`)
 - Testing: Vitest (unit), Playwright (e2e)
 - Deploy: Cloudflare Pages (`anime.significanthobbies.com`, Vite static build) + Worker `mal-api` (`wrangler deploy`)
@@ -34,7 +34,7 @@ src/
   filterEngine.ts        # Pure filter logic
   dataProcessor.ts       # Jikan transforms, manga/anime helpers
   statistics.ts          # Aggregation/analytics
-  db/                    # Turso: anime_data, manga_data, watchlists, users
+  db/                    # D1 adapter: anime_data, manga_data, watchlists, users
   store/                 # In-memory cache (stale-while-revalidate)
   services/              # schedule, anilistStatusSync
   scripts/               # db seed/update/quarterly scripts
@@ -56,18 +56,20 @@ pnpm db:update            # Daily anime refresh (current + previous season)
 pnpm db:update:manga      # Daily manga refresh (top ~100 pages)
 pnpm db:update:manga:full # Full top-list manga refresh (~20.7k titles)
 pnpm db:quarterly-sync    # Quarterly anime status/score sync
+pnpm db:migrate:local     # Apply deterministic migrations to isolated local D1
+pnpm db:rehearse          # Run synthetic D1 catalog/auth/ownership journeys
 pnpm deploy               # Cloudflare Pages
 pnpm deploy:worker        # Cloudflare Worker
 ```
 
 ## Architecture notes
-- **Backend**: Worker `mal-api` serves all API traffic; cron reloads anime + manga caches from Turso daily.
+- **Backend**: Worker `mal-api` serves all API traffic; cron reloads anime + manga caches from D1 daily.
 - **Catalog quality gate** (anime + manga): Jikan rows must have `score`, `scored_by`, `members`, `favorites`, and `year`. Discover UI defaults to min popularity (100k anime / 50k manga members).
 - **Manga scope**: ~20.7k top/popular titles from Jikan `/top/manga` (current catalog: 20,656), not the full MAL catalog.
 - **Daily sync**: `update-anime-data.yml` — anime seasons + manga top pages @ midnight UTC.
 - **Quarterly sync**: `quarterly-anime-sync.yml` (anime), `quarterly-manga-sync.yml` (manga full top-list).
 - **Watch statuses**: `Watching`, `Completed`, `Deferred`, `Avoiding`, `BRR`.
-- **Worker secrets**: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID` (optional `TURSO_MANGA_*`).
+- **Worker binding/secrets**: D1 binding `DB`; secrets `JWT_SECRET`, `GOOGLE_CLIENT_ID`.
 
 <!-- FLEET-GUIDANCE:START -->
 

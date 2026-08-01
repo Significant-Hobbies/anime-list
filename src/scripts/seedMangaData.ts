@@ -4,12 +4,11 @@ import { readJsonFile } from '../utils/file';
 import { FILE_PATHS } from '../config';
 import type { MangaItem } from '../types/manga';
 import { upsertMangaBatch } from '../db/mangaData';
-import { migrateMangaCatalogTable } from '../db/mangaMigrations';
+import { configureOperatorDatabaseFromArgs } from '../db/operatorClient';
 
 async function main() {
-  console.log('Starting manga catalog migration to Turso...');
-
-  await migrateMangaCatalogTable();
+  configureOperatorDatabaseFromArgs();
+  console.log('Starting manga catalog seed to D1...');
 
   const mangaData = await readJsonFile<MangaItem[]>(FILE_PATHS.cleanMangaData);
   if (!mangaData || mangaData.length === 0) {

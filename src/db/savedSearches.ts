@@ -26,38 +26,6 @@ export interface SavedSearchAlertRow {
   seen_at: string | null;
 }
 
-export async function initSavedSearchTables(): Promise<void> {
-  const db = getDb();
-  await db.batch([
-    `CREATE TABLE IF NOT EXISTS saved_searches (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      filters_json TEXT NOT NULL,
-      channel TEXT NOT NULL DEFAULT 'in_app',
-      frequency TEXT NOT NULL DEFAULT 'daily',
-      paused INTEGER NOT NULL DEFAULT 0,
-      last_checked_at TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`,
-    `CREATE TABLE IF NOT EXISTS saved_search_alerts (
-      id TEXT PRIMARY KEY,
-      saved_search_id TEXT NOT NULL,
-      mal_id TEXT NOT NULL,
-      title_type TEXT NOT NULL DEFAULT 'anime',
-      title TEXT,
-      match_reason TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      seen_at TEXT,
-      UNIQUE(saved_search_id, mal_id, title_type)
-    )`,
-    'CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id)',
-    'CREATE INDEX IF NOT EXISTS idx_saved_search_alerts_search ON saved_search_alerts(saved_search_id)',
-    'CREATE INDEX IF NOT EXISTS idx_saved_search_alerts_unseen ON saved_search_alerts(saved_search_id, seen_at)',
-  ]);
-}
-
 export async function listSavedSearches(userId: string): Promise<SavedSearchRow[]> {
   const db = getDb();
   const result = await db.execute({
@@ -148,16 +116,19 @@ export async function listSavedSearchAlerts(
 export async function markSavedSearchAlertsSeen(userId: string, alertIds: string[]): Promise<void> {
   if (alertIds.length === 0) return;
   const db = getDb();
-  const placeholders = alertIds.map(() => '?').join(', ');
-  await db.execute({
-    sql: `
-      UPDATE saved_search_alerts
-      SET seen_at = datetime('now')
-      WHERE id IN (${placeholders})
-        AND saved_search_id IN (SELECT id FROM saved_searches WHERE user_id = ?)
-    `,
-    args: [...alertIds, userId],
-  });
+  for (let offset = 0; offset < alertIds.length; offset += 99) {
+    const chunk = alertIds.slice(offset, offset + 99);
+    const placeholders = chunk.map(() => '?').join(', ');
+    await db.execute({
+      sql: `
+        UPDATE saved_search_alerts
+        SET seen_at = datetime('now')
+        WHERE id IN (${placeholders})
+          AND saved_search_id IN (SELECT id FROM saved_searches WHERE user_id = ?)
+      `,
+      args: [...chunk, userId],
+    });
+  }
 }
 
 function summarizeFilters(filters: Filter[]): string {

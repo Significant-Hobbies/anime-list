@@ -17,35 +17,6 @@ export interface ApiTokenMetadata {
   revokedAt: string | null;
 }
 
-let apiTokensTableInitialization: Promise<void> | null = null;
-
-async function initApiTokensTable(): Promise<void> {
-  const db = getDb();
-  await db.batch([
-    `CREATE TABLE IF NOT EXISTS user_api_tokens (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      token_hash TEXT NOT NULL UNIQUE,
-      last_used_at TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      revoked_at TEXT
-    )`,
-    'CREATE INDEX IF NOT EXISTS idx_user_api_tokens_user ON user_api_tokens(user_id)',
-    'CREATE INDEX IF NOT EXISTS idx_user_api_tokens_hash ON user_api_tokens(token_hash)',
-  ]);
-}
-
-export async function ensureApiTokensTable(): Promise<void> {
-  if (!apiTokensTableInitialization) {
-    apiTokensTableInitialization = initApiTokensTable().catch((error) => {
-      apiTokensTableInitialization = null;
-      throw error;
-    });
-  }
-  return apiTokensTableInitialization;
-}
-
 function toMetadata(row: Record<string, unknown>): ApiTokenMetadata {
   return {
     id: row.id as string,
@@ -75,7 +46,6 @@ async function hashToken(raw: string): Promise<string> {
 }
 
 export async function createApiToken(userId: string, name: string): Promise<CreatedApiToken> {
-  await ensureApiTokensTable();
   const db = getDb();
   const id = crypto.randomUUID();
   const raw = generateRawToken();
@@ -89,7 +59,6 @@ export async function createApiToken(userId: string, name: string): Promise<Crea
 }
 
 export async function listApiTokens(userId: string): Promise<ApiTokenMetadata[]> {
-  await ensureApiTokensTable();
   const db = getDb();
   const result = await db.execute({
     sql: `SELECT id, name, created_at, last_used_at, revoked_at
@@ -105,7 +74,6 @@ export async function revokeApiToken(
   userId: string,
   tokenId: string
 ): Promise<{ revoked: boolean; notFound: boolean }> {
-  await ensureApiTokensTable();
   const db = getDb();
   // Only touch rows owned by this user; if no row matches, treat as not found.
   const result = await db.execute({
@@ -123,7 +91,6 @@ export async function resolveApiToken(
   rawToken: string
 ): Promise<{ userId: string; tokenId: string } | null> {
   if (!rawToken.startsWith(TOKEN_PREFIX)) return null;
-  await ensureApiTokensTable();
   const db = getDb();
   const tokenHash = await hashToken(rawToken);
   const result = await db.execute({

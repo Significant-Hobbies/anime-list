@@ -6,7 +6,7 @@ want to validate a sync locally before letting CI run it.
 ## Local refresh (anime + manga)
 
 ```bash
-# Requires TURSO_DATABASE_URL + TURSO_AUTH_TOKEN in .env
+# Defaults to isolated local D1; pnpm dev or db:migrate:local prepares schema.
 pnpm db:update          # anime: current + previous season
 pnpm db:update:manga    # manga: top ~100 pages
 ```
@@ -33,6 +33,10 @@ pnpm db:quarterly-sync
 Quarterly Jikan fallback failures are treated as **non-fatal** by design — a
 partial upstream failure should not abort the whole sync.
 
+Remote variants are production operations and are run by the scheduled GitHub
+workflows only after the D1 cutover. Direct `--remote` use also requires
+`D1_REMOTE_APPROVED=true`; do not bypass that gate during local validation.
+
 ## Manual trigger via GitHub Actions
 
 Any of the sync workflows can be run manually from the Actions tab
@@ -44,7 +48,7 @@ Any of the sync workflows can be run manually from the Actions tab
 
 ## After a refresh
 
-The worker's in-memory cache is reloaded by the daily cron at 03:00 UTC. To
+The worker's in-memory cache is reloaded from D1 by the daily cron at 03:00 UTC. To
 pick up fresh data sooner, redeploy the worker (`pnpm deploy:worker`) or wait
 for the next cron tick. There is no manual cache-clear endpoint by design —
 the 1h stale-while-revalidate TTL handles propagation.

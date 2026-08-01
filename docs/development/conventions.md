@@ -3,7 +3,7 @@
 ## Stack
 
 Vite 8 SPA + TanStack Router + Tailwind v4 + shadcn/ui + TanStack Query +
-nuqs (frontend); Hono Cloudflare Worker `mal-api`; Turso libSQL; Google OAuth
+nuqs (frontend); Hono Cloudflare Worker `mal-api`; Cloudflare D1; Google OAuth
 + JWT (`jose`); PostHog; Vitest + Playwright. Language: TypeScript full stack.
 Package manager: pnpm (pinned 10.33.2). Lint/format: Biome.
 
@@ -23,8 +23,9 @@ recommendations, and import/export all depend on this set.
 
 ## Worker code constraints
 
-- Import libSQL from `@libsql/client/web`, not the Node client — the Node
-  client does not bundle in the Workers runtime.
+- Bind the request or scheduled-event `DB` before calling a domain module.
+- Keep large catalog imports and operator jobs behind the Wrangler client;
+  customer requests must use the native D1 binding.
 - Keep `src/filterEngine.ts` pure (no fs / native modules) so it is safe to
   import from the Worker, scripts, and tests.
 - Edge Cache API keys use the fake host `https://mal-cache.local/...` to

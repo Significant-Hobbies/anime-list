@@ -3,7 +3,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import { API_CONFIG } from '../config';
 import { getAllAnime, upsertAnimeBatchNoSummary } from '../db/animeData';
-import { runAllMigrations } from '../db/migrations';
+import { configureOperatorDatabaseFromArgs } from '../db/operatorClient';
 import {
   applyAniListStatusUpdates,
   applyDirectStatusUpdates,
@@ -53,14 +53,6 @@ function getNumberArg(name: string, fallback: number): number {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function ensureRequiredEnv(): void {
-  if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
-    throw new Error(
-      'TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are required to run the quarterly anime sync.'
-    );
-  }
 }
 
 async function fetchAniListBatch(
@@ -220,7 +212,7 @@ function toFinalChange(
 }
 
 async function main() {
-  ensureRequiredEnv();
+  configureOperatorDatabaseFromArgs();
 
   const startedAt = Date.now();
   const isDryRun = process.argv.includes('--dry-run');
@@ -234,8 +226,6 @@ async function main() {
   console.log(
     `Mode=${isDryRun ? 'dry-run' : 'write'}, batchSize=${batchSize}, aniListDelayMs=${aniListDelayMs}, jikanDelayMs=${jikanDelayMs}, jikanFallback=${skipJikanFallback ? 'off' : 'on'}${limit ? `, limit=${limit}` : ''}`
   );
-
-  await runAllMigrations();
 
   const animeList = await getAllAnime();
   const scopedAnimeList = limit > 0 ? animeList.slice(0, limit) : animeList;

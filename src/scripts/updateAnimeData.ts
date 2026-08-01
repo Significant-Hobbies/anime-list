@@ -1,21 +1,18 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import { updateLatestTwoSeasonData } from '../api';
-import { runAllMigrations } from '../db/migrations';
+import { configureOperatorDatabaseFromArgs } from '../db/operatorClient';
 import { animeStore } from '../store/animeStore';
 
 /**
- * Cron job script to update anime data in Turso database
- * Fetches current and previous season anime and saves to Turso
+ * Fetch current and previous season anime and save them through Wrangler D1.
  */
 async function main() {
+  configureOperatorDatabaseFromArgs();
   console.log(`[${new Date().toISOString()}] Starting anime data update...`);
 
   try {
-    // Ensure database tables exist
-    await runAllMigrations();
-
-    // Fetch latest two seasons and save to Turso
+    // Fetch latest two seasons and save through the explicit Wrangler D1 boundary.
     await updateLatestTwoSeasonData();
 
     // Refresh the in-memory store cache

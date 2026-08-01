@@ -48,35 +48,6 @@ async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
   }
 }
 
-export async function initCollectionTables(): Promise<void> {
-  const db = getDb();
-  await db.batch([
-    `CREATE TABLE IF NOT EXISTS collections (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      visibility TEXT NOT NULL DEFAULT 'public',
-      cover_mode TEXT NOT NULL DEFAULT 'posters',
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`,
-    `CREATE TABLE IF NOT EXISTS collection_items (
-      id TEXT PRIMARY KEY,
-      collection_id TEXT NOT NULL,
-      mal_id TEXT NOT NULL,
-      media_type TEXT NOT NULL DEFAULT 'anime',
-      position INTEGER NOT NULL DEFAULT 0,
-      note TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(collection_id, mal_id, media_type)
-    )`,
-    'CREATE INDEX IF NOT EXISTS idx_collections_user ON collections(user_id)',
-    'CREATE INDEX IF NOT EXISTS idx_collection_items_collection ON collection_items(collection_id)',
-  ]);
-}
-
 export async function listUserCollections(userId: string): Promise<CollectionRow[]> {
   const db = getDb();
   const result = await db.execute({

@@ -10,10 +10,14 @@ A modern anime discovery platform that helps you find your next favorite show.
 |---------|---------|
 | Hosting | Cloudflare Pages (`anime-list`, `anime.significanthobbies.com`) - Vite SPA static build |
 | API | Cloudflare Worker (`mal-api`) — Hono, daily cron at 03:00 UTC |
-| Database | Turso (libSQL) |
+| Database | Cloudflare D1 (`DB` binding) |
 | Auth | Google OAuth 2.0 + JWT |
 | Analytics | PostHog (`local posthog-js wrapper`) |
-| CI/CD | GitHub Actions — CI (lint/test/build/size) on push/PR; manual (`workflow_dispatch`) Cloudflare Pages deploy; daily Turso sync workflow |
+| CI/CD | GitHub Actions — CI (D1 migration/rehearsal + lint/test/build/size); manual Worker/Pages deploy; daily Wrangler D1 sync |
+
+> Migration state: this branch prepares D1 and fails closed before deployment.
+> Live production remains Turso-authoritative until the cutover receipt is
+> explicitly approved, imported, verified, and deployed.
 
 > Local and production API traffic is served by the `mal-api` Cloudflare Worker on port **8787** during `pnpm dev`.
 
@@ -27,7 +31,7 @@ Finding quality anime to watch is hard. MyAnimeList has thousands of titles, but
 - **Smart Ranking**: Custom algorithm balancing quality (MAL score) and popularity (members + favorites) using logarithmic scaling to give hidden gems a chance
 - **Personal Watchlists**: Track anime by status (Watching, Completed, Deferred, Avoiding, BRR) with Google authentication
 - **Rich Statistics**: Explore trends, score distributions, and popular genre combinations across 14,800+ titles with watchlist filtering
-- **Lightning Fast**: Sub-millisecond response times with stale-while-revalidate caching and Turso database
+- **Lightning Fast**: Edge-local D1 persistence behind a one-hour stale-while-revalidate catalog cache
 - **Auto-Updates**: GitHub Actions automatically fetches latest anime seasons daily at midnight UTC
 
 ## Architecture
@@ -46,7 +50,7 @@ graph TB
         Memory[In-Memory Cache<br/>14.8k Anime<br/>Stale-While-Revalidate]
     end
 
-    subgraph "Database - Turso"
+    subgraph "Database - Cloudflare D1"
         AnimeDB[(Anime Data<br/>14,800+ titles)]
         WatchlistDB[(User Watchlists<br/>Per-user tracking)]
     end
@@ -86,7 +90,7 @@ graph TB
 
 - **Frontend (Cloudflare Pages)**: Vite SPA + TanStack Router, React 19, TailwindCSS 4 + shadcn/ui components
 - **Backend (Cloudflare Worker `mal-api`)**: Hono API with stale-while-revalidate in-memory cache for <1ms response times
-- **Database (Turso)**: libSQL database storing anime data (14,800+ titles) and user watchlists
+- **Database (Cloudflare D1)**: one project-owned database for anime/manga catalogs and user state
 - **Caching Strategy**: 1-hour TTL with background refresh - 100% of requests served instantly from memory
 - **Automation (GitHub Actions)**: Daily cron at midnight UTC fetches latest anime seasons from Jikan API
 - **External APIs**: Jikan API for MyAnimeList data, Google OAuth for authentication
@@ -95,7 +99,7 @@ graph TB
 
 ### Prerequisites
 - Node.js 18+
-- Turso account (free tier)
+- Wrangler 4.x (installed through the pinned project dependencies)
 - Google OAuth credentials
 
 ### Setup
@@ -107,7 +111,7 @@ cd mal
 pnpm install
 ```
 
-2. Create `.env` from `.env.example` and set Turso + Google OAuth values. For local dev, `VITE_API_URL=http://localhost:8787`.
+2. Create `.env` from `.env.example` for frontend/Google OAuth values. Local persistence uses isolated Wrangler D1 and does not need production database credentials.
 
 3. Start development:
 ```bash
@@ -126,8 +130,9 @@ pnpm dev:be        # Worker only (port 8787)
 pnpm dev:fe        # Frontend only
 pnpm build         # Vite production build
 pnpm test          # Vitest unit tests
-pnpm db:seed       # Seed Turso database from JSON (one-time)
+pnpm db:seed       # Migrate and seed local D1 from JSON
 pnpm db:update     # Update anime data from Jikan API
+pnpm db:rehearse   # Isolated D1 catalog + ownership rehearsal
 ```
 
 ## Deployment
@@ -141,17 +146,17 @@ pnpm db:update     # Update anime data from Jikan API
   runtime to the worker, not to the client bundle.
 
 **API Worker (Cloudflare Worker — `mal-api`)**
-- Deploy with `pnpm deploy:worker` (`wrangler deploy --config wrangler.cron.toml`)
-- Set worker secrets via `wrangler secret put`: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`
+- Deploy with `pnpm deploy:worker`; it validates a clean `main`, applies D1 migrations, and tags the Worker with the full Git SHA.
+- D1 is bound as `DB`; Worker secrets remain `JWT_SECRET` and `GOOGLE_CLIENT_ID`.
 - Runs a daily cron at 03:00 UTC
 
-**Database (Turso)**
-- Create database: `turso db create mal-watchlist`
-- Get credentials: `turso db show mal-watchlist`
-- Run migrations and seed: `npm run db:seed`
+**Database (Cloudflare D1)**
+- Apply local migrations: `pnpm db:migrate:local`
+- Run the isolated proof: `pnpm db:rehearse`
+- Production creation, import, binding UUID, and deployment remain explicitly approved cutover operations.
 
 **GitHub Actions (Automated)**
-- Add repository secrets: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`
+- Repository automation uses the existing `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` boundaries.
 - Workflow runs automatically daily at midnight UTC
 - Manual trigger: Go to Actions tab → "Update Catalog Data" → Run workflow
 

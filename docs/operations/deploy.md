@@ -25,24 +25,30 @@ is `workflow_dispatch` only (no auto-deploy on push).
 
 ## API Worker (Cloudflare Worker `mal-api`)
 
-- `pnpm deploy:worker` → `wrangler deploy src/worker.ts --config wrangler.cron.toml`.
+- `pnpm deploy:worker` validates clean/synced `main`, applies remote D1
+  migrations, and deploys `mal-api` with the full Git SHA tag.
 - Worker config: `wrangler.cron.toml` (cron `0 3 * * *`, `nodejs_compat_v2`).
-- Set worker secrets via `wrangler secret put <KEY>`:
-  `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`,
-  optional `TURSO_MANGA_DATABASE_URL` / `TURSO_MANGA_AUTH_TOKEN`.
+- D1 binding: `DB`. Worker secrets remain `JWT_SECRET` and `GOOGLE_CLIENT_ID`.
 
-## Database (Turso)
+## Database (Cloudflare D1)
 
-- Create: `turso db create mal-watchlist`; `turso db show mal-watchlist` for
-  credentials.
-- Migrations run inline at worker startup (`src/db/migrations.ts`,
-  `src/db/mangaMigrations.ts`) — no separate migration step on deploy.
+- Local schema: `pnpm db:migrate:local`; isolated proof: `pnpm db:rehearse`.
+- Production schema: `pnpm db:migrate:remote`, after the approved UUID is in
+  `wrangler.cron.toml` and the repository is on clean `main`.
+- One-time Turso dumps are converted with `pnpm db:prepare-import` into
+  allowlisted, repeatable data-only chunks for `wrangler d1 execute --file`.
+- Production cutover temporarily deploys the same release with
+  `WRITE_FREEZE=true`; non-read HTTP methods return `503` with `Retry-After`
+  until final Turso reconciliation and D1 verification complete. The tracked
+  production value is `false`, so the normal release reopens writes.
 - Seed/refresh scripts are run from CI or locally, not on deploy (see
   [`jobs.md`](jobs.md)).
 
 ## Pre-deploy checklist
 
-- `pnpm lint && pnpm typecheck && pnpm test` pass.
+- `pnpm db:rehearse && pnpm lint && pnpm typecheck && pnpm test` pass.
+- D1 receipt confirms schema/count/aggregate/ownership parity; remote UUID is
+  no longer the fail-closed placeholder.
 - `pnpm build` succeeds and the SEO dataset regenerates cleanly (empty diff
   on `src/data/seo-*.json`).
 - On a clean `main` branch.
