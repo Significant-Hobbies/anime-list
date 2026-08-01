@@ -8,7 +8,7 @@ import { configurePostHog, trace, flushPostHog } from './telemetry';
 import {
   CATALOG_UNAVAILABLE_CODE,
   CATALOG_UNAVAILABLE_MESSAGE,
-  isCatalogReadBlockedError,
+  isCatalogDatabaseError,
 } from '../lib/apiErrors';
 
 // Business logic imports (all unchanged files)
@@ -24,7 +24,6 @@ import {
   upsertAnimeWatchlist,
   updateAnimeWatchlistNote,
   deleteFromAnimeWatchlist,
-  initWatchlistTables,
   getUserTags,
   updateUserTag,
   upsertUserTag,
@@ -41,7 +40,6 @@ import {
 } from './db/animeData';
 import { getLastMangaDataUpdate } from './db/mangaData';
 import { findOrCreateUser } from './db/users';
-import { initUsersTable } from './db/users';
 import {
   hideWatchedItems,
   includeOnlyWatchedItems,
@@ -65,7 +63,6 @@ import {
   type WatchlistImportMode,
 } from './watchlistSync';
 import {
-  initSavedSearchTables,
   listSavedSearches,
   createSavedSearch,
   updateSavedSearch,
@@ -76,7 +73,6 @@ import {
   evaluateSavedSearchesAfterCatalogRefresh,
 } from './db/savedSearches';
 import {
-  initCollectionTables,
   listUserCollections,
   getCollectionBySlug,
   getCollectionItems,
@@ -91,16 +87,11 @@ import {
   reorderScheduleSchema,
 } from './validators/schedule';
 import {
-  initScheduleTable,
   updateScheduleItem as dbUpdateScheduleItem,
   removeScheduleItems,
   reorderSchedule as dbReorderSchedule,
 } from './db/schedule';
-import {
-  migrateAnimeDetailCache,
-  migrateAnimeWatchlistNotes,
-  migrateScheduleEpisodesWatched,
-} from './db/migrations';
+import { bindD1Database } from './db/client';
 import { getAnimeDetailSupplementalData } from './controllers/animeDetailService';
 import { buildScheduleTimelineResponse, addScheduleItems } from './services/scheduleService';
 import { buildTasteRecommendations } from './recommendations';
@@ -140,10 +131,7 @@ interface AuthPayload {
 }
 
 type Env = {
-  TURSO_DATABASE_URL: string;
-  TURSO_AUTH_TOKEN: string;
-  TURSO_MANGA_DATABASE_URL?: string;
-  TURSO_MANGA_AUTH_TOKEN?: string;
+  DB: D1Database;
   JWT_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   POSTHOG_API_KEY?: string;
@@ -355,12 +343,9 @@ const toSearchAnime = (anime: {
   image: anime.image,
 });
 
-// Bridge env bindings → process.env so existing code (db/client, config) works unchanged
+// Bind relational persistence before any route touches domain state.
 app.use('*', async (c, next) => {
-  process.env.TURSO_DATABASE_URL = c.env.TURSO_DATABASE_URL;
-  process.env.TURSO_AUTH_TOKEN = c.env.TURSO_AUTH_TOKEN;
-  process.env.TURSO_MANGA_DATABASE_URL = c.env.TURSO_MANGA_DATABASE_URL || c.env.TURSO_DATABASE_URL;
-  process.env.TURSO_MANGA_AUTH_TOKEN = c.env.TURSO_MANGA_AUTH_TOKEN || c.env.TURSO_AUTH_TOKEN;
+  bindD1Database(c.env.DB);
   process.env.JWT_SECRET = c.env.JWT_SECRET;
   process.env.GOOGLE_CLIENT_ID = c.env.GOOGLE_CLIENT_ID;
   await next();
@@ -379,23 +364,6 @@ app.use('*', async (c, next) => {
   }
   await next();
   c.executionCtx.waitUntil(flushPostHog());
-});
-
-// DB init (runs once per isolate)
-let dbInitialized = false;
-app.use('*', async (_c, next) => {
-  if (!dbInitialized) {
-    await initUsersTable();
-    await initWatchlistTables();
-    await initScheduleTable();
-    await initSavedSearchTables();
-    await initCollectionTables();
-    await migrateScheduleEpisodesWatched();
-    await migrateAnimeWatchlistNotes();
-    await migrateAnimeDetailCache();
-    dbInitialized = true;
-  }
-  await next();
 });
 
 // CORS
@@ -1522,7 +1490,7 @@ app.get('/api/collections/:slug', async (c) => {
 
 app.onError((err, c) => {
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);
-  if (isCatalogReadBlockedError(err)) {
+  if (isCatalogDatabaseError(err)) {
     c.header('Retry-After', '300');
     return c.json(
       {
@@ -1544,12 +1512,8 @@ export default {
     app.fetch(request, env, ctx)
   ),
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
-    // Bridge env for the cron context
-    process.env.TURSO_DATABASE_URL = env.TURSO_DATABASE_URL;
-    process.env.TURSO_AUTH_TOKEN = env.TURSO_AUTH_TOKEN;
-    process.env.TURSO_MANGA_DATABASE_URL = env.TURSO_MANGA_DATABASE_URL || env.TURSO_DATABASE_URL;
-    process.env.TURSO_MANGA_AUTH_TOKEN = env.TURSO_MANGA_AUTH_TOKEN || env.TURSO_AUTH_TOKEN;
-    console.log('Cron: refreshing anime and manga caches from Turso');
+    bindD1Database(env.DB);
+    console.log('Cron: refreshing anime and manga caches from D1');
     await Promise.all([animeStore.setAnimeList(), mangaStore.setMangaList()]);
     const alertsCreated = await evaluateSavedSearchesAfterCatalogRefresh();
     console.log(`Cron: cache refreshed; ${alertsCreated} saved-search alerts created`);

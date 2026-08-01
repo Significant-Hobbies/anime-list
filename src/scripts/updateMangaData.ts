@@ -2,7 +2,7 @@
 import dotenv from 'dotenv';
 import { updateLatestTopMangaData } from '../api';
 import { API_CONFIG } from '../config';
-import { migrateMangaCatalogTable } from '../db/mangaMigrations';
+import { configureOperatorDatabaseFromArgs } from '../db/operatorClient';
 import { mangaStore } from '../store/mangaStore';
 
 dotenv.config({ path: '.env.local' });
@@ -23,17 +23,16 @@ function resolveMaxPages(): number {
 }
 
 /**
- * Cron job script to update manga catalog in Turso.
- * Fetches top-ranked manga from Jikan and upserts into manga_data.
+ * Fetch top-ranked manga from Jikan and upsert them through Wrangler D1.
  */
 async function main() {
+  configureOperatorDatabaseFromArgs();
   const maxPages = resolveMaxPages();
   console.log(
     `[${new Date().toISOString()}] Starting manga data update (${maxPages} pages max)...`
   );
 
   try {
-    await migrateMangaCatalogTable();
     await updateLatestTopMangaData(maxPages);
     await mangaStore.setMangaList();
 

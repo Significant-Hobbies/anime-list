@@ -2,7 +2,6 @@ import type { Hono } from 'hono';
 import { filterMangaList, getMangaFieldValue } from '../dataProcessor';
 import { deleteFromMangaWatchlist, getMangaWatchlist, upsertMangaWatchlist } from '../db/watchlist';
 import { getMangaByMalId } from '../db/mangaData';
-import { migrateMangaCatalogTable } from '../db/mangaMigrations';
 import { mangaStore } from '../store/mangaStore';
 import { hideWatchedItems, takePage } from '../controllers/helpers';
 import { mangaFilterRequestSchema } from '../validators/mangaFilters';
@@ -69,21 +68,11 @@ function toSummary(manga: MangaItem) {
   };
 }
 
-let mangaCatalogInitialized = false;
-
 export function registerMangaRoutes(
   app: Hono,
   middleware: { requireAuth: AuthMiddleware; optionalAuth: AuthMiddleware }
 ) {
   const { requireAuth, optionalAuth } = middleware;
-
-  app.use('/api/manga/*', async (_c, next) => {
-    if (!mangaCatalogInitialized) {
-      await migrateMangaCatalogTable();
-      mangaCatalogInitialized = true;
-    }
-    await next();
-  });
 
   app.get('/api/manga/fields', (c) =>
     c.json({

@@ -7,9 +7,9 @@ class AnimeStore {
   private lastLoadedAt: number = 0;
   private isRefreshing: boolean = false;
   // Shared by all concurrent requests during a cold-start load, so we only
-  // hit Turso once per isolate even with parallel inbound traffic.
+  // hit D1 once per isolate even with parallel inbound traffic.
   private coldLoadPromise: Promise<AnimeItem[]> | null = null;
-  // Production: Long cache since Turso is remote (1 hour)
+  // Production: keep one full-catalog D1 scan per isolate to a one-hour window.
   // Cron job updates DB daily, manual refresh if needed
   private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour cache
 
@@ -24,7 +24,7 @@ class AnimeStore {
 
   async setAnimeList(animeData?: AnimeItem[] | null): Promise<void> {
     if (!animeData) {
-      // Load from Turso database
+      // Load from the D1 catalog.
       animeData = await getAllAnime();
     }
     if (!animeData || animeData.length === 0) {
@@ -41,7 +41,7 @@ class AnimeStore {
     const isEmpty = this.animeList.length === 0;
 
     // Cold isolate: dedupe concurrent loads so 50 parallel inbound requests
-    // share a single Turso scan instead of stampeding it.
+    // share a single D1 scan instead of stampeding it.
     if (isEmpty) {
       if (!this.coldLoadPromise) {
         console.log('Cache empty, loading from database...');

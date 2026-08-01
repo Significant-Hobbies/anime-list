@@ -18,6 +18,7 @@ jobs:
       - uses: actions/setup-node@v6
         with: { node-version: '22', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node scripts/validate-d1-config.mjs
       - run: pnpm build
         env:
           # VITE_* values are inlined into the client bundle at build time via
@@ -26,6 +27,18 @@ jobs:
           VITE_API_URL: https://mal-api.sarthakagrawal927.workers.dev
           VITE_GOOGLE_CLIENT_ID: 207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com
           VITE_SAASMAKER_API_KEY: pk_fb1fe870205272a447298bfac32122383426d6a1c1fb10ab
+      - name: Apply D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply anime-list --remote --config wrangler.cron.toml
+      - name: Deploy API Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy src/worker.ts --config wrangler.cron.toml --tag ${{ github.sha }}
       - id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
@@ -38,3 +51,4 @@ jobs:
           for path in / /anime/1; do
             curl --fail --retry 5 --retry-delay 5 --max-time 20 "https://anime.significanthobbies.com${path}" >/dev/null
           done
+          curl --fail --retry 5 --retry-delay 5 --max-time 20 "https://mal-api.sarthakagrawal927.workers.dev/api/last-updated" >/dev/null

@@ -19,8 +19,12 @@ jobs:
           cache: "pnpm"
 
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm db:migrate:local
+      - run: pnpm db:rehearse
+      - run: node --test scripts/lib/d1-import.test.mjs
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm exec wrangler deploy --dry-run --config wrangler.local.toml --outdir .wrangler/dry-run
       - run: pnpm build
       - name: Check bundle size
         run: pnpm run size

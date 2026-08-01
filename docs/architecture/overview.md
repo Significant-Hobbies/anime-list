@@ -10,7 +10,7 @@ mal-api (Cloudflare Worker, Hono)  ── cron 0 3 * * * ──▶ reload caches
    │  in-memory animeStore / mangaStore (stale-while-revalidate, 1h TTL)
    │  edge Cache API (search 180s, stats 300s, detail 24h anonymous)
    ▼
-Turso (libSQL)  ──  anime_data, manga_data, watchlists, schedule, saved_searches, collections, users
+Cloudflare D1 (`DB`)  ──  anime_data, manga_data, watchlists, schedule, saved_searches, collections, users
    ▲
    │  GitHub Actions (daily 00:00 UTC, quarterly) — Jikan API fetch + upsert
 Jikan API (MyAnimeList)
@@ -20,6 +20,10 @@ Pages Functions (`functions/anime/[malId].ts`, `functions/manga/[malId].ts`)
 sit on Cloudflare Pages in front of the SPA shell and rewrite detail-page HTML
 for crawlable SEO (see
 [`decisions/0003-crawlable-detail-pages.md`](decisions/0003-crawlable-detail-pages.md)).
+
+This D1 architecture is prepared but not yet production-authoritative. The
+live system remains on Turso until the explicitly approved cutover completes;
+see `PROJECT_STATUS.md` for current production truth.
 
 ## Layers
 
@@ -32,12 +36,11 @@ for crawlable SEO (see
   `src/worker/mangaRoutes.ts`. Handles HTTP routes and a `scheduled` cron
   entry from the same module. Pure filter logic in `src/filterEngine.ts`;
   transforms in `src/dataProcessor.ts`; aggregation in `src/statistics.ts`.
-- **Persistence (Turso libSQL):** single DB in prod; optional
-  `TURSO_MANGA_*` override for a separate manga catalog DB. Client uses
-  `@libsql/client/web` (Workers-compatible). Inline migrations at worker
-  startup (`src/db/migrations.ts`, `src/db/mangaMigrations.ts`).
+- **Persistence (Cloudflare D1):** one `DB` binding owns both catalogs and all
+  user state. `src/db/client.ts` preserves the narrow execute/batch result
+  shape used by domain modules; `migrations/d1/` is the only schema authority.
 - **In-memory cache (`src/store/`):** `animeStore` / `mangaStore` load the
-  full catalog from Turso with a 1h stale-while-revalidate TTL and a shared
+  full catalog from D1 with a 1h stale-while-revalidate TTL and a shared
   `coldLoadPromise` to dedupe cold-start stampede across concurrent requests
   in the same isolate.
 - **Auth:** Google OAuth 2.0 → JWT signed with `jose`; httpOnly
@@ -47,9 +50,8 @@ for crawlable SEO (see
 
 ## Key non-obvious constraints
 
-- **Workers bundling:** the libSQL client must be imported from
-  `@libsql/client/web`; the Node client does not bundle in the Workers
-  runtime.
+- **Operator isolation:** scripts default to local Wrangler D1. Remote work
+  requires an explicit `--remote` path plus `D1_REMOTE_APPROVED=true`.
 - **Filter engine purity:** `src/filterEngine.ts` has zero file-system or
   native-module dependencies so it is safe to import from both the Worker and
   scripts/tests.
@@ -82,6 +84,7 @@ Durable technical decisions are recorded as ADRs in
 - [`0002-cloudflare-workers-migration.md`](decisions/0002-cloudflare-workers-migration.md) — replace the Render/Express backend with a Hono Worker.
 - [`0003-crawlable-detail-pages.md`](decisions/0003-crawlable-detail-pages.md) — Pages Functions rewrite detail HTML for SEO.
 - [`0004-engagement-measurement.md`](decisions/0004-engagement-measurement.md) — quiz/collections funnels + homepage A/B test.
+- [`0005-cloudflare-d1-persistence.md`](decisions/0005-cloudflare-d1-persistence.md) — one D1 binding, deterministic schema, and Wrangler-driven jobs.
 
 Reusable implementation tricks and failed approaches live in
 [`../knowledge/`](../knowledge/).

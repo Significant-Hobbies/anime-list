@@ -104,13 +104,13 @@ Instrumentation lives in `lib/engagement.ts` (surface funnels) and
 See [`../architecture/decisions/0004-engagement-measurement.md`](../architecture/decisions/0004-engagement-measurement.md)
 for the reasoning behind this instrumentation.
 
-## Database tables (Turso)
+## Database tables (Cloudflare D1)
 
-Inline migrations run at worker startup. Tables: `users`, `user_tags`,
+Deterministic migrations run before deployment. Tables: `users`, `user_tags`,
 `anime_watchlist`, `manga_watchlist`, `anime_dismissals`, `anime_schedule`,
 `anime_data`, `manga_data`, `anime_relations_cache`,
 `anime_recommendations_cache`, `saved_searches`, `saved_search_alerts`,
-`collections`, `collection_items`.
+`collections`, `collection_items`, `user_api_tokens`.
 
 ## Tests & ops
 

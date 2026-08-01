@@ -1,8 +1,7 @@
 import 'dotenv/config';
 import { readFileSync } from 'node:fs';
 import { getDb } from '../src/db/client';
-import { initWatchlistTables } from '../src/db/watchlist';
-import { initUsersTable } from '../src/db/users';
+import { configureOperatorDatabaseFromArgs } from '../src/db/operatorClient';
 
 async function resolveUserId(db: ReturnType<typeof getDb>, emailOrId: string): Promise<string> {
   // If it looks like an email, look up or create the user
@@ -28,11 +27,10 @@ async function resolveUserId(db: ReturnType<typeof getDb>, emailOrId: string): P
 }
 
 async function seed() {
-  await initUsersTable();
-  await initWatchlistTables();
+  configureOperatorDatabaseFromArgs();
   const db = getDb();
 
-  const input = process.argv[2] || 'default';
+  const input = process.argv.slice(2).find((argument) => !argument.startsWith('--')) || 'default';
   const userId = await resolveUserId(db, input);
   console.log(`Seeding watchlist for user_id: ${userId}`);
 

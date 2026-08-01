@@ -10,20 +10,6 @@ export interface DbUser {
   created_at: string;
 }
 
-export async function initUsersTable(): Promise<void> {
-  const db = getDb();
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      google_id TEXT UNIQUE NOT NULL,
-      email TEXT NOT NULL,
-      name TEXT NOT NULL,
-      picture TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-}
-
 export async function findOrCreateUser(profile: {
   googleId: string;
   email: string;

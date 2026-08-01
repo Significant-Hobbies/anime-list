@@ -10,30 +10,29 @@ canonical files. If anything here disagrees with those files, the files win.
 Defined in `wrangler.cron.toml`, handled by the `scheduled` export in
 `src/worker.ts`:
 
-1. Reload the anime and manga in-memory stores from Turso
+1. Reload the anime and manga in-memory stores from D1
    (`animeStore.setAnimeList()`, `mangaStore.setMangaList()`).
 2. Evaluate saved-search alerts after the catalog refresh
    (`evaluateSavedSearchesAfterCatalogRefresh()`) and create new alert rows.
 
 This runs *after* the GitHub Action catalog refresh (00:00 UTC) so the
-worker cache picks up the fresh Turso data.
+worker cache picks up the fresh D1 data.
 
 ## GitHub Actions
 
 ### Daily catalog refresh — `update-anime-data.yml`
 
 - Schedule: `0 0 * * *` (daily 00:00 UTC) + `workflow_dispatch`.
-- Runs `pnpm db:update` (anime: current + previous season) and
-  `pnpm db:update:manga` (manga: top ~100 pages).
-- Secrets: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, optional
-  `TURSO_MANGA_*`.
+- Runs the explicit remote forms of the anime and manga update commands.
+- Wrangler uses `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; scripts
+  otherwise default to local D1 and reject an unapproved `--remote` call.
 - Timeout: 15 min.
 
 ### Quarterly anime sync — `quarterly-anime-sync.yml`
 
 - Schedule: `0 0 1 1,4,7,10 *` (Jan/Apr/Jul/Oct 1, 00:00 UTC) +
   `workflow_dispatch` with `dry_run` and `limit` inputs.
-- Runs `pnpm db:quarterly-sync` (re-score/status sync across the catalog).
+- Runs the remote Wrangler form of `pnpm db:quarterly-sync`.
 - Quarterly Jikan fallback failures are treated as non-fatal.
 - Timeout: 120 min.
 
@@ -41,7 +40,7 @@ worker cache picks up the fresh Turso data.
 
 - Schedule: `0 1 1 1,4,7,10 *` (Jan/Apr/Jul/Oct 1, 01:00 UTC, after anime) +
   `workflow_dispatch`.
-- Runs `pnpm db:update:manga:full` (full top-list refresh, ~20.7k titles).
+- Runs the remote Wrangler form of the full top-list refresh (~20.7k titles).
 - Timeout: 240 min.
 
 ### Weekly quality check — `weekly.yml`
@@ -51,13 +50,13 @@ worker cache picks up the fresh Turso data.
 
 ### Deploy — `deploy.yml`
 
-- `workflow_dispatch` only (manual). Builds with `VITE_*` env and deploys
-  `dist/` to Cloudflare Pages, then smokes `/` and `/anime/1`.
+- `workflow_dispatch` only (manual). Applies D1 migrations, deploys the tagged
+  API Worker, builds/deploys Pages, then smokes API and detail routes.
 
 ### CI — `ci.yml`
 
-- On push/PR to `main`/`master`: `pnpm lint`, `pnpm test`, `pnpm build`,
-  `pnpm run size`.
+- On push/PR to `main`/`master`: local D1 migration/rehearsal, import tests,
+  Worker dry-run, lint, test, build, and size checks.
 
 ### Docs — `docs.yml`
 

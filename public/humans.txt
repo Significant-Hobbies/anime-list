@@ -7,5 +7,5 @@ MyAnimeList and AniList — the upstream data sources.
 Jikan — the unofficial MAL API.
 
 /* SITE */
-Last updated: 2026-06-20
-Software: Vite, React, TanStack Router, Turso (libSQL), Cloudflare Worker (Hono cron)
+Last updated: 2026-08-01
+Software: Vite, React, TanStack Router, Cloudflare D1, Cloudflare Worker (Hono cron)

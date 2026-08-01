@@ -40,7 +40,7 @@ const fetchFromApi = async <T>(url: string): Promise<T | null> => {
   }
 };
 
-// Fetch last 2 seasons and update Turso database
+// Fetch the last two seasons and update the bound D1 database.
 export const updateLatestTwoSeasonData = async (): Promise<void> => {
   const p0 = performance.now();
 
@@ -98,7 +98,7 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
     console.log(`✓ ${season} ${year} - fetched ${allFetchedAnime.length} anime so far`);
   }
 
-  // Save to Turso database
+  // Save through the configured D1 boundary.
   if (allFetchedAnime.length > 0) {
     console.log(`Saving ${allFetchedAnime.length} anime to database...`);
     const summary = await upsertAnimeBatch(allFetchedAnime);
@@ -123,7 +123,7 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
   console.log(`\n✓ Season update completed in ${(performance.now() - p0) / 1000}s`);
 };
 
-/** Refresh popular manga from Jikan top list into Turso (daily incremental sync). */
+/** Refresh popular manga from Jikan top list into D1 (daily incremental sync). */
 export const updateLatestTopMangaData = async (
   maxPages: number = API_CONFIG.mangaDailyUpdatePages
 ): Promise<void> => {

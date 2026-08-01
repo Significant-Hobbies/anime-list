@@ -7,20 +7,6 @@ export interface ScheduleRow {
   episodes_watched: number;
 }
 
-export async function initScheduleTable(): Promise<void> {
-  const db = getDb();
-  await db.batch([
-    `CREATE TABLE IF NOT EXISTS anime_schedule (
-      user_id TEXT NOT NULL,
-      mal_id TEXT NOT NULL,
-      episodes_per_day INTEGER NOT NULL DEFAULT 3,
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      PRIMARY KEY (user_id, mal_id)
-    )`,
-    'CREATE INDEX IF NOT EXISTS idx_schedule_user ON anime_schedule(user_id)',
-  ]);
-}
-
 export async function getSchedule(userId: string): Promise<ScheduleRow[]> {
   const db = getDb();
   const result = await db.execute({
