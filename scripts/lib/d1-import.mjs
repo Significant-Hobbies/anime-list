@@ -53,12 +53,50 @@ function normalizeTableName(value) {
   return value.replace(/^["'`[]|["'`\]]$/g, '');
 }
 
+function decodeUnistrValue(value) {
+  let decoded = '';
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character !== '\\') {
+      decoded += character;
+      continue;
+    }
+
+    if (value[index + 1] === '\\') {
+      decoded += '\\';
+      index += 1;
+      continue;
+    }
+
+    const marker = value[index + 1];
+    const width = marker === '+' ? 6 : marker === 'U' ? 8 : 4;
+    const hexStart = marker === '+' || marker === 'u' || marker === 'U' ? index + 2 : index + 1;
+    const hex = value.slice(hexStart, hexStart + width);
+    if (!/^[0-9a-f]+$/i.test(hex) || hex.length !== width) {
+      decoded += '\\';
+      continue;
+    }
+
+    decoded += String.fromCodePoint(Number.parseInt(hex, 16));
+    index = hexStart + width - 1;
+  }
+  return decoded;
+}
+
+export function normalizeUnistrCalls(sql) {
+  return sql.replace(/unistr\('((?:''|[^'])*)'\)/gi, (_match, literal) => {
+    const decoded = decodeUnistrValue(literal.replaceAll("''", "'"));
+    return `'${decoded.replaceAll("'", "''")}'`;
+  });
+}
+
 export function prepareD1Import(sourceSql, options = {}) {
   const maxBytes = options.maxBytes ?? 4 * 1024 * 1024;
   const statements = [];
   const tableStatementCounts = {};
 
-  for (const sourceStatement of splitStatements(sourceSql)) {
+  for (const rawSourceStatement of splitStatements(sourceSql)) {
+    const sourceStatement = normalizeUnistrCalls(rawSourceStatement);
     const match = sourceStatement.match(/^INSERT(?:\s+OR\s+REPLACE)?\s+INTO\s+([^\s(]+)/i);
     if (!match) continue;
 

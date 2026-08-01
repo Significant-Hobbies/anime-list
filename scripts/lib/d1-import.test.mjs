@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { prepareD1Import, splitStatements } from './d1-import.mjs';
+import { normalizeUnistrCalls, prepareD1Import, splitStatements } from './d1-import.mjs';
 
 test('splitStatements preserves semicolons and escaped quotes inside values', () => {
   assert.deepEqual(splitStatements("INSERT INTO users VALUES ('a;''b'); SELECT 1;"), [
@@ -47,5 +47,14 @@ test('prepareD1Import splits on a byte boundary without splitting statements', (
       0
     ),
     20
+  );
+});
+
+test('normalizeUnistrCalls converts new SQLite dump literals for D1', () => {
+  assert.equal(
+    normalizeUnistrCalls(
+      "INSERT INTO notes VALUES(unistr('line\\u000abreak\\\\path ''quoted'' \\+01f680'));"
+    ),
+    "INSERT INTO notes VALUES('line\nbreak\\path ''quoted'' 🚀');"
   );
 });
