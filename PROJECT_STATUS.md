@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-07-25
+Last updated: 2026-08-02
 
 ## Why / What
 
@@ -9,7 +9,7 @@ Last updated: 2026-07-25
 
 **Constraints:** Operational stability over feature expansion. Measure engagement on newer surfaces (quiz, collections) before expanding them.
 
-**IN scope:** Vite SPA frontend, `mal-api` Hono worker, Turso, daily/quarterly catalog sync, in-app alerts.
+**IN scope:** Vite SPA frontend, `mal-api` Hono worker, Cloudflare D1, daily/quarterly catalog sync, in-app alerts.
 
 **OUT of scope:** Email digest for saved searches, collection social features, character quiz persistence/OG images until engagement proves lift.
 
@@ -18,13 +18,14 @@ Last updated: 2026-07-25
 ### External
 
 - **Google OAuth + JWT:** `jose`; httpOnly `mal_auth_token` cookie (7d).
-- **Turso libSQL:** catalog tables + per-user watchlists, schedule, saved searches, collections.
+- **Cloudflare D1:** catalog tables + per-user watchlists, schedule, saved searches, collections; database `anime-list`, Worker binding `DB`.
+- **Turso rollback source:** retained temporarily after the D1 cutover; it is no longer on the serving path.
 - **Jikan API:** daily GH Action sync + quarterly full refresh.
 - **MAL CDN:** poster images (recurring operational risk).
 - **PostHog:** client analytics.
 - **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 180s, stats 300s, detail 24h anonymous only).
-- **Worker secrets (names only):** `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, optional `TURSO_MANGA_*`, `POSTHOG_API_KEY`.
-- **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `TURSO_*`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
+- **Worker secrets (names only):** `JWT_SECRET`, `GOOGLE_CLIENT_ID`; retired Turso secret bindings remain temporarily for rollback but are unused by the deployed code.
+- **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
 
 ### Internal (fleet)
 
@@ -32,7 +33,7 @@ Last updated: 2026-07-25
 
 ### Stack & commands
 
-**Stack:** Vite 8 SPA + TanStack Router + Tailwind v4 + TanStack Query + nuqs (frontend); Hono Cloudflare Worker `mal-api`; Turso libSQL; Google OAuth + JWT (`jose`); PostHog; Vitest + Playwright.
+**Stack:** Vite 8 SPA + TanStack Router + Tailwind v4 + TanStack Query + nuqs (frontend); Hono Cloudflare Worker `mal-api`; Cloudflare D1; Google OAuth + JWT (`jose`); PostHog; Vitest + Playwright.
 
 | Command | Purpose |
 |---------|---------|
@@ -47,12 +48,18 @@ Last updated: 2026-07-25
 | `pnpm test` | Vitest (69 tests across 13 files) |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
 | `pnpm typecheck` / `pnpm lint` | TS (`tsc`) + Biome |
-| `pnpm db:seed` / `db:seed:manga` | Seed Turso from scripts |
+| `pnpm db:migrate:local` / `db:migrate:remote` | Apply D1 migrations |
+| `pnpm db:seed` / `db:seed:manga` | Seed D1 from scripts |
 | `pnpm db:update` / `db:update:manga` | Refresh from Jikan |
 | `pnpm db:quarterly-sync` | Quarterly anime re-score |
 
 ## Timeline
 
+- **2026-08-02** — Cut production persistence from Turso to Cloudflare D1 via
+  PR #33 and deploy run #30713104081. The 41,333-row import matched every
+  source table and aggregate, the final and post-switch Turso exports remained
+  byte-identical, production smokes passed, and Worker `mal-api` reached 100%
+  traffic on SHA `f77baac618522715a351ef4c29ff880eac587df7`.
 - **2026-07-31** — Submitted
   `https://anime.significanthobbies.com/sitemap-index.xml` to the verified
   `significanthobbies.com` Google Search Console property. Google accepted the
@@ -154,7 +161,7 @@ Last updated: 2026-07-25
 
 - Vite SPA calls `mal-api` worker; TanStack Query caches responses client-side.
 - Worker loads full anime (~14.8k) + manga (~20.7k) catalogs into in-memory stores with 1hr stale-while-revalidate.
-- Turso stores catalog tables + per-user watchlists, schedule, saved searches, collections.
+- D1 stores catalog tables + per-user watchlists, schedule, saved searches, collections through the `DB` Worker binding.
 - Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
 - Worker cron `0 3 * * *` reloads caches + evaluates saved-search alerts after catalog refresh.
 - GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, and a manual (`workflow_dispatch`) Pages deploy — no auto-deploy on push.
@@ -183,7 +190,7 @@ Last updated: 2026-07-25
 - Saved search alerts (in-app MVP): `saved_searches` + `saved_search_alerts` tables; save from `/search`, manage `/alerts`, nav badge.
 - Public collections: create/publish at `/collections`; public pages at `/c/:slug`.
 
-### Database tables (Turso, inline migrations at worker startup)
+### Database tables (Cloudflare D1, explicit Wrangler migrations)
 
 - `users`, `user_tags`, `anime_watchlist`, `manga_watchlist`, `anime_dismissals`, `anime_schedule`, `anime_data`, `manga_data`, `anime_relations_cache`, `anime_recommendations_cache`, `saved_searches`, `saved_search_alerts`, `collections`, `collection_items`.
 
