@@ -25,14 +25,14 @@ because lines drift; grep the symbol to find the current location.
   drops the row entirely.
 - **Source:** https://myanimelist.net/
 
-## Turso + libSQL on Cloudflare Workers
+## D1 binding plus Wrangler operator boundary
 
-- **What:** Using `@libsql/client/web` instead of the Node client for the
-  Workers runtime.
-- **Why here:** The Node libSQL client depends on native modules that do not
-  bundle in the Workers runtime.
-- **Anchor:** `src/db/client.ts` — imports from `@libsql/client/web`.
-- **Source:** https://docs.turso.tech/sdk/ts/quickstart
+- **What:** Native D1 bindings serve requests; an explicit Wrangler client
+  handles long-running catalog scripts outside the Worker runtime.
+- **Why here:** D1 is not a remote libSQL URL, while daily and quarterly jobs
+  still need a bounded operator path.
+- **Anchor:** `src/db/client.ts`, `src/db/operatorClient.ts`.
+- **Source:** https://developers.cloudflare.com/d1/worker-api/
 
 ## Cloudflare Worker cron triggers
 
@@ -50,7 +50,7 @@ because lines drift; grep the symbol to find the current location.
 - **What:** Preventing stampede when many requests hit a cold cache
   simultaneously.
 - **Why here:** On a cold isolate, 50 parallel inbound requests would
-  otherwise each trigger a full Turso scan.
+  otherwise each trigger a full D1 scan.
 - **Anchor:** `src/store/animeStore.ts` — `coldLoadPromise` is shared across
   all concurrent requests during cold start, so the scan runs once per
   isolate.

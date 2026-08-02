@@ -25,7 +25,7 @@ Operational stability over feature expansion. Engagement on newer surfaces
 
 ## Scope
 
-- **In scope:** Vite SPA frontend, `mal-api` Hono worker, Turso, daily and
+- **In scope:** Vite SPA frontend, `mal-api` Hono worker, D1, daily and
   quarterly catalog sync, in-app saved-search alerts.
 - **Out of scope (deferred):** email digest for saved searches, collection
   social features, character quiz persistence/OG images until engagement
@@ -34,7 +34,7 @@ Operational stability over feature expansion. Engagement on newer surfaces
 ## Dependencies (external)
 
 - **Google OAuth + JWT** (`jose`); httpOnly `mal_auth_token` cookie (7d).
-- **Turso libSQL** — catalog tables + per-user watchlists, schedule, saved
+- **Cloudflare D1** — one `DB` binding for catalog tables + per-user watchlists, schedule, saved
   searches, collections.
 - **Jikan API** — daily GitHub Action sync + quarterly full refresh.
 - **MAL CDN** — poster images (recurring operational risk; see
@@ -42,8 +42,8 @@ Operational stability over feature expansion. Engagement on newer surfaces
 - **PostHog** — client analytics.
 - **Cloudflare** — Pages (SPA), Workers (`mal-api`), edge caches.
 
-Secrets (names only, never values): `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`,
-`JWT_SECRET`, `GOOGLE_CLIENT_ID`, optional `TURSO_MANGA_*`, `POSTHOG_API_KEY`.
+Binding/secrets (names only, never values): `DB`, `JWT_SECRET`,
+`GOOGLE_CLIENT_ID`, `POSTHOG_API_KEY`.
 Local env shape is defined in `.env.example`.
 
 ## Catalog & search posture

@@ -42,7 +42,7 @@
   {
     "id": "manga-stats",
     "path": "/manga/stats",
-    "markdownPath": "/manga/stats.md",
+    "markdownPath": "/manga-stats.md",
     "title": "Manga catalog statistics — Shelf",
     "description": "Explore manga score distributions, formats, years, genres, themes, demographics, popularity, and catalog coverage.",
     "markdown": "Explore aggregate manga catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites."

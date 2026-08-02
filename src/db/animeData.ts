@@ -124,16 +124,21 @@ export async function upsertAnimeBatch(animeList: AnimeItem[]): Promise<UpsertSu
   await writeAnimeBatches(animeList);
 
   // Query which of the upserted rows were new inserts vs updates
+  const rows: Record<string, unknown>[] = [];
   const malIds = animeList.map((a) => a.mal_id);
-  const placeholders = malIds.map(() => '?').join(',');
-  const result = await db.execute({
-    sql: `SELECT mal_id, title, title_english, created_at, updated_at
-          FROM anime_data WHERE mal_id IN (${placeholders})`,
-    args: malIds,
-  });
+  for (let offset = 0; offset < malIds.length; offset += 100) {
+    const chunk = malIds.slice(offset, offset + 100);
+    const placeholders = chunk.map(() => '?').join(',');
+    const result = await db.execute({
+      sql: `SELECT mal_id, title, title_english, created_at, updated_at
+            FROM anime_data WHERE mal_id IN (${placeholders})`,
+      args: chunk,
+    });
+    rows.push(...result.rows);
+  }
 
   const summary: UpsertSummary = { added: [], updated: [] };
-  for (const row of result.rows) {
+  for (const row of rows) {
     const entry = {
       mal_id: row.mal_id as number,
       title: (row.title_english as string) || (row.title as string),

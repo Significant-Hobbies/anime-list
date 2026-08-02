@@ -13,11 +13,10 @@ export class ApiError extends Error {
   }
 }
 
-export function isCatalogReadBlockedError(error: unknown): boolean {
+export function isCatalogDatabaseError(error: unknown): boolean {
   return (
     error instanceof Error &&
-    error.message.includes('SQL read operations are forbidden') &&
-    error.message.includes('Operation was blocked')
+    /^D1_(?:ERROR|EXEC_ERROR|TYPE_ERROR|COLUMN_NOTFOUND):/.test(error.message)
   );
 }
 

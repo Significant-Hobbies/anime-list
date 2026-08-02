@@ -2,7 +2,8 @@
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createClient } from '@libsql/client/web';
+import { getDb } from '../src/db/client';
+import { configureOperatorDatabaseFromArgs } from '../src/db/operatorClient';
 
 type WatchlistEntry = {
   id?: string;
@@ -17,11 +18,6 @@ type WatchlistFile = {
 const BRR_COLOR = '#8b5cf6';
 const DELAYING_COLOR = '#ef4444';
 
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-});
-
 const normalizeStatus = (status?: string): 'BRR' | 'Delaying' | null => {
   if (!status) return null;
   const value = status.trim().toLowerCase();
@@ -31,6 +27,7 @@ const normalizeStatus = (status?: string): 'BRR' | 'Delaying' | null => {
 };
 
 async function ensureTag(userId: string, tag: string, color: string): Promise<string> {
+  const db = getDb();
   const existing = await db.execute({
     sql: 'SELECT id FROM user_tags WHERE user_id = ? AND lower(name) = lower(?) LIMIT 1',
     args: [userId, tag],
@@ -63,6 +60,7 @@ async function restoreAnime(
   brrTagId: string,
   delayingTagId: string
 ): Promise<void> {
+  const db = getDb();
   const data = readWatchlistFile('user_watchedlist_data.json');
   const anime = data.anime || {};
 
@@ -89,6 +87,7 @@ async function restoreManga(
   brrTagId: string,
   delayingTagId: string
 ): Promise<void> {
+  const db = getDb();
   const data = readWatchlistFile('user_manga_watchedlist_data.json');
   const manga = data.manga || {};
 
@@ -111,6 +110,7 @@ async function restoreManga(
 }
 
 async function printTagCounts(userId: string): Promise<void> {
+  const db = getDb();
   const counts = await db.execute({
     sql: `
       SELECT ut.name AS tag, COUNT(aw.mal_id) AS count
@@ -128,6 +128,8 @@ async function printTagCounts(userId: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  configureOperatorDatabaseFromArgs();
+  const db = getDb();
   const userResult = await db.execute('SELECT id, email FROM users LIMIT 1');
   if (userResult.rows.length === 0) {
     throw new Error('No user found in users table');

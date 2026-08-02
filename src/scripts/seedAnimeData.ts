@@ -4,16 +4,14 @@ import { readJsonFile } from '../utils/file';
 import { FILE_PATHS } from '../config';
 import type { AnimeItem } from '../types/anime';
 import { upsertAnimeBatch } from '../db/animeData';
-import { runAllMigrations } from '../db/migrations';
+import { configureOperatorDatabaseFromArgs } from '../db/operatorClient';
 
 /**
- * Seed script to migrate anime data from JSON to Turso
+ * Seed the anime catalog through Wrangler's local-by-default D1 boundary.
  */
 async function main() {
-  console.log('Starting anime data migration to Turso...');
-
-  // Run migrations first
-  await runAllMigrations();
+  configureOperatorDatabaseFromArgs();
+  console.log('Starting anime catalog seed to D1...');
 
   // Read existing JSON data
   const animeData = await readJsonFile<Record<string, AnimeItem>>(FILE_PATHS.cleanAnimeData);
@@ -26,7 +24,7 @@ async function main() {
   const animeList = Object.values(animeData);
   console.log(`Found ${animeList.length} anime in JSON file`);
 
-  // Insert into Turso in batches
+  // Insert into D1 in bounded batches.
   await upsertAnimeBatch(animeList);
 
   console.log('✓ Anime data migration completed successfully');

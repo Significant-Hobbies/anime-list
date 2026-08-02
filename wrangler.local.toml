@@ -1,4 +1,4 @@
-name = "mal-api"
+name = "mal-api-local"
 main = "src/worker.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat_v2"]
@@ -10,15 +10,13 @@ port = 8787
 crons = ["0 3 * * *"]
 
 [vars]
-NODE_ENV = "production"
+NODE_ENV = "development"
 WRITE_FREEZE = "false"
+JWT_SECRET = "local-d1-rehearsal-only"
+GOOGLE_CLIENT_ID = "local-client-id"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "anime-list"
-database_id = "e2d43435-a71b-4d27-8465-5ec8c3a1abdd"
+database_id = "local"
 migrations_dir = "migrations/d1"
-
-# Secrets (set via `wrangler secret put <KEY>`):
-# - JWT_SECRET
-# - GOOGLE_CLIENT_ID

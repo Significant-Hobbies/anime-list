@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-07-25
+Last updated: 2026-08-02
 
 ## Why / What
 
@@ -9,7 +9,7 @@ Last updated: 2026-07-25
 
 **Constraints:** Operational stability over feature expansion. Measure engagement on newer surfaces (quiz, collections) before expanding them.
 
-**IN scope:** Vite SPA frontend, `mal-api` Hono worker, Turso, daily/quarterly catalog sync, in-app alerts.
+**IN scope:** Vite SPA frontend, `mal-api` Hono worker, Cloudflare D1, daily/quarterly catalog sync, in-app alerts.
 
 **OUT of scope:** Email digest for saved searches, collection social features, character quiz persistence/OG images until engagement proves lift.
 
@@ -18,13 +18,14 @@ Last updated: 2026-07-25
 ### External
 
 - **Google OAuth + JWT:** `jose`; httpOnly `mal_auth_token` cookie (7d).
-- **Turso libSQL:** catalog tables + per-user watchlists, schedule, saved searches, collections.
+- **Cloudflare D1:** catalog tables + per-user watchlists, schedule, saved searches, collections; database `anime-list`, Worker binding `DB`.
+- **Relational persistence:** Cloudflare D1 is authoritative; the retired Turso database was deleted on 2026-08-02.
 - **Jikan API:** daily GH Action sync + quarterly full refresh.
 - **MAL CDN:** poster images (recurring operational risk).
 - **PostHog:** client analytics.
 - **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 180s, stats 300s, detail 24h anonymous only).
-- **Worker secrets (names only):** `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, optional `TURSO_MANGA_*`, `POSTHOG_API_KEY`.
-- **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `TURSO_*`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
+- **Worker secrets (names only):** `JWT_SECRET`, `GOOGLE_CLIENT_ID`; any legacy unused Turso credential bindings are separate credential-cleanup work.
+- **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
 
 ### Internal (fleet)
 
@@ -32,7 +33,7 @@ Last updated: 2026-07-25
 
 ### Stack & commands
 
-**Stack:** Vite 8 SPA + TanStack Router + Tailwind v4 + TanStack Query + nuqs (frontend); Hono Cloudflare Worker `mal-api`; Turso libSQL; Google OAuth + JWT (`jose`); PostHog; Vitest + Playwright.
+**Stack:** Vite 8 SPA + TanStack Router + Tailwind v4 + TanStack Query + nuqs (frontend); Hono Cloudflare Worker `mal-api`; Cloudflare D1; Google OAuth + JWT (`jose`); PostHog; Vitest + Playwright.
 
 | Command | Purpose |
 |---------|---------|
@@ -44,10 +45,11 @@ Last updated: 2026-07-25
 | `pnpm preview` | Vite preview |
 | `pnpm deploy` | Clean `main` guard + build + `wrangler pages deploy` |
 | `pnpm deploy:worker` | Deploy `mal-api` worker |
-| `pnpm test` | Vitest (69 tests across 13 files) |
+| `pnpm test` | Vitest (96 tests across 21 files) |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
 | `pnpm typecheck` / `pnpm lint` | TS (`tsc`) + Biome |
-| `pnpm db:seed` / `db:seed:manga` | Seed Turso from scripts |
+| `pnpm db:migrate:local` / `db:migrate:remote` | Apply D1 migrations |
+| `pnpm db:seed` / `db:seed:manga` | Seed D1 from scripts |
 | `pnpm db:update` / `db:update:manga` | Refresh from Jikan |
 | `pnpm db:quarterly-sync` | Quarterly anime re-score |
 
@@ -61,7 +63,7 @@ Last updated: 2026-07-25
 - **2026-07-31** — Completed source-level public SEO and agent coverage from
   one 13-route registry: accurate static-route metadata, 7,607 canonical
   sitemap URLs, 7,607 source-derived Markdown companions, and compact anime
-  and manga catalog collections. Production deployment remains manual.
+  and manga catalog collections. Deployed to production on 2026-07-31.
 - **2026-07-29** — Added an owned, editorial `/changelog` for verified product
   releases and preserved daily title-ingestion history at `/catalog-updates`.
   Roadmap and source links now point directly to the repository.
@@ -69,7 +71,7 @@ Last updated: 2026-07-25
   Streamable HTTP endpoint, read-only catalog/watchlist tools, hashed personal
   access tokens, `/mcp` setup page, tests, and durable base specifications.
   Production deployment remains manual.
-- **2026-07-17** — Crawlable detail pages: Pages Functions rewrite `/anime/:malId` and `/manga/:malId` HTML with unique title, meta, canonical, OG, JSON-LD (TVSeries/Movie/Book), and hidden SSR summary for 5,306 anime + 2,288 manga. Unknown IDs get noindex. Chunked sitemaps (`sitemap-index.xml` + `sitemap-anime-N.xml` + `sitemap-manga-N.xml`) generated at build time. Deploy pending (manual).
+- **2026-07-17** — Crawlable detail pages: Pages Functions rewrite `/anime/:malId` and `/manga/:malId` HTML with unique title, meta, canonical, OG, JSON-LD (TVSeries/Movie/Book), and hidden SSR summary for 5,306 anime + 2,288 manga. Unknown IDs get noindex. Chunked sitemaps (`sitemap-index.xml` + `sitemap-anime-N.xml` + `sitemap-manga-N.xml`) generated at build time. Deployed on 2026-07-31.
 - **2026-07-11** — Search reliability pass shipped: debounced and abortable anime/manga requests, a bounded SQL fast path for simple numeric anime searches, production Google sign-in fallback configuration, and non-fatal quarterly Jikan fallback failures.
 - **2026-07-03** — Shipped engagement telemetry for the quiz/collections/homepage funnels (`lib/engagement.ts`), the `VITE_HOME_QUIZ_ABOVE_FOLD` A/B switch (`lib/flags.ts`, default off), and a "Copy link" share button on `/collections`.
 - **2026-07-04** — Upgraded the homepage A/B test from a build-time toggle to a live 50/50 cookie-based split (`ab_home`, 14-day expiry). Added `homepage_variant_seen` impression tracking, `quiz_result_shown`, `collection_created`, and `collection_viewed` events. See "Engagement measurement" below.
@@ -87,7 +89,7 @@ Last updated: 2026-07-25
 
 ## Features (shipped)
 
-### Public SEO and agent coverage (source complete, deploy pending)
+### Public SEO and agent coverage (deployed)
 
 - One registry owns 13 public static routes across metadata, Markdown,
   sitemaps, and the machine-readable agent catalog.
@@ -109,7 +111,7 @@ Last updated: 2026-07-25
 - The agent-edge catalog advertises the MCP surface. Production activation
   still requires the existing manual Worker and Pages deploy commands.
 
-### SEO: crawlable detail pages (2026-07-17, deploy pending)
+### SEO: crawlable detail pages (deployed 2026-07-31)
 
 - **Pages Functions** (`functions/anime/[malId].ts`, `functions/manga/[malId].ts`) intercept detail routes before the SPA catch-all.
 - **HTML rewriting**: unique `<title>`, meta description, canonical, OG/Twitter tags, JSON-LD (`TVSeries`/`Movie` for anime, `Book` for manga), and a `<div hidden data-ssr>` summary with h1 + synopsis + facts table.
@@ -148,7 +150,7 @@ Last updated: 2026-07-25
 
 - Vite SPA calls `mal-api` worker; TanStack Query caches responses client-side.
 - Worker loads full anime (~14.8k) + manga (~20.7k) catalogs into in-memory stores with 1hr stale-while-revalidate.
-- Turso stores catalog tables + per-user watchlists, schedule, saved searches, collections.
+- D1 stores catalog tables + per-user watchlists, schedule, saved searches, collections through the `DB` Worker binding.
 - Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
 - Worker cron `0 3 * * *` reloads caches + evaluates saved-search alerts after catalog refresh.
 - GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, and a manual (`workflow_dispatch`) Pages deploy — no auto-deploy on push.
@@ -177,13 +179,13 @@ Last updated: 2026-07-25
 - Saved search alerts (in-app MVP): `saved_searches` + `saved_search_alerts` tables; save from `/search`, manage `/alerts`, nav badge.
 - Public collections: create/publish at `/collections`; public pages at `/c/:slug`.
 
-### Database tables (Turso, inline migrations at worker startup)
+### Database tables (Cloudflare D1, explicit Wrangler migrations)
 
 - `users`, `user_tags`, `anime_watchlist`, `manga_watchlist`, `anime_dismissals`, `anime_schedule`, `anime_data`, `manga_data`, `anime_relations_cache`, `anime_recommendations_cache`, `saved_searches`, `saved_search_alerts`, `collections`, `collection_items`.
 
 ### Tests & ops
 
-- Vitest: 69 tests across 13 files (import/export, filters, recommendations, schedule, SEO rewrite, detail cache).
+- Vitest: 96 tests across 21 files (D1, import/export, filters, recommendations, schedule, SEO rewrite, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll,
   plus hermetic signed-in coverage for discovery, watchlist import preview,
   collection publishing, and alert acknowledgement.
