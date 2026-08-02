@@ -55,24 +55,11 @@ Last updated: 2026-08-02
 
 ## Timeline
 
-- **2026-08-02** — Deleted the retired `mal-watchlist` Turso database after
-  D1 cutover acceptance and verified the public site and API remained healthy.
-- **2026-08-02** — Cut production persistence from Turso to Cloudflare D1 via
-  PR #33 and deploy run #30713104081. The 41,333-row import matched every
-  source table and aggregate, the final and post-switch Turso exports remained
-  byte-identical, production smokes passed, and Worker `mal-api` reached 100%
-  traffic on SHA `f77baac618522715a351ef4c29ff880eac587df7`.
-- **2026-07-31** — Submitted
-  `https://anime.significanthobbies.com/sitemap-index.xml` to the verified
-  `significanthobbies.com` Google Search Console property. Google accepted the
-  submission; discovery and indexing remain provider-processed outcomes.
-- **2026-07-31** — Deployed the source-complete public SEO and agent surfaces
-  from `main` to Cloudflare Pages. Live verification confirmed crawlable anime
-  and manga detail HTML, the chunked sitemap, and a 100% S-tier Fleet
-  agent-index audit.
-- **2026-07-31** — Moved the manga-statistics Markdown alternate to a flat
-  static asset so Cloudflare Pages does not route the dotted nested path
-  through the application fallback.
+- **2026-07-31** — Closed the remaining manga-search accessibility review:
+  visible labels now name the sort controls, expandable and selectable filters
+  expose state, and the two failing text treatments now exceed WCAG AA
+  contrast. Fresh 390, 768, and 1440 pixel evidence has no Axe A/AA violations
+  or horizontal overflow. Production deployment remains manual.
 - **2026-07-31** — Completed source-level public SEO and agent coverage from
   one 13-route registry: accurate static-route metadata, 7,607 canonical
   sitemap URLs, 7,607 source-derived Markdown companions, and compact anime

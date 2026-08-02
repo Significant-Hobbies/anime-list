@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "anime-list",
-  "target": "Manga search accessibility",
+  "target": "Manga search controls and contrast",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -32,15 +32,15 @@
       }
     ],
     "projectCheck": {
-      "command": "pnpm exec biome check <changed files> && pnpm typecheck && pnpm build && git diff --check",
+      "command": "pnpm vitest run components/discover/ui.test.tsx && pnpm exec biome check components/discover/ui.tsx components/discover/ui.test.tsx components/Footer.tsx && pnpm typecheck && pnpm build && git diff --check",
       "status": "pass"
     },
     "critique": {
-      "score": 35,
+      "score": 36,
       "maximum": 40
     },
     "audit": {
-      "score": 18,
+      "score": 19,
       "maximum": 20
     },
     "unresolved": {
@@ -51,7 +51,9 @@
       "posture": "advisory",
       "findings": [
         "No deterministic detector findings in the changed surfaces.",
-        "The manga page exposes one visible h1 and the search control has an accessible name."
+        "Axe reports no WCAG A or AA violations at 390, 768, or 1440 pixels.",
+        "Sort and Popularity have accessible names; More filters and genre controls expose their current state.",
+        "Selected genre text and the footer caption exceed WCAG AA contrast."
       ]
     }
   },

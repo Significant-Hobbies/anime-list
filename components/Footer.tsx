@@ -62,7 +62,7 @@ export default function Footer() {
           </a>
         </div>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground/60">
+      <p className="mt-3 text-xs text-muted-foreground">
         35,000+ titles. One search bar. No sign-up required.
       </p>
     </footer>

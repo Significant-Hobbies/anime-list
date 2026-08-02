@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useId } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -62,13 +63,21 @@ export function DiscoverSelect({
   options: readonly { value: string; label: string }[];
   className?: string;
 }) {
+  const labelId = useId();
+
   return (
     <div className={cn('min-w-[140px]', className)}>
-      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <label
+        id={labelId}
+        className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+      >
         {label}
       </label>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="h-10 w-full rounded-lg border-border bg-background text-sm">
+        <SelectTrigger
+          aria-labelledby={labelId}
+          className="h-10 w-full rounded-lg border-border bg-background text-sm"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="border-border bg-popover">
@@ -95,6 +104,7 @@ export function DiscoverToggleButton({
   return (
     <button
       type="button"
+      aria-expanded={active}
       onClick={onClick}
       className={cn(
         'inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors',
@@ -154,11 +164,12 @@ export function GenrePills({
           <button
             key={genre}
             type="button"
+            aria-pressed={isSelected}
             onClick={() => onToggle(genre)}
             className={cn(
               'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
               isSelected
-                ? 'border-primary bg-primary text-primary-foreground'
+                ? 'border-primary bg-primary text-background'
                 : 'border-border bg-background text-muted-foreground hover:border-ring hover:text-foreground'
             )}
           >
