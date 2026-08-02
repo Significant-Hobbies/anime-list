@@ -19,12 +19,12 @@ Last updated: 2026-08-02
 
 - **Google OAuth + JWT:** `jose`; httpOnly `mal_auth_token` cookie (7d).
 - **Cloudflare D1:** catalog tables + per-user watchlists, schedule, saved searches, collections; database `anime-list`, Worker binding `DB`.
-- **Turso rollback source:** retained temporarily after the D1 cutover; it is no longer on the serving path.
+- **Relational persistence:** Cloudflare D1 is authoritative; the retired Turso database was deleted on 2026-08-02.
 - **Jikan API:** daily GH Action sync + quarterly full refresh.
 - **MAL CDN:** poster images (recurring operational risk).
 - **PostHog:** client analytics.
 - **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 180s, stats 300s, detail 24h anonymous only).
-- **Worker secrets (names only):** `JWT_SECRET`, `GOOGLE_CLIENT_ID`; retired Turso secret bindings remain temporarily for rollback but are unused by the deployed code.
+- **Worker secrets (names only):** `JWT_SECRET`, `GOOGLE_CLIENT_ID`; any legacy unused Turso credential bindings are separate credential-cleanup work.
 - **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
 
 ### Internal (fleet)
@@ -55,6 +55,8 @@ Last updated: 2026-08-02
 
 ## Timeline
 
+- **2026-08-02** — Deleted the retired `mal-watchlist` Turso database after
+  D1 cutover acceptance and verified the public site and API remained healthy.
 - **2026-08-02** — Cut production persistence from Turso to Cloudflare D1 via
   PR #33 and deploy run #30713104081. The 41,333-row import matched every
   source table and aggregate, the final and post-switch Turso exports remained
