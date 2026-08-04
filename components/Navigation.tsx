@@ -151,8 +151,10 @@ export default function Navigation() {
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-3">
-          {loading ? null : user ? (
+        <div className="flex min-w-28 items-center justify-end gap-3">
+          {loading ? (
+            <span className="h-9 w-28" aria-hidden />
+          ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2 h-9 px-2">
