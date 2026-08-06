@@ -71,7 +71,7 @@ remain preserved but are not exposed through runtime routes.
 | `/api/search` edge | 180s | keyed by encoded filter + auth flag |
 | `/api/stats` edge | 300s | |
 | `/api/last-updated` edge | cached only on the uncached public read path | |
-| Detail page HTML | `max-age=300, s-maxage=86400` | content changes only on dataset refresh |
+| Generated app/detail HTML | `max-age=0, s-maxage=300` | avoids release drift while retaining a short edge cache |
 | Sitemaps | `s-maxage=86400` | |
 
 ## Decisions
