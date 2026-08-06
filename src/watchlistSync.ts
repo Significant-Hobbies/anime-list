@@ -157,7 +157,7 @@ function safeParseShelfJson(rawJson: string): WatchlistImportParseResult {
   try {
     return { ok: true, preview: parseShelfJson(rawJson) };
   } catch {
-    return { ok: false, error: 'Invalid Shelf JSON backup' };
+    return { ok: false, error: 'Invalid Anime List JSON backup' };
   }
 }
 

@@ -10,10 +10,8 @@ canonical files. If anything here disagrees with those files, the files win.
 Defined in `wrangler.cron.toml`, handled by the `scheduled` export in
 `src/worker.ts`:
 
-1. Reload the anime and manga in-memory stores from D1
-   (`animeStore.setAnimeList()`, `mangaStore.setMangaList()`).
-2. Evaluate saved-search alerts after the catalog refresh
-   (`evaluateSavedSearchesAfterCatalogRefresh()`) and create new alert rows.
+Reload the anime and manga in-memory stores from D1
+(`animeStore.setAnimeList()`, `mangaStore.setMangaList()`).
 
 This runs *after* the GitHub Action catalog refresh (00:00 UTC) so the
 worker cache picks up the fresh D1 data.

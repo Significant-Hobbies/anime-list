@@ -1,29 +1,29 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-08-02
+Last updated: 2026-08-06
 
 ## Why / What
 
-**Shelf (MAL Explorer)** is a production anime/manga discovery app with multi-field search, shareable URLs, personal watchlists (Google OAuth), stats, schedule, and a signed-in seasonal discover queue.
+**Anime List by Significant Hobbies** is a production anime/manga discovery app with multi-field search, shareable URLs, personal watchlists (Google OAuth), stats, schedule, and a unified discovery area for the seasonal queue and taste quiz.
 
 **Users:** Anime/manga fans filtering a ~35k-title catalog; signed-in users tracking watchlists and discovering seasonal picks.
 
-**Constraints:** Operational stability over feature expansion. Measure engagement on newer surfaces (quiz, collections) before expanding them.
+**Constraints:** Operational stability over feature expansion. Keep discovery focused and remove low-signal surfaces before expanding the product.
 
-**IN scope:** Vite SPA frontend, `mal-api` Hono worker, Cloudflare D1, daily/quarterly catalog sync, in-app alerts.
+**IN scope:** Vite SPA frontend, `mal-api` Hono worker, Cloudflare D1, daily/quarterly catalog sync, personal watchlists, schedules, and discovery tools.
 
-**OUT of scope:** Email digest for saved searches, collection social features, character quiz persistence/OG images until engagement proves lift.
+**OUT of scope:** Saved-search alerts, public collections, email digests, and character quiz persistence/OG images.
 
 ## Dependencies
 
 ### External
 
 - **Google OAuth + JWT:** `jose`; httpOnly `mal_auth_token` cookie (7d).
-- **Cloudflare D1:** catalog tables + per-user watchlists, schedule, saved searches, collections; database `anime-list`, Worker binding `DB`.
+- **Cloudflare D1:** catalog tables + per-user watchlists, schedule, and access tokens; database `anime-list`, Worker binding `DB`. Retired alert and collection tables remain preserved without runtime routes.
 - **Relational persistence:** Cloudflare D1 is authoritative; the retired Turso database was deleted on 2026-08-02.
 - **Jikan API:** daily GH Action sync + quarterly full refresh.
 - **MAL CDN:** poster images (recurring operational risk).
 - **PostHog:** client analytics.
-- **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 180s, stats 300s, detail 24h anonymous only).
+- **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 1h, stats 300s, detail 24h anonymous only).
 - **Worker secrets (names only):** `JWT_SECRET`, `GOOGLE_CLIENT_ID`; any legacy unused Turso credential bindings are separate credential-cleanup work.
 - **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
 
@@ -45,7 +45,7 @@ Last updated: 2026-08-02
 | `pnpm preview` | Vite preview |
 | `pnpm deploy` | Clean `main` guard + build + `wrangler pages deploy` |
 | `pnpm deploy:worker` | Deploy `mal-api` worker |
-| `pnpm test` | Vitest (96 tests across 21 files) |
+| `pnpm test` | Vitest (106 tests across 24 files) |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
 | `pnpm typecheck` / `pnpm lint` | TS (`tsc`) + Biome |
 | `pnpm db:migrate:local` / `db:migrate:remote` | Apply D1 migrations |
@@ -55,6 +55,10 @@ Last updated: 2026-08-02
 
 ## Timeline
 
+- **2026-08-06** — Consolidated the weekly queue and taste quiz under Discover,
+  retired Alerts and Collections without deleting their D1 data, promoted
+  catalog updates in navigation, and standardized the product name as Anime
+  List by Significant Hobbies.
 - **2026-07-31** — Closed the remaining manga-search accessibility review:
   visible labels now name the sort controls, expandable and selectable filters
   expose state, and the two failing text treatments now exceed WCAG AA
@@ -79,7 +83,7 @@ Last updated: 2026-08-02
 - **2026-06-20** — De-OpenNext migration: rewritten from Next.js+OpenNext to Vite SPA + TanStack Router; `mal-api` worker unchanged; removed 17MB `cleaned_anime_data.json` from SPA.
 - **2026-06-20** — Shipped PRD batch (2026-06-12): watchlist import/export, saved search alerts (in-app MVP), public collections.
 - **2026-06-12** — PRD batch defined: watchlist import/export, saved search alerts, public collections.
-- **Ongoing** — Daily GH Action Jikan sync (00:00 UTC); quarterly anime/manga full refresh; worker cron `0 3 * * *` cache reload + saved-search alert evaluation.
+- **Ongoing** — Daily GH Action Jikan sync (00:00 UTC); quarterly anime/manga full refresh; worker cron `0 3 * * *` cache reload.
 
 ## Products
 
@@ -105,8 +109,9 @@ Last updated: 2026-08-02
 - `POST /api/mcp` provides Streamable HTTP MCP over the existing catalog and
   watchlist read paths; catalog tools are public and watchlist tools require a
   bearer token.
-- Personal access tokens use a `shelf_` prefix, are SHA-256 hashed at rest,
-  shown only once, scoped to their owner, and revocable.
+- New personal access tokens use an `anime_list_` prefix, are SHA-256 hashed at
+  rest, shown only once, scoped to their owner, and revocable. Existing
+  `shelf_` tokens remain valid for backward compatibility.
 - `/mcp` provides anonymous setup documentation and signed-in token management.
 - The agent-edge catalog advertises the MCP surface. Production activation
   still requires the existing manual Worker and Pages deploy commands.
@@ -125,36 +130,32 @@ Last updated: 2026-08-02
 
 - `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
 - `/search` — advanced anime filter search with URL-encoded state (nuqs).
-- `/discover` — signed-in seasonal discovery queue.
+- `/discover` — signed-in seasonal queue + privacy-safe anime taste quiz.
 - `/anime/$malId`, `/manga/$malId` — detail pages with relations/recommendations.
 - `/genre/$genre`, `/random` — discovery pickers.
 - `/schedule` — episode pacing schedule.
 - `/watchlist` — anime watchlist + import/export.
 - `/stats`, `/manga`, `/manga/stats`, `/manga/watchlist` — manga surfaces.
-- `/alerts` — saved search alert management.
-- `/collections`, `/c/$slug` — collection editor + public view.
-- `/quiz` — character identity quiz prototype (no persistence).
+- `/quiz` — legacy entry into the unified `/discover` quiz panel.
 
 ### Worker API (`src/worker.ts` + `src/worker/mangaRoutes.ts`, 50+ endpoints)
 
 - Auth: `POST /api/auth/google`, `POST /api/auth/logout`.
 - Catalog: `POST /api/search`, `GET /api/stats`, `GET /api/anime/random`, `GET /api/anime/:malId`, `GET /api/fields`, `GET /api/filters`, `GET /api/last-updated`, `GET /api/changelog`.
-- Watchlist: full CRUD, tags, taste recommendations (`buildTasteRecommendations`), enriched view, import preview/apply (MAL XML/CSV, AniList JSON, Shelf JSON), export (JSON/CSV/AniList).
+- Watchlist: full CRUD, tags, taste recommendations (`buildTasteRecommendations`), enriched view, import preview/apply (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
 - Schedule: timeline, add/update/remove/reorder.
 - Discover: `GET /api/discover/queue` (taste-weighted seasonal + manga interleave 1:5), `POST /api/discover/dismiss`.
-- Saved searches: CRUD + alerts list/seen; cron creates alerts after catalog refresh.
-- Collections: CRUD + public `GET /api/collections/:slug`.
 - Manga: parallel search/stats/random/watchlist/detail routes under `/api/manga/*`.
 
 ### Architecture
 
 - Vite SPA calls `mal-api` worker; TanStack Query caches responses client-side.
 - Worker loads full anime (~14.8k) + manga (~20.7k) catalogs into in-memory stores with 1hr stale-while-revalidate.
-- D1 stores catalog tables + per-user watchlists, schedule, saved searches, collections through the `DB` Worker binding.
+- D1 stores catalog tables + per-user watchlists, schedule, and access tokens through the `DB` Worker binding. Retired alert and collection tables remain dormant.
 - Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
-- Worker cron `0 3 * * *` reloads caches + evaluates saved-search alerts after catalog refresh.
+- Worker cron `0 3 * * *` reloads catalog caches after the GitHub Action refresh.
 - GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, and a manual (`workflow_dispatch`) Pages deploy — no auto-deploy on push.
-- Edge caches: search 180s, stats 300s, detail 24h (anonymous only).
+- Edge caches: search 1h, stats 300s, detail 24h (anonymous only).
 - CORS allowlist for Pages, worker, localhost, PR previews.
 - Deploy branch guard on `pnpm deploy` (clean `main` only).
 
@@ -163,21 +164,24 @@ Last updated: 2026-08-02
 - ~14.8k anime + ~20.7k manga with quality gates (score, scored_by, members, favorites, year).
 - Advanced multi-field filters with active filter explanation chips (`ActiveFilterChip`).
 - Smart ranking: log-scale popularity + MAL score balance.
-- Sub-ms worker responses via in-memory cache; removed 17MB `cleaned_anime_data.json` from SPA (2026-06-20).
+- Common searches use bounded D1 count/page queries and a one-hour edge cache;
+  weighted or personalized searches retain the in-memory fallback.
 - Daily GH Action Jikan sync + quarterly full manga refresh + worker cron 03:00 UTC cache reload.
 
 ### Personal & discovery
 
 - Watchlist statuses: Watching, Completed, Deferred, Avoiding, BRR + custom tags.
 - Discover queue: current/previous season scoring, taste-weighted genres/themes, quick add/dismiss/skip, signed-in gating.
-- Quiz: 4 questions → 4 Shelf archetypes → prefilled search URLs; privacy-safe, no persistence.
+- Quiz: 4 questions → 4 anime archetypes → prefilled search URLs; privacy-safe, no persistence.
 - First-screen polish: live counts, skeletons, poster grids.
 
-### Shipped PRD batch (2026-06-12, implemented 2026-06-20)
+### Watchlist portability
 
 - Watchlist import/export with conflict preview; merge/replace/skip modes on `/watchlist`.
-- Saved search alerts (in-app MVP): `saved_searches` + `saved_search_alerts` tables; save from `/search`, manage `/alerts`, nav badge.
-- Public collections: create/publish at `/collections`; public pages at `/c/:slug`.
+
+Saved-search alerts and public collections were removed from the runtime on
+2026-08-06. Their D1 tables remain preserved so the retirement is reversible
+without deleting user data.
 
 ### Database tables (Cloudflare D1, explicit Wrangler migrations)
 
@@ -185,22 +189,19 @@ Last updated: 2026-08-02
 
 ### Tests & ops
 
-- Vitest: 96 tests across 21 files (D1, import/export, filters, recommendations, schedule, SEO rewrite, detail cache).
+- Vitest: 106 tests across 24 files (D1, API proxy, import/export, filters,
+  recommendations, schedule, SEO rewrite, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll,
-  plus hermetic signed-in coverage for discovery, watchlist import preview,
-  collection publishing, and alert acknowledgement.
+  plus hermetic signed-in coverage for discovery and watchlist import preview.
 - PostHog analytics.
 
 ### Engagement measurement
 
 Instrumentation lives in `lib/engagement.ts` (surface funnels) and `lib/analytics.ts` (fixed 4-event fleet taxonomy). All events route through `posthog-js` (lazy-loaded, fail-silent) and carry `project_id: "anime_list"`.
 
-**Quiz funnel** (`/quiz`):
+**Quiz funnel** (`/discover#quiz`; `/quiz` remains a legacy entry):
 - `quiz_viewed` → `quiz_started` (first answer) → `quiz_completed` (all answered, archetype id only) → `quiz_result_shown` (result card displayed) → `quiz_result_clicked` (clickthrough to search or exemplar detail).
 - Privacy: only the derived archetype id is sent — never individual answers.
-
-**Collections funnel** (`/collections`, `/c/$slug`):
-- `collections_viewed` (list page, signed-in flag) → `collection_created` (new collection published, slug + item count) → `collection_share_clicked` (copy link) → `collection_viewed` / `collection_public_viewed` (public page load, `via_share` flag for `?ref=share` visits).
 
 **Homepage A/B test** (`/`):
 - 50/50 cookie-based split (`ab_home`, 14-day expiry) via `homeVariant()` in `lib/flags.ts`.

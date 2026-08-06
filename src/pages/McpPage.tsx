@@ -35,7 +35,7 @@ const AUTH_TOOLS = [
 
 const CLAUDE_CONFIG = `{
   "mcpServers": {
-    "shelf": {
+    "anime-list": {
       "command": "npx",
       "args": ["mcp-remote", "${MCP_ENDPOINT}"],
       "env": { "AUTHORIZATION_HEADER": "Bearer <paste-token-here>" }
@@ -282,7 +282,7 @@ export default function McpPage() {
         <ConfigBlock title="Claude Desktop" config={CLAUDE_CONFIG} />
         <p className="mt-3 text-xs text-muted-foreground">
           Cursor and other MCP clients: use the same URL with an
-          <code className="mx-1 font-mono">Authorization: Bearer shelf_…</code>
+          <code className="mx-1 font-mono">Authorization: Bearer anime_list_…</code>
           header.
         </p>
       </section>

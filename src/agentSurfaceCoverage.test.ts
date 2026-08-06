@@ -19,7 +19,7 @@ describe('public agent surface coverage', () => {
   it('keeps personal and machine resources out of the HTML registry', () => {
     const paths = surfaces.map((surface) => surface.path);
     for (const excluded of [
-      '/discover',
+      '/quiz',
       '/schedule',
       '/watchlist',
       '/manga/watchlist',

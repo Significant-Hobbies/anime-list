@@ -1,7 +1,7 @@
 import { defineConfig } from 'blume';
 
 /**
- * Blume configuration for the Shelf (anime_list) knowledge base.
+ * Blume configuration for the Anime List (anime_list) knowledge base.
  *
  * Blume is the PRESENTATION and SEARCH layer only. The committed Markdown
  * under docs/ is the source of truth; this file does not change content.
@@ -21,8 +21,8 @@ import { defineConfig } from 'blume';
  * Generated artifacts (.blume/, .blume-verify/, docs-dist/) are gitignored.
  */
 export default defineConfig({
-  title: 'Shelf (anime_list) Docs',
-  description: 'Knowledge base for Shelf / MAL Explorer — anime/manga discovery platform.',
+  title: 'Anime List by Significant Hobbies Docs',
+  description: 'Knowledge base for the Significant Hobbies anime/manga discovery platform.',
 
   content: {
     root: 'docs',

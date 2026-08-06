@@ -8,20 +8,18 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 
 - `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
 - `/search` — advanced anime filter search with URL-encoded state (nuqs).
-- `/discover` — signed-in seasonal discovery queue.
+- `/discover` — signed-in seasonal queue + privacy-safe anime taste quiz.
 - `/anime/$malId`, `/manga/$malId` — detail pages with relations/recommendations.
 - `/genre/$genre`, `/random` — discovery pickers.
 - `/schedule` — episode pacing schedule.
 - `/watchlist` — anime watchlist + import/export.
 - `/stats`, `/manga`, `/manga/stats`, `/manga/watchlist` — manga surfaces.
-- `/alerts` — saved search alert management.
-- `/collections`, `/c/$slug` — collection editor + public view.
-- `/quiz` — character identity quiz prototype (no persistence).
+- `/quiz` — legacy entry into the unified `/discover` quiz panel.
 - `/mcp` — MCP server docs + Personal Access Token management for AI tools.
 
 ## Worker API (`src/worker.ts` + `src/worker/mangaRoutes.ts`)
 
-50+ endpoints. Auth via `requireAuth` / `optionalAuth` middleware.
+40+ endpoints. Auth via `requireAuth` / `optionalAuth` middleware.
 
 - **Auth:** `POST /api/auth/google`, `POST /api/auth/logout`.
 - **Catalog:** `POST /api/search`, `GET /api/stats`, `GET /api/anime/random`,
@@ -29,13 +27,10 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
   `GET /api/last-updated`, `GET /api/changelog`.
 - **Watchlist:** full CRUD, tags, taste recommendations
   (`buildTasteRecommendations`), enriched view, import preview/apply
-  (MAL XML/CSV, AniList JSON, Shelf JSON), export (JSON/CSV/AniList).
+  (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
 - **Schedule:** timeline, add/update/remove/reorder.
 - **Discover:** `GET /api/discover/queue` (taste-weighted seasonal + manga
   interleave 1:5), `POST /api/discover/dismiss`.
-- **Saved searches:** CRUD + alerts list/seen; cron creates alerts after
-  catalog refresh.
-- **Collections:** CRUD + public `GET /api/collections/:slug`.
 - **Manga:** parallel search/stats/random/watchlist/detail under `/api/manga/*`.
 - **MCP server:** `POST /api/mcp` — Streamable HTTP MCP server exposing the
   catalog + watchlist as tools for AI clients. Public tools (search, detail,
@@ -43,7 +38,8 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
   Access Token. User-facing docs + token management at `/mcp`.
 - **Personal Access Tokens:** `POST /api/tokens`, `GET /api/tokens`,
   `POST /api/tokens/:id/revoke` — long-lived revocable bearer tokens
-  (`shelf_…`, SHA-256 hashed at rest) for MCP watchlist auth.
+  (`anime_list_…`, SHA-256 hashed at rest; legacy `shelf_…` tokens remain valid)
+  for MCP watchlist auth.
 
 ## Crawlable detail pages (2026-07-17, deploy pending)
 
@@ -67,17 +63,17 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
   + custom tags.
 - Discover queue: current/previous season scoring, taste-weighted
   genres/themes, quick add/dismiss/skip, signed-in gating.
-- Quiz: 4 questions → 4 Shelf archetypes → prefilled search URLs;
+- Quiz: 4 questions → 4 anime archetypes → prefilled search URLs;
   privacy-safe, no persistence. Expansion deferred pending engagement data
   (see [`../archive/2026-06-04-character-identity-quiz-brief.md`](../archive/2026-06-04-character-identity-quiz-brief.md)).
 
-## Shipped PRD batch (2026-06-12, implemented 2026-06-20)
+## Watchlist portability
 
 - Watchlist import/export with conflict preview; merge/replace/skip modes.
-- Saved search alerts (in-app MVP): `saved_searches` + `saved_search_alerts`
-  tables; save from `/search`, manage on `/alerts`, nav badge.
-- Public collections: create/publish at `/collections`; public pages at
-  `/c/:slug`.
+
+Saved-search alerts and public collections were removed from the runtime on
+2026-08-06. Their D1 tables remain preserved so the retirement is reversible
+without deleting user data.
 
 ## Engagement measurement
 
@@ -88,8 +84,6 @@ Instrumentation lives in `lib/engagement.ts` (surface funnels) and
 - **Quiz funnel:** `quiz_viewed` → `quiz_started` → `quiz_completed`
   (archetype id only, never answers) → `quiz_result_shown` →
   `quiz_result_clicked`.
-- **Collections funnel:** `collections_viewed` → `collection_created` →
-  `collection_share_clicked` → `collection_viewed` / `collection_public_viewed`.
 - **Homepage A/B test:** 50/50 cookie split (`ab_home`, 14-day expiry) via
   `homeVariant()` in `lib/flags.ts`. `control` = quiz CTA in footer;
   `treatment` = quiz CTA in hero. Manual override `?ff_quiz_home=1|0`;

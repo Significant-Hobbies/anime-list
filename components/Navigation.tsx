@@ -18,20 +18,17 @@ import { Menu } from 'lucide-react';
 const animeLinks = [
   { href: '/discover', label: 'Discover' },
   { href: '/search', label: 'Search' },
-  { href: '/quiz', label: 'Quiz' },
   { href: '/stats', label: 'Stats' },
   { href: '/watchlist', label: 'Watchlist' },
-  { href: '/alerts', label: 'Alerts' },
-  { href: '/collections', label: 'Collections' },
   { href: '/schedule', label: 'Schedule' },
-  { href: '/changelog', label: 'Changelog' },
+  { href: '/catalog-updates', label: 'Catalog updates' },
 ];
 
 const mangaLinks = [
   { href: '/manga', label: 'Discover' },
   { href: '/manga/stats', label: 'Stats' },
   { href: '/manga/watchlist', label: 'Watchlist' },
-  { href: '/changelog', label: 'Changelog' },
+  { href: '/catalog-updates', label: 'Catalog updates' },
 ];
 
 function isMangaPath(pathname: string) {
@@ -58,10 +55,10 @@ export default function Navigation() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-3 sm:gap-6">
         <Link
           to={homeHref}
-          className="text-lg font-semibold tracking-tight text-foreground whitespace-nowrap"
+          className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground sm:text-base"
         >
           {SITE_NAME}
         </Link>

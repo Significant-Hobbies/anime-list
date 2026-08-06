@@ -1,6 +1,11 @@
 import { getDb } from './client';
 
-export const TOKEN_PREFIX = 'shelf_';
+export const TOKEN_PREFIX = 'anime_list_';
+export const LEGACY_TOKEN_PREFIX = 'shelf_';
+
+export function isApiToken(rawToken: string): boolean {
+  return rawToken.startsWith(TOKEN_PREFIX) || rawToken.startsWith(LEGACY_TOKEN_PREFIX);
+}
 
 export interface CreatedApiToken {
   token: string;
@@ -90,7 +95,7 @@ export async function revokeApiToken(
 export async function resolveApiToken(
   rawToken: string
 ): Promise<{ userId: string; tokenId: string } | null> {
-  if (!rawToken.startsWith(TOKEN_PREFIX)) return null;
+  if (!isApiToken(rawToken)) return null;
   const db = getDb();
   const tokenHash = await hashToken(rawToken);
   const result = await db.execute({

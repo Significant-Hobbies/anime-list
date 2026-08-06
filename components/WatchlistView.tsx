@@ -164,7 +164,7 @@ export default function WatchlistView() {
     onSuccess: async (result) => {
       const text = JSON.stringify(result, null, 2);
       await navigator.clipboard?.writeText(text);
-      setSyncResult(`Copied Shelf JSON backup (${result.anime.length} titles) to clipboard.`);
+      setSyncResult(`Copied Anime List JSON backup (${result.anime.length} titles) to clipboard.`);
     },
   });
 
@@ -320,8 +320,8 @@ export default function WatchlistView() {
             <div>
               <h3 className="text-sm font-medium text-foreground">Import / Export</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Export Shelf JSON/CSV backups, or import MAL XML, MAL CSV, AniList JSON, or Shelf
-                JSON.
+                Export Anime List JSON/CSV backups, or import MAL XML, MAL CSV, AniList JSON, or
+                Anime List JSON.
               </p>
             </div>
             <select
@@ -331,7 +331,7 @@ export default function WatchlistView() {
             >
               <option value="mal">MyAnimeList XML / CSV</option>
               <option value="anilist">AniList JSON</option>
-              <option value="shelf">Shelf JSON backup</option>
+              <option value="shelf">Anime List JSON backup</option>
             </select>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -340,12 +340,12 @@ export default function WatchlistView() {
               disabled={exportJsonMutation.isPending}
               className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
             >
-              Copy Shelf JSON
+              Copy Anime List JSON
             </button>
             <button
               onClick={async () => {
                 await downloadShelfWatchlistCsv();
-                setSyncResult('Downloaded shelf-watchlist.csv');
+                setSyncResult('Downloaded anime-list-watchlist.csv');
               }}
               className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
             >

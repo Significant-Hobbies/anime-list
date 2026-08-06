@@ -6,11 +6,11 @@
 Browser (Vite SPA, Cloudflare Pages)
    │  TanStack Query (client cache) + nuqs (URL state)
    ▼
-mal-api (Cloudflare Worker, Hono)  ── cron 0 3 * * * ──▶ reload caches + saved-search alerts
+mal-api (Cloudflare Worker, Hono)  ── cron 0 3 * * * ──▶ reload catalog caches
    │  in-memory animeStore / mangaStore (stale-while-revalidate, 1h TTL)
-   │  edge Cache API (search 180s, stats 300s, detail 24h anonymous)
+   │  edge Cache API (search 1h, stats 300s, detail 24h anonymous)
    ▼
-Cloudflare D1 (`DB`)  ──  anime_data, manga_data, watchlists, schedule, saved_searches, collections, users
+Cloudflare D1 (`DB`)  ──  anime_data, manga_data, watchlists, schedule, tokens, users
    ▲
    │  GitHub Actions (daily 00:00 UTC, quarterly) — Jikan API fetch + upsert
 Jikan API (MyAnimeList)
@@ -21,9 +21,8 @@ sit on Cloudflare Pages in front of the SPA shell and rewrite detail-page HTML
 for crawlable SEO (see
 [`decisions/0003-crawlable-detail-pages.md`](decisions/0003-crawlable-detail-pages.md)).
 
-This D1 architecture is prepared but not yet production-authoritative. The
-live system remains on Turso until the explicitly approved cutover completes;
-see `PROJECT_STATUS.md` for current production truth.
+Cloudflare D1 is production-authoritative. Retired alert and collection tables
+remain preserved but are not exposed through runtime routes.
 
 ## Layers
 
@@ -83,7 +82,7 @@ Durable technical decisions are recorded as ADRs in
 - [`0001-vite-spa-migration.md`](decisions/0001-vite-spa-migration.md) — migrate off Next.js + OpenNext to a Vite SPA.
 - [`0002-cloudflare-workers-migration.md`](decisions/0002-cloudflare-workers-migration.md) — replace the Render/Express backend with a Hono Worker.
 - [`0003-crawlable-detail-pages.md`](decisions/0003-crawlable-detail-pages.md) — Pages Functions rewrite detail HTML for SEO.
-- [`0004-engagement-measurement.md`](decisions/0004-engagement-measurement.md) — quiz/collections funnels + homepage A/B test.
+- [`0004-engagement-measurement.md`](decisions/0004-engagement-measurement.md) — quiz funnel + homepage A/B test; collections portion superseded.
 - [`0005-cloudflare-d1-persistence.md`](decisions/0005-cloudflare-d1-persistence.md) — one D1 binding, deterministic schema, and Wrangler-driven jobs.
 
 Reusable implementation tricks and failed approaches live in

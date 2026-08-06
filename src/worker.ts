@@ -64,24 +64,6 @@ import {
   type WatchlistImportMode,
 } from './watchlistSync';
 import {
-  listSavedSearches,
-  createSavedSearch,
-  updateSavedSearch,
-  deleteSavedSearch,
-  listSavedSearchAlerts,
-  markSavedSearchAlertsSeen,
-  countUnseenAlerts,
-  evaluateSavedSearchesAfterCatalogRefresh,
-} from './db/savedSearches';
-import {
-  listUserCollections,
-  getCollectionBySlug,
-  getCollectionItems,
-  createCollection,
-  updateCollection,
-  deleteCollection,
-} from './db/collections';
-import {
   addToScheduleSchema,
   updateScheduleItemSchema,
   removeFromScheduleSchema,
@@ -100,11 +82,11 @@ import { registerMangaRoutes } from './worker/mangaRoutes';
 import { handleMcpRequest } from './worker/mcpRoutes';
 import {
   createApiToken,
+  isApiToken,
   listApiTokens,
   revokeApiToken,
   resolveApiToken,
   touchApiTokenLastUsed,
-  TOKEN_PREFIX,
 } from './db/apiTokens';
 import { createTokenSchema, revokeTokenParamsSchema } from './validators/apiTokens';
 import {
@@ -139,7 +121,7 @@ type Env = {
   POSTHOG_API_KEY?: string;
 };
 
-const SEARCH_CACHE_TTL_SECONDS = 180;
+const SEARCH_CACHE_TTL_SECONDS = 3600;
 const STATS_CACHE_TTL_SECONDS = 300;
 // last-updated is a global, public, non-user value that changes once daily via
 // the cron sync. Edge-caching it keeps the only previously-uncached public read
@@ -222,13 +204,14 @@ function extractToken(c: { req: { header: (name: string) => string | undefined }
 }
 
 // Resolve a bearer or cookie token to a user. Accepts a Personal Access Token
-// (shelf_..., bearer-only) or an existing JWT. PATs are looked up by hash and
+// (anime_list_..., bearer-only; legacy shelf_ tokens remain valid) or an existing JWT.
+// PATs are looked up by hash and
 // their last_used_at is touched best-effort via waitUntil.
 async function resolveUser(
   token: string,
   ctx?: { waitUntil: (p: Promise<unknown>) => void }
 ): Promise<AuthPayload | null> {
-  if (token.startsWith(TOKEN_PREFIX)) {
+  if (isApiToken(token)) {
     const resolved = await resolveApiToken(token);
     if (!resolved) return null;
     if (ctx) ctx.waitUntil(touchApiTokenLastUsed(resolved.tokenId));
@@ -569,14 +552,13 @@ app.post('/api/search', optionalAuth, async (c) => {
     }
   }
 
-  const simpleSearchPage =
-    canUseCache && airing === 'any'
-      ? await trace(
-          'db:search:simple',
-          () => getSimpleAnimeSearchPage({ filters, sortBy, pagesize, offset }),
-          { project: 'mal-api' }
-        )
-      : null;
+  const simpleSearchPage = canUseCache
+    ? await trace(
+        'db:search:simple',
+        () => getSimpleAnimeSearchPage({ filters, sortBy, airing, pagesize, offset }),
+        { project: 'mal-api' }
+      )
+    : null;
 
   if (simpleSearchPage) {
     const response = c.json({
@@ -638,10 +620,12 @@ app.post('/api/search', optionalAuth, async (c) => {
 
   if (!canUseCache || !cacheRequest) {
     response.headers.set('X-Search-Cache', 'BYPASS');
+    response.headers.set('X-Search-Path', 'memory');
     return response;
   }
 
   response.headers.set('X-Search-Cache', 'MISS');
+  response.headers.set('X-Search-Path', 'memory');
   const cacheableResponse = new Response(response.body, response);
   cacheableResponse.headers.set(
     'Cache-Control',
@@ -1061,7 +1045,7 @@ app.get('/api/watchlist/export/csv', requireAuth, async (c) => {
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="shelf-watchlist.csv"',
+      'Content-Disposition': 'attachment; filename="anime-list-watchlist.csv"',
     },
   });
 });
@@ -1383,123 +1367,6 @@ app.post('/api/tokens/:id/revoke', requireAuth, async (c) => {
   return c.json({ success: true });
 });
 
-// Saved searches + alerts
-app.get('/api/saved-searches', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const searches = await listSavedSearches(user.userId);
-  const unseenCount = await countUnseenAlerts(user.userId);
-  return c.json({ searches, unseenCount });
-});
-
-app.post('/api/saved-searches', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const body = await c.req.json();
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
-  const filters = Array.isArray(body.filters) ? body.filters : [];
-  if (!name || filters.length === 0) {
-    return c.json({ error: 'Name and filters are required' }, 400);
-  }
-  const search = await createSavedSearch(user.userId, name, filters);
-  return c.json({ search });
-});
-
-app.post('/api/saved-searches/:id/update', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const id = c.req.param('id');
-  const body = await c.req.json();
-  await updateSavedSearch(user.userId, id, {
-    name: typeof body.name === 'string' ? body.name : undefined,
-    paused: typeof body.paused === 'boolean' ? body.paused : undefined,
-    filters: Array.isArray(body.filters) ? body.filters : undefined,
-  });
-  return c.json({ success: true });
-});
-
-app.post('/api/saved-searches/:id/delete', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  await deleteSavedSearch(user.userId, c.req.param('id'));
-  return c.json({ success: true });
-});
-
-app.get('/api/saved-searches/alerts', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const unseenOnly = c.req.query('unseen') === '1';
-  const alerts = await listSavedSearchAlerts(user.userId, { unseenOnly });
-  return c.json({ alerts });
-});
-
-app.post('/api/saved-searches/alerts/seen', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const body = await c.req.json();
-  const alertIds = Array.isArray(body.alert_ids)
-    ? body.alert_ids.filter((id: unknown) => typeof id === 'string')
-    : [];
-  await markSavedSearchAlertsSeen(user.userId, alertIds);
-  return c.json({ success: true });
-});
-
-// Public collections
-app.get('/api/collections/mine', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const collections = await listUserCollections(user.userId);
-  return c.json({ collections });
-});
-
-app.post('/api/collections', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const body = await c.req.json();
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
-  if (!title) return c.json({ error: 'Title is required' }, 400);
-  const collection = await createCollection(user.userId, {
-    title,
-    description: typeof body.description === 'string' ? body.description : '',
-    visibility: body.visibility === 'private' ? 'private' : 'public',
-    items: Array.isArray(body.items) ? body.items : [],
-  });
-  return c.json({ collection });
-});
-
-app.post('/api/collections/:id/update', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const body = await c.req.json();
-  const collection = await updateCollection(user.userId, c.req.param('id'), {
-    title: typeof body.title === 'string' ? body.title : undefined,
-    description: typeof body.description === 'string' ? body.description : undefined,
-    visibility:
-      body.visibility === 'private' || body.visibility === 'public' ? body.visibility : undefined,
-    items: Array.isArray(body.items) ? body.items : undefined,
-  });
-  if (!collection) return c.json({ error: 'Collection not found' }, 404);
-  return c.json({ collection });
-});
-
-app.post('/api/collections/:id/delete', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  await deleteCollection(user.userId, c.req.param('id'));
-  return c.json({ success: true });
-});
-
-app.get('/api/collections/:slug', async (c) => {
-  const slug = c.req.param('slug');
-  const collection = await getCollectionBySlug(slug, { publicOnly: true });
-  if (!collection) return c.json({ error: 'Collection not found' }, 404);
-  const items = await getCollectionItems(collection.id);
-  const enriched = await Promise.all(
-    items.map(async (item) => {
-      const anime = await getAnimeByMalId(Number(item.mal_id));
-      return {
-        ...item,
-        title: anime?.title ?? anime?.title_english ?? item.mal_id,
-        image: anime?.image,
-        score: anime?.score,
-        year: anime?.year,
-        url: anime?.url,
-      };
-    })
-  );
-  return c.json({ collection, items: enriched });
-});
-
 app.onError((err, c) => {
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);
   if (isCatalogDatabaseError(err)) {
@@ -1527,7 +1394,6 @@ export default {
     bindD1Database(env.DB);
     console.log('Cron: refreshing anime and manga caches from D1');
     await Promise.all([animeStore.setAnimeList(), mangaStore.setMangaList()]);
-    const alertsCreated = await evaluateSavedSearchesAfterCatalogRefresh();
-    console.log(`Cron: cache refreshed; ${alertsCreated} saved-search alerts created`);
+    console.log('Cron: caches refreshed');
   },
 };

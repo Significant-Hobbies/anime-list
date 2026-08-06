@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getApiUrl, LOCAL_API_URL, PRODUCTION_API_URL } from '../apiConfig';
+import { getApiUrl, LOCAL_API_URL, PRODUCTION_API_URL, SAME_ORIGIN_API_URL } from '../apiConfig';
 
 describe('getApiUrl', () => {
   afterEach(() => {
@@ -12,10 +12,10 @@ describe('getApiUrl', () => {
     expect(getApiUrl('anime-list-9lk.pages.dev')).toBe(PRODUCTION_API_URL);
   });
 
-  it('falls back to production API on deployed hosts', () => {
+  it('uses the same origin on deployed hosts', () => {
     vi.stubEnv('VITE_API_URL', '');
 
-    expect(getApiUrl('anime-list-9lk.pages.dev')).toBe(PRODUCTION_API_URL);
+    expect(getApiUrl('anime-list-9lk.pages.dev')).toBe(SAME_ORIGIN_API_URL);
   });
 
   it('uses localhost only for local browser development', () => {
@@ -26,11 +26,11 @@ describe('getApiUrl', () => {
     expect(getApiUrl('localhost')).toBe(LOCAL_API_URL);
   });
 
-  it('does not fall back to localhost in production', () => {
+  it('uses the same origin for a production build served locally', () => {
     vi.stubEnv('VITE_API_URL', '');
     vi.stubEnv('DEV', false);
     vi.stubEnv('PROD', true);
 
-    expect(getApiUrl('localhost')).toBe(PRODUCTION_API_URL);
+    expect(getApiUrl('localhost')).toBe(SAME_ORIGIN_API_URL);
   });
 });

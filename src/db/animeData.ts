@@ -1,7 +1,7 @@
 import { getDb } from './client';
 import type { AnimeItem } from '../types/anime';
 import { AnimeField, FilterAction } from '../config';
-import type { Filter, NumericField } from '../types/anime';
+import type { ArrayField, Filter, NumericField, StringField } from '../types/anime';
 
 const mapAnimeRow = (row: Record<string, unknown>): AnimeItem => ({
   mal_id: row.mal_id as number,
@@ -185,14 +185,160 @@ const SQL_OPERATOR_BY_ACTION: Partial<Record<FilterAction, string>> = {
   [FilterAction.LessThanOrEquals]: '<=',
 };
 
+const STRING_COLUMN_BY_FIELD: Partial<Record<StringField, string>> = {
+  [AnimeField.Title]: 'title',
+  [AnimeField.TitleEnglish]: 'title_english',
+  [AnimeField.Type]: 'type',
+  [AnimeField.Season]: 'season',
+  [AnimeField.Synopsis]: 'synopsis',
+};
+
+const ARRAY_COLUMN_BY_FIELD: Record<ArrayField, string> = {
+  [AnimeField.Genres]: 'genres',
+  [AnimeField.Themes]: 'themes',
+  [AnimeField.Demographics]: 'demographics',
+};
+
+type SearchWhere = { whereClause: string; args: Array<string | number> };
+
+function stringValues(value: Filter['value']): string[] | null {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) return value;
+  return null;
+}
+
+export function buildAnimeSearchWhere(
+  filters: Filter[],
+  airing: 'yes' | 'no' | 'any'
+): SearchWhere | null {
+  const whereParts: string[] = [];
+  const args: Array<string | number> = [];
+
+  for (const filter of filters) {
+    if (filter.score_multiplier) return null;
+
+    const numericColumn = NUMERIC_COLUMN_BY_FIELD[filter.field as NumericField];
+    const numericOperator = SQL_OPERATOR_BY_ACTION[filter.action];
+    if (numericColumn && numericOperator && typeof filter.value === 'number') {
+      whereParts.push(`${numericColumn} ${numericOperator} ?`);
+      args.push(filter.value);
+      continue;
+    }
+
+    const stringColumn = STRING_COLUMN_BY_FIELD[filter.field as StringField];
+    if (stringColumn) {
+      const values = stringValues(filter.value);
+      if (!values) return null;
+
+      if (filter.action === FilterAction.Equals && values.length === 1) {
+        whereParts.push(`${stringColumn} IS NOT NULL AND ${stringColumn} = ?`);
+        args.push(values[0]);
+        continue;
+      }
+
+      const contains = (column: string) => `instr(lower(${column}), lower(?)) > 0`;
+      const doesNotContain = (column: string) => `instr(lower(${column}), lower(?)) = 0`;
+      if (
+        filter.field === AnimeField.Title &&
+        filter.action === FilterAction.Contains &&
+        values.length === 1
+      ) {
+        whereParts.push(`(${contains('title')} OR ${contains("COALESCE(title_english, '')")})`);
+        args.push(values[0], values[0]);
+        continue;
+      }
+      if (filter.action === FilterAction.Contains && values.length === 1) {
+        whereParts.push(`${stringColumn} IS NOT NULL AND ${contains(stringColumn)}`);
+        args.push(values[0]);
+        continue;
+      }
+      if (filter.action === FilterAction.IncludesAll && values.length > 0) {
+        whereParts.push(
+          `${stringColumn} IS NOT NULL AND (${values.map(() => contains(stringColumn)).join(' AND ')})`
+        );
+        args.push(...values);
+        continue;
+      }
+      if (filter.action === FilterAction.IncludesAny) {
+        if (values.length === 0) continue;
+        whereParts.push(
+          `${stringColumn} IS NOT NULL AND (${values.map(() => contains(stringColumn)).join(' OR ')})`
+        );
+        args.push(...values);
+        continue;
+      }
+      if (filter.action === FilterAction.Excludes) {
+        if (values.length === 0) continue;
+        whereParts.push(
+          `${stringColumn} IS NOT NULL AND (${values.map(() => doesNotContain(stringColumn)).join(' AND ')})`
+        );
+        args.push(...values);
+        continue;
+      }
+      return null;
+    }
+
+    const arrayColumn = ARRAY_COLUMN_BY_FIELD[filter.field as ArrayField];
+    if (arrayColumn) {
+      const values = stringValues(filter.value);
+      if (!values) return null;
+      if (values.length === 0) continue;
+      const jsonSource = `json_each(COALESCE(${arrayColumn}, '{}'))`;
+
+      if (filter.action === FilterAction.IncludesAll) {
+        whereParts.push(
+          values
+            .map(
+              () =>
+                `EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key = ? AND json_each.value)`
+            )
+            .join(' AND ')
+        );
+        args.push(...values);
+        continue;
+      }
+      if (filter.action === FilterAction.IncludesAny) {
+        whereParts.push(
+          `EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key IN (${values.map(() => '?').join(', ')}) AND json_each.value)`
+        );
+        args.push(...values);
+        continue;
+      }
+      if (filter.action === FilterAction.Excludes) {
+        whereParts.push(
+          `NOT EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key IN (${values.map(() => '?').join(', ')}) AND json_each.value)`
+        );
+        args.push(...values);
+        continue;
+      }
+      return null;
+    }
+
+    return null;
+  }
+
+  if (airing === 'yes') {
+    whereParts.push("lower(status) = 'currently airing'");
+  } else if (airing === 'no') {
+    whereParts.push("(status IS NULL OR lower(status) <> 'currently airing')");
+  }
+
+  return {
+    whereClause: whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : '',
+    args,
+  };
+}
+
 export async function getSimpleAnimeSearchPage({
   filters,
   sortBy,
+  airing,
   pagesize,
   offset,
 }: {
   filters: Filter[];
   sortBy?: NumericField;
+  airing: 'yes' | 'no' | 'any';
   pagesize: number;
   offset: number;
 }): Promise<{ totalFiltered: number; page: Array<AnimeItem & { points: number }> } | null> {
@@ -201,21 +347,9 @@ export async function getSimpleAnimeSearchPage({
   const sortColumn = NUMERIC_COLUMN_BY_FIELD[sortBy];
   if (!sortColumn) return null;
 
-  const whereParts: string[] = [];
-  const args: Array<string | number> = [];
-
-  for (const filter of filters) {
-    const column = NUMERIC_COLUMN_BY_FIELD[filter.field as NumericField];
-    const operator = SQL_OPERATOR_BY_ACTION[filter.action];
-    if (!column || !operator || typeof filter.value !== 'number' || filter.score_multiplier) {
-      return null;
-    }
-
-    whereParts.push(`${column} ${operator} ?`);
-    args.push(filter.value);
-  }
-
-  const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : '';
+  const searchWhere = buildAnimeSearchWhere(filters, airing);
+  if (!searchWhere) return null;
+  const { whereClause, args } = searchWhere;
   const db = getDb();
   const [countResult, pageResult] = await Promise.all([
     db.execute({

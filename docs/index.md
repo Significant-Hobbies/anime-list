@@ -1,7 +1,7 @@
-# Shelf (anime_list) — Knowledge Base
+# Anime List by Significant Hobbies — Knowledge Base
 
 This directory is the canonical, local-first knowledge system for the
-**Shelf / MAL Explorer** product (`anime_list`). Markdown here is the source of
+**Anime List by Significant Hobbies** product (`anime_list`). Markdown here is the source of
 truth; code and executable configuration remain authoritative for
 implementation details and schedules.
 

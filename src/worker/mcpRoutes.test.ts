@@ -23,7 +23,7 @@ describe('handleMcpRequest', () => {
     });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.result.serverInfo.name).toBe('shelf');
+    expect(body.result.serverInfo.name).toBe('anime-list-by-significant-hobbies');
     expect(body.result.capabilities.tools).toBeDefined();
   });
 

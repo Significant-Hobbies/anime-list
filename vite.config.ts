@@ -1,37 +1,14 @@
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
-
-/** Load extracted app CSS without blocking first paint — index.html carries the LCP shell. */
-function deferAppCss(): Plugin {
-  return {
-    name: 'defer-app-css',
-    apply: 'build',
-    transformIndexHtml: {
-      order: 'post',
-      handler(html) {
-        return html.replace(
-          /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
-          (match, href) => {
-            if (match.includes('rel="preload"')) return match;
-            return [
-              `<link rel="preload" href="${href}" as="style" onload="this.onload=null;this.rel='stylesheet'">`,
-              `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
-            ].join('\n    ');
-          }
-        );
-      },
-    },
-  };
-}
 
 export default defineConfig(() => ({
   server: {
     host: '::',
     port: 5173,
   },
-  plugins: [react(), tailwindcss(), deferAppCss()],
+  plugins: [react(), tailwindcss()],
   css: {
     transformer: 'lightningcss',
     lightningcss: {
