@@ -1,59 +1,59 @@
-# Shelf — full agent brief
+# Anime List by Significant Hobbies — full agent brief
 
-Shelf indexes 5,306 popular anime and 2,288 popular manga for crawlable public discovery.
+Anime List by Significant Hobbies indexes 5,306 popular anime and 2,288 popular manga for crawlable public discovery.
 
-## Shelf — Discover anime and manga
+## Anime List by Significant Hobbies — Discover anime and manga
 
-Shelf is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
+Anime List by Significant Hobbies is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
 
-## Advanced anime search — Shelf
+## Advanced anime search — Anime List by Significant Hobbies
 
 Use multi-field filters to search the anime catalog by score, year, genre, theme, demographic, popularity, airing status, and format. Search state is shareable in the HTML URL.
 
-## Random anime picker — Shelf
+## Random anime picker — Anime List by Significant Hobbies
 
 The HTML route selects a random anime from the public catalog. Use advanced search when you want to constrain the pick by score, year, genre, or other catalog fields.
 
-## Anime catalog statistics — Shelf
+## Anime catalog statistics — Anime List by Significant Hobbies
 
 Explore aggregate anime catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
 
-## Advanced manga search — Shelf
+## Advanced manga search — Anime List by Significant Hobbies
 
 Search the public manga catalog with multi-field filters for score, year, genre, theme, demographic, status, format, popularity, and favorites.
 
-## Manga catalog statistics — Shelf
+## Manga catalog statistics — Anime List by Significant Hobbies
 
 Explore aggregate manga catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
 
-## Anime character quiz — Shelf
+## Anime discovery — Anime List by Significant Hobbies
 
-The quiz maps four local answers to a viewing archetype and a prefilled public search. Answers are not persisted; analytics retain only the resulting archetype.
+Discovery combines a signed-in weekly queue with a public, privacy-safe taste quiz. Quiz answers are not persisted; analytics retain only the resulting archetype.
 
-## Shelf changelog
+## Anime List by Significant Hobbies changelog
 
 The HTML changelog owns verified product releases. Catalog ingestion history is maintained separately on the catalog updates page.
 
-## Shelf catalog updates
+## Anime List catalog updates
 
 The HTML page shows catalog ingestion history from the public API, including the latest anime and manga refresh times and recent changes.
 
-## About Shelf
+## About Anime List by Significant Hobbies
 
-Shelf helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in.
+Anime List by Significant Hobbies helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in.
 
-## Shelf privacy
+## Anime List privacy
 
-Public catalog browsing does not require an account. Google sign-in and an httpOnly authentication cookie are used for personal watchlists, schedules, alerts, tokens, and collection management.
+Public catalog browsing does not require an account. Google sign-in and an httpOnly authentication cookie are used for personal watchlists, schedules, and access tokens.
 
-## Shelf terms
+## Anime List terms
 
-Shelf provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
+Anime List by Significant Hobbies provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
 
-## Shelf MCP setup
+## Anime List MCP setup
 
-Shelf exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in.
+Anime List by Significant Hobbies exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in.
 
 ## Authentication boundary
 
-Public catalog pages and detail Markdown require no account. Personal watchlists, schedules, alerts, collection management, token management, and authenticated MCP tools are not public indexing surfaces.
+Public catalog pages and detail Markdown require no account. Personal watchlists, schedules, token management, and authenticated MCP tools are not public indexing surfaces.

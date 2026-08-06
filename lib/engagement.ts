@@ -1,17 +1,15 @@
 'use client';
 
 /**
- * Surface-engagement funnel events (quiz, collections, homepage entries).
+ * Surface-engagement funnel events (quiz and homepage entries).
  *
- * PROJECT_STATUS.md gates quiz/collections expansion on engagement data, so
- * these events exist to answer two questions: does the quiz convert to
- * search/detail visits, and do collection shares actually get visited?
+ * These events answer whether the quiz converts to search/detail visits.
  * The events to chart and the expand/park decision rule live in
  * PROJECT_STATUS.md ("Engagement measurement").
  *
  * All events route through `trackEvent` (lazy posthog-js, fail-silent,
  * adds `project_id`). Privacy: quiz events never include individual
- * answers — only the derived archetype id, matching the /quiz
+ * answers — only the derived archetype id, matching the /discover#quiz
  * "nothing is stored" promise.
  */
 import { trackEvent } from '@/lib/analytics';
@@ -49,40 +47,6 @@ export function trackQuizResultClick(
   target: 'search' | 'exemplar_detail'
 ): void {
   trackEvent('quiz_result_clicked', { archetype, target, ...variantProps() });
-}
-
-// --- Collections funnel: viewed -> created -> share clicked -> shared-link visit ---
-
-export function trackCollectionsViewed(signedIn: boolean): void {
-  trackEvent('collections_viewed', { signed_in: signedIn });
-}
-
-/** A new collection was published. Fires on successful create mutation. */
-export function trackCollectionCreated(slug: string, itemCount: number): void {
-  trackEvent('collection_created', { slug, item_count: itemCount });
-}
-
-/** "Copy link" clicked on a collection card (the copied URL carries ?ref=share). */
-export function trackCollectionShareClick(slug: string): void {
-  trackEvent('collection_share_clicked', { slug });
-}
-
-/**
- * A collection page was viewed. `via_share` is true when the visit came
- * through a copied share link (?ref=share) — that subset is the
- * "shared-link visit" step of the funnel.
- */
-export function trackCollectionViewed(slug: string, viaShare: boolean): void {
-  trackEvent('collection_viewed', { slug, via_share: viaShare });
-}
-
-/**
- * A public collection page loaded. `via_share` is true when the visit came
- * through a copied share link (?ref=share) — that subset is the
- * "shared-link visit" step of the funnel.
- */
-export function trackCollectionPublicViewed(slug: string, viaShare: boolean): void {
-  trackEvent('collection_public_viewed', { slug, via_share: viaShare });
 }
 
 // --- Homepage -> surface entries ---

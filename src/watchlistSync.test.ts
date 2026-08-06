@@ -92,7 +92,7 @@ describe('watchlist sync', () => {
     ]);
   });
 
-  it('parses Shelf JSON backups and detects import conflicts', () => {
+  it('parses Anime List JSON backups and detects import conflicts', () => {
     const preview = parseShelfJson(
       JSON.stringify({
         version: 1,

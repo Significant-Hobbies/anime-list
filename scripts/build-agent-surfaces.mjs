@@ -30,12 +30,12 @@ ${surface.markdown}
 
 - [HTML page](${origin}${surface.path === '/' ? '/' : surface.path})
 - [Agent catalog](${origin}/api/ai)
-- [Shelf home](${origin}/)`
+- [Anime List by Significant Hobbies home](${origin}/)`
   );
 }
 
 const catalog = {
-  name: 'Shelf',
+  name: 'Anime List by Significant Hobbies',
   version: '2',
   url: origin,
   llms: `${origin}/llms.txt`,
@@ -56,14 +56,14 @@ const catalog = {
       count: anime.length,
       urlTemplate: `${origin}/anime/{malId}`,
       mdTemplate: `${origin}/anime/{malId}.md`,
-      source: 'MyAnimeList catalog via the checked-in Shelf SEO dataset',
+      source: 'MyAnimeList catalog via the checked-in Anime List SEO dataset',
     },
     {
       id: 'manga',
       count: manga.length,
       urlTemplate: `${origin}/manga/{malId}`,
       mdTemplate: `${origin}/manga/{malId}.md`,
-      source: 'MyAnimeList catalog via the checked-in Shelf SEO dataset',
+      source: 'MyAnimeList catalog via the checked-in Anime List SEO dataset',
     },
   ],
   dataResources: [
@@ -76,14 +76,14 @@ const catalog = {
   auth: {
     public: true,
     notes:
-      'Catalog discovery is public. Watchlists, schedules, alerts, collection management, MCP watchlist tools, and personal access tokens require authentication and are excluded.',
+      'Catalog discovery is public. Watchlists, schedules, MCP watchlist tools, and personal access tokens require authentication and are excluded.',
   },
 };
 
 writePublic('/api-ai.json', JSON.stringify(catalog, null, 2));
 writePublic(
   '/llms.txt',
-  `# Shelf
+  `# Anime List by Significant Hobbies
 
 > Anime and manga discovery with advanced filtering, statistics, and optional personal tracking.
 
@@ -104,15 +104,15 @@ ${surfaces.map((surface) => `- [${surface.title}](${origin}${surface.path})`).jo
 );
 writePublic(
   '/llms-full.txt',
-  `# Shelf — full agent brief
+  `# Anime List by Significant Hobbies — full agent brief
 
-Shelf indexes ${anime.length.toLocaleString()} popular anime and ${manga.length.toLocaleString()} popular manga for crawlable public discovery.
+Anime List by Significant Hobbies indexes ${anime.length.toLocaleString()} popular anime and ${manga.length.toLocaleString()} popular manga for crawlable public discovery.
 
 ${surfaces.map((surface) => `## ${surface.title}\n\n${surface.markdown}`).join('\n\n')}
 
 ## Authentication boundary
 
-Public catalog pages and detail Markdown require no account. Personal watchlists, schedules, alerts, collection management, token management, and authenticated MCP tools are not public indexing surfaces.`
+Public catalog pages and detail Markdown require no account. Personal watchlists, schedules, token management, and authenticated MCP tools are not public indexing surfaces.`
 );
 
 process.stdout.write(

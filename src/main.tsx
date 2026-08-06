@@ -30,6 +30,3 @@ requestAnimationFrame(() => {
 
 initVitals();
 initApiTiming();
-
-void import('@fontsource/inter/latin-400.css');
-void import('@fontsource/inter/latin-600.css');

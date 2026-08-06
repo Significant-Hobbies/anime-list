@@ -199,7 +199,7 @@ export default function AnimeIdentityQuiz() {
       </section>
 
       <aside className="h-fit rounded-xl border border-border bg-card p-5">
-        <p className="text-xs font-medium uppercase text-muted-foreground">Your Shelf archetype</p>
+        <p className="text-xs font-medium uppercase text-muted-foreground">Your anime archetype</p>
         <h2 className="mt-2 text-2xl font-semibold text-foreground">{result.title}</h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{result.tagline}</p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -220,7 +220,7 @@ export default function AnimeIdentityQuiz() {
         </div>
         <Button asChild className="mt-5 w-full" disabled={!complete}>
           <Link
-            to={complete ? buildSearchHref(result) : '/quiz'}
+            to={complete ? buildSearchHref(result) : '/discover'}
             onClick={() => {
               if (complete) trackQuizResultClick(result.id, 'search');
             }}

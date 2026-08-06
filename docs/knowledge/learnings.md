@@ -39,8 +39,8 @@ because lines drift; grep the symbol to find the current location.
 - **What:** Scheduled tasks via wrangler cron syntax — a Hono app that
   handles both HTTP and `scheduled` events from one module.
 - **Why here:** Replaces `node-cron` (unreliable on Render) with a
-  first-class Cloudflare trigger; the same entry reloads caches and
-  evaluates saved-search alerts.
+  first-class Cloudflare trigger; the same entry reloads the anime and manga
+  caches.
 - **Anchor:** `wrangler.cron.toml` (`crons = ["0 3 * * *"]`) and the
   `scheduled` export in `src/worker.ts`.
 - **Source:** https://developers.cloudflare.com/workers/configuration/cron-triggers/

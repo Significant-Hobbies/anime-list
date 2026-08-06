@@ -2,7 +2,7 @@
 
 ## What it is
 
-**Shelf (MAL Explorer)** is a production anime/manga discovery app. It gives
+**Anime List by Significant Hobbies** is a production anime/manga discovery app. It gives
 multi-field filtering, shareable URLs, personal watchlists (Google OAuth),
 stats, schedule tracking, and a signed-in seasonal discovery queue over a
 catalog of ~14.8k anime + ~20.7k manga titles synced daily from MyAnimeList via
@@ -19,23 +19,23 @@ watchlists and discovering seasonal picks.
 
 ## Operating posture
 
-Operational stability over feature expansion. Engagement on newer surfaces
-(quiz, collections) is measured before expanding them. See
+Operational stability over feature expansion. Engagement on the discovery
+quiz is measured before expanding it. See
 [`../../STATUS.md`](../../STATUS.md) for the current objective and in-flight work.
 
 ## Scope
 
 - **In scope:** Vite SPA frontend, `mal-api` Hono worker, D1, daily and
-  quarterly catalog sync, in-app saved-search alerts.
-- **Out of scope (deferred):** email digest for saved searches, collection
-  social features, character quiz persistence/OG images until engagement
-  proves lift.
+  quarterly catalog sync, personal watchlists, schedules, and discovery tools.
+- **Out of scope (paused):** saved-search alerts, public collections, email
+  digests, and character quiz persistence/OG images.
 
 ## Dependencies (external)
 
 - **Google OAuth + JWT** (`jose`); httpOnly `mal_auth_token` cookie (7d).
-- **Cloudflare D1** — one `DB` binding for catalog tables + per-user watchlists, schedule, saved
-  searches, collections.
+- **Cloudflare D1** — one `DB` binding for catalog tables + per-user watchlists,
+  schedules, and access tokens. Retired alert and collection tables remain
+  preserved but have no product or API surface.
 - **Jikan API** — daily GitHub Action sync + quarterly full refresh.
 - **MAL CDN** — poster images (recurring operational risk; see
   [`../operations/runbooks/mal-cdn-403.md`](../operations/runbooks/mal-cdn-403.md)).

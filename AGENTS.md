@@ -1,4 +1,4 @@
-# agents.md — anime_list (Shelf)
+# agents.md — Anime List by Significant Hobbies
 
 ## Repository operating rules
 

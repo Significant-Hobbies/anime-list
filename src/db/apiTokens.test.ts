@@ -45,7 +45,7 @@ const setResults = (
 describe('apiTokens', () => {
   beforeEach(() => setResults([]));
 
-  it('generates a token with the shelf_ prefix and sufficient length', async () => {
+  it('generates a token with the anime_list_ prefix and sufficient length', async () => {
     const created = await createApiToken('user1', 'Claude');
     expect(created.token.startsWith(TOKEN_PREFIX)).toBe(true);
     expect(created.token.length).toBeGreaterThanOrEqual(40);
@@ -93,9 +93,23 @@ describe('apiTokens', () => {
     expect(result).toEqual({ revoked: true, notFound: false });
   });
 
-  it('resolveApiToken returns null for a non-shelf token without hitting the db', async () => {
+  it('resolveApiToken returns null for a non-Anime-List token without hitting the db', async () => {
     const result = await resolveApiToken('eyJsome-jwt');
     expect(result).toBeNull();
+  });
+
+  it('continues to resolve legacy shelf_ tokens', async () => {
+    setResults([
+      {
+        match: (s) => s.sql.includes('SELECT id, user_id FROM user_api_tokens'),
+        result: { rows: [{ id: 'legacy', user_id: 'user1' }] },
+      },
+    ]);
+
+    await expect(resolveApiToken('shelf_legacy-token')).resolves.toEqual({
+      userId: 'user1',
+      tokenId: 'legacy',
+    });
   });
 
   it('resolveApiToken returns the user when the hash matches an active row', async () => {

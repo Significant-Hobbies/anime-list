@@ -1,5 +1,5 @@
 {
-  "name": "Shelf",
+  "name": "Anime List by Significant Hobbies",
   "version": "2",
   "url": "https://anime.significanthobbies.com",
   "llms": "https://anime.significanthobbies.com/llms.txt",
@@ -30,7 +30,7 @@
       "url": "https://anime.significanthobbies.com/random",
       "md": "https://anime.significanthobbies.com/random.md",
       "kind": "static",
-      "description": "Pick a random anime from the public Shelf catalog and narrow the choice with the same discovery filters used by search."
+      "description": "Pick a random anime from the public Anime List catalog and narrow the choice with the same discovery filters used by search."
     },
     {
       "id": "stats",
@@ -54,18 +54,18 @@
       "description": "Explore manga score distributions, formats, years, genres, themes, demographics, popularity, and catalog coverage."
     },
     {
-      "id": "quiz",
-      "url": "https://anime.significanthobbies.com/quiz",
-      "md": "https://anime.significanthobbies.com/quiz.md",
+      "id": "discover",
+      "url": "https://anime.significanthobbies.com/discover",
+      "md": "https://anime.significanthobbies.com/discover.md",
       "kind": "static",
-      "description": "Answer four lightweight questions to get a Shelf viewing archetype and a prefilled public anime search."
+      "description": "Use a signed-in weekly queue or answer four lightweight questions for a private anime taste profile and prefilled search."
     },
     {
       "id": "changelog",
       "url": "https://anime.significanthobbies.com/changelog",
       "md": "https://anime.significanthobbies.com/changelog.md",
       "kind": "static",
-      "description": "Verified product releases for Shelf, including anime and manga discovery, watchlists, schedules, and catalog improvements."
+      "description": "Verified product releases for Anime List by Significant Hobbies, including anime and manga discovery, watchlists, schedules, and catalog improvements."
     },
     {
       "id": "catalog-updates",
@@ -79,28 +79,28 @@
       "url": "https://anime.significanthobbies.com/about",
       "md": "https://anime.significanthobbies.com/about.md",
       "kind": "static",
-      "description": "Learn how Shelf combines MyAnimeList catalog data, advanced filtering, smart ranking, statistics, and personal tracking."
+      "description": "Learn how Anime List by Significant Hobbies combines MyAnimeList catalog data, advanced filtering, smart ranking, statistics, and personal tracking."
     },
     {
       "id": "privacy",
       "url": "https://anime.significanthobbies.com/privacy",
       "md": "https://anime.significanthobbies.com/privacy.md",
       "kind": "static",
-      "description": "Understand Shelf account data, Google sign-in, watchlist storage, product analytics, and public collection visibility."
+      "description": "Understand Anime List account data, Google sign-in, watchlist storage, and product analytics."
     },
     {
       "id": "terms",
       "url": "https://anime.significanthobbies.com/terms",
       "md": "https://anime.significanthobbies.com/terms.md",
       "kind": "static",
-      "description": "Terms for using Shelf catalog discovery, personal watchlists, public collections, and MyAnimeList-derived metadata."
+      "description": "Terms for using Anime List catalog discovery, personal watchlists, and MyAnimeList-derived metadata."
     },
     {
       "id": "mcp",
       "url": "https://anime.significanthobbies.com/mcp",
       "md": "https://anime.significanthobbies.com/mcp.md",
       "kind": "static",
-      "description": "Connect agents to Shelf public catalog tools and manage a personal access token for authenticated watchlist tools."
+      "description": "Connect agents to Anime List public catalog tools and manage a personal access token for authenticated watchlist tools."
     }
   ],
   "collections": [
@@ -109,14 +109,14 @@
       "count": 5306,
       "urlTemplate": "https://anime.significanthobbies.com/anime/{malId}",
       "mdTemplate": "https://anime.significanthobbies.com/anime/{malId}.md",
-      "source": "MyAnimeList catalog via the checked-in Shelf SEO dataset"
+      "source": "MyAnimeList catalog via the checked-in Anime List SEO dataset"
     },
     {
       "id": "manga",
       "count": 2288,
       "urlTemplate": "https://anime.significanthobbies.com/manga/{malId}",
       "mdTemplate": "https://anime.significanthobbies.com/manga/{malId}.md",
-      "source": "MyAnimeList catalog via the checked-in Shelf SEO dataset"
+      "source": "MyAnimeList catalog via the checked-in Anime List SEO dataset"
     }
   ],
   "dataResources": [
@@ -148,6 +148,6 @@
   ],
   "auth": {
     "public": true,
-    "notes": "Catalog discovery is public. Watchlists, schedules, alerts, collection management, MCP watchlist tools, and personal access tokens require authentication and are excluded."
+    "notes": "Catalog discovery is public. Watchlists, schedules, MCP watchlist tools, and personal access tokens require authentication and are excluded."
   }
 }

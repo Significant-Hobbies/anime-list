@@ -40,6 +40,14 @@ const fetchFromApi = async <T>(url: string): Promise<T | null> => {
   }
 };
 
+export function assertCatalogRowsFetched(kind: 'anime' | 'manga', count: number): void {
+  if (count === 0) {
+    throw new Error(
+      `Catalog refresh failed: Jikan returned no usable ${kind} rows. Refusing to report success.`
+    );
+  }
+}
+
 // Fetch the last two seasons and update the bound D1 database.
 export const updateLatestTwoSeasonData = async (): Promise<void> => {
   const p0 = performance.now();
@@ -98,26 +106,26 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
     console.log(`✓ ${season} ${year} - fetched ${allFetchedAnime.length} anime so far`);
   }
 
-  // Save through the configured D1 boundary.
-  if (allFetchedAnime.length > 0) {
-    console.log(`Saving ${allFetchedAnime.length} anime to database...`);
-    const summary = await upsertAnimeBatch(allFetchedAnime);
+  assertCatalogRowsFetched('anime', allFetchedAnime.length);
 
-    if (summary.added.length > 0) {
-      console.log(`\n📥 NEW (${summary.added.length}):`);
-      for (const a of summary.added) {
-        console.log(`  + ${a.title} (${a.mal_id})`);
-      }
+  // Save through the configured D1 boundary.
+  console.log(`Saving ${allFetchedAnime.length} anime to database...`);
+  const summary = await upsertAnimeBatch(allFetchedAnime);
+
+  if (summary.added.length > 0) {
+    console.log(`\n📥 NEW (${summary.added.length}):`);
+    for (const a of summary.added) {
+      console.log(`  + ${a.title} (${a.mal_id})`);
     }
-    if (summary.updated.length > 0) {
-      console.log(`\n🔄 UPDATED (${summary.updated.length}):`);
-      for (const a of summary.updated) {
-        console.log(`  ~ ${a.title} (${a.mal_id})`);
-      }
+  }
+  if (summary.updated.length > 0) {
+    console.log(`\n🔄 UPDATED (${summary.updated.length}):`);
+    for (const a of summary.updated) {
+      console.log(`  ~ ${a.title} (${a.mal_id})`);
     }
-    if (summary.added.length === 0 && summary.updated.length === 0) {
-      console.log('No changes detected.');
-    }
+  }
+  if (summary.added.length === 0 && summary.updated.length === 0) {
+    console.log('No changes detected.');
   }
 
   console.log(`\n✓ Season update completed in ${(performance.now() - p0) / 1000}s`);
@@ -203,11 +211,8 @@ export const updateLatestTopMangaData = async (
 
   await flushPending();
 
-  if (totalSaved === 0) {
-    console.log('No manga titles fetched.');
-  } else {
-    console.log(`Saved ${totalSaved} manga total.`);
-  }
+  assertCatalogRowsFetched('manga', totalSaved);
+  console.log(`Saved ${totalSaved} manga total.`);
 
   console.log(
     `\n✓ Manga update completed in ${((performance.now() - p0) / 1000).toFixed(1)}s (${uniqueCount} unique titles)`

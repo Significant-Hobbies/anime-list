@@ -3,15 +3,15 @@
     "id": "home",
     "path": "/",
     "markdownPath": "/index.md",
-    "title": "Shelf — Discover anime and manga",
+    "title": "Anime List by Significant Hobbies — Discover anime and manga",
     "description": "Filter and explore 35,000+ anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists.",
-    "markdown": "Shelf is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in."
+    "markdown": "Anime List by Significant Hobbies is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in."
   },
   {
     "id": "search",
     "path": "/search",
     "markdownPath": "/search.md",
-    "title": "Advanced anime search — Shelf",
+    "title": "Advanced anime search — Anime List by Significant Hobbies",
     "description": "Filter anime by score, year, genres, themes, demographics, popularity, status, and format with shareable search URLs.",
     "markdown": "Use multi-field filters to search the anime catalog by score, year, genre, theme, demographic, popularity, airing status, and format. Search state is shareable in the HTML URL."
   },
@@ -19,15 +19,15 @@
     "id": "random",
     "path": "/random",
     "markdownPath": "/random.md",
-    "title": "Random anime picker — Shelf",
-    "description": "Pick a random anime from the public Shelf catalog and narrow the choice with the same discovery filters used by search.",
+    "title": "Random anime picker — Anime List by Significant Hobbies",
+    "description": "Pick a random anime from the public Anime List catalog and narrow the choice with the same discovery filters used by search.",
     "markdown": "The HTML route selects a random anime from the public catalog. Use advanced search when you want to constrain the pick by score, year, genre, or other catalog fields."
   },
   {
     "id": "stats",
     "path": "/stats",
     "markdownPath": "/stats.md",
-    "title": "Anime catalog statistics — Shelf",
+    "title": "Anime catalog statistics — Anime List by Significant Hobbies",
     "description": "Explore anime score distributions, formats, years, genres, themes, demographics, popularity, and catalog coverage.",
     "markdown": "Explore aggregate anime catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites."
   },
@@ -35,7 +35,7 @@
     "id": "manga",
     "path": "/manga",
     "markdownPath": "/manga.md",
-    "title": "Advanced manga search — Shelf",
+    "title": "Advanced manga search — Anime List by Significant Hobbies",
     "description": "Search and filter more than 20,000 manga titles by score, year, genres, themes, demographics, status, and format.",
     "markdown": "Search the public manga catalog with multi-field filters for score, year, genre, theme, demographic, status, format, popularity, and favorites."
   },
@@ -43,31 +43,31 @@
     "id": "manga-stats",
     "path": "/manga/stats",
     "markdownPath": "/manga-stats.md",
-    "title": "Manga catalog statistics — Shelf",
+    "title": "Manga catalog statistics — Anime List by Significant Hobbies",
     "description": "Explore manga score distributions, formats, years, genres, themes, demographics, popularity, and catalog coverage.",
     "markdown": "Explore aggregate manga catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites."
   },
   {
-    "id": "quiz",
-    "path": "/quiz",
-    "markdownPath": "/quiz.md",
-    "title": "Anime character quiz — Shelf",
-    "description": "Answer four lightweight questions to get a Shelf viewing archetype and a prefilled public anime search.",
-    "markdown": "The quiz maps four local answers to a viewing archetype and a prefilled public search. Answers are not persisted; analytics retain only the resulting archetype."
+    "id": "discover",
+    "path": "/discover",
+    "markdownPath": "/discover.md",
+    "title": "Anime discovery — Anime List by Significant Hobbies",
+    "description": "Use a signed-in weekly queue or answer four lightweight questions for a private anime taste profile and prefilled search.",
+    "markdown": "Discovery combines a signed-in weekly queue with a public, privacy-safe taste quiz. Quiz answers are not persisted; analytics retain only the resulting archetype."
   },
   {
     "id": "changelog",
     "path": "/changelog",
     "markdownPath": "/changelog.md",
-    "title": "Shelf changelog",
-    "description": "Verified product releases for Shelf, including anime and manga discovery, watchlists, schedules, and catalog improvements.",
+    "title": "Anime List by Significant Hobbies changelog",
+    "description": "Verified product releases for Anime List by Significant Hobbies, including anime and manga discovery, watchlists, schedules, and catalog improvements.",
     "markdown": "The HTML changelog owns verified product releases. Catalog ingestion history is maintained separately on the catalog updates page."
   },
   {
     "id": "catalog-updates",
     "path": "/catalog-updates",
     "markdownPath": "/catalog-updates.md",
-    "title": "Shelf catalog updates",
+    "title": "Anime List catalog updates",
     "description": "Review daily anime and manga catalog ingestion history, update timing, and the latest public dataset refreshes.",
     "markdown": "The HTML page shows catalog ingestion history from the public API, including the latest anime and manga refresh times and recent changes."
   },
@@ -75,32 +75,32 @@
     "id": "about",
     "path": "/about",
     "markdownPath": "/about.md",
-    "title": "About Shelf",
-    "description": "Learn how Shelf combines MyAnimeList catalog data, advanced filtering, smart ranking, statistics, and personal tracking.",
-    "markdown": "Shelf helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in."
+    "title": "About Anime List by Significant Hobbies",
+    "description": "Learn how Anime List by Significant Hobbies combines MyAnimeList catalog data, advanced filtering, smart ranking, statistics, and personal tracking.",
+    "markdown": "Anime List by Significant Hobbies helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in."
   },
   {
     "id": "privacy",
     "path": "/privacy",
     "markdownPath": "/privacy.md",
-    "title": "Shelf privacy",
-    "description": "Understand Shelf account data, Google sign-in, watchlist storage, product analytics, and public collection visibility.",
-    "markdown": "Public catalog browsing does not require an account. Google sign-in and an httpOnly authentication cookie are used for personal watchlists, schedules, alerts, tokens, and collection management."
+    "title": "Anime List privacy",
+    "description": "Understand Anime List account data, Google sign-in, watchlist storage, and product analytics.",
+    "markdown": "Public catalog browsing does not require an account. Google sign-in and an httpOnly authentication cookie are used for personal watchlists, schedules, and access tokens."
   },
   {
     "id": "terms",
     "path": "/terms",
     "markdownPath": "/terms.md",
-    "title": "Shelf terms",
-    "description": "Terms for using Shelf catalog discovery, personal watchlists, public collections, and MyAnimeList-derived metadata.",
-    "markdown": "Shelf provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms."
+    "title": "Anime List terms",
+    "description": "Terms for using Anime List catalog discovery, personal watchlists, and MyAnimeList-derived metadata.",
+    "markdown": "Anime List by Significant Hobbies provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms."
   },
   {
     "id": "mcp",
     "path": "/mcp",
     "markdownPath": "/mcp.md",
-    "title": "Shelf MCP setup",
-    "description": "Connect agents to Shelf public catalog tools and manage a personal access token for authenticated watchlist tools.",
-    "markdown": "Shelf exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in."
+    "title": "Anime List MCP setup",
+    "description": "Connect agents to Anime List public catalog tools and manage a personal access token for authenticated watchlist tools.",
+    "markdown": "Anime List by Significant Hobbies exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in."
   }
 ]

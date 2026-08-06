@@ -16,7 +16,6 @@ import {
   getWatchlistTags,
   isAbortError,
   searchAnime,
-  createSavedSearch,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { trackCoreAction } from '@/lib/analytics';
@@ -190,10 +189,6 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   // Open whenever any custom filter row exists (even one with an empty value),
   // so reloading a URL with in-progress rows doesn't hide them.
   const [showAdvanced, setShowAdvanced] = useState(() => filters.length > 0);
-  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
-  const [saveSearchName, setSaveSearchName] = useState('');
-  const [saveSearchMessage, setSaveSearchMessage] = useState<string | null>(null);
-
   const resetPage = () => {
     if (currentPage !== 1) setCurrentPage(1);
   };
@@ -302,7 +297,6 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
       return searchAnime(f, opts, signal);
     },
     initialData: debouncedFilterKey === initialSearchKey ? initialSearchData : undefined,
-    initialDataUpdatedAt: 0,
     placeholderData: (prev) => prev,
     retry: (failureCount, error) => !isAbortError(error) && failureCount < 1,
   });
@@ -320,21 +314,6 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     );
     resetPage();
   };
-
-  async function handleSaveSearch() {
-    const { filters: activeFilters } = buildSearchOpts();
-    if (!user || activeFilters.length === 0 || !saveSearchName.trim()) return;
-    try {
-      await createSavedSearch(saveSearchName.trim(), activeFilters);
-      setSaveSearchMessage(
-        'Saved. New matches will appear in Alerts after the next catalog refresh.'
-      );
-      setSaveSearchName('');
-      setSaveSearchOpen(false);
-    } catch {
-      setSaveSearchMessage('Could not save search. Sign in and try again.');
-    }
-  }
 
   const updateFilter = (index: number, filter: SearchFilter) => {
     setFilters((prev) => prev.map((f, i) => (i === index ? normalizeFilter(filter) : f)));
@@ -420,14 +399,14 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-              MAL Explorer
+              Anime List
             </p>
             <h1 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight text-foreground md:text-5xl">
               Find the next anime worth your time.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
               Start from proven crowd signal, then narrow by season, genre, status, and your own
-              watchlist. The default shelf is intentionally biased toward highly watched, highly
+              watchlist. The default catalog is intentionally biased toward highly watched, highly
               scored titles.
             </p>
           </div>
@@ -670,45 +649,8 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
             {totalFiltered.toLocaleString()} titles
             {isFetching && ' · updating…'}
           </p>
-          {user && buildSearchOpts().filters.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setSaveSearchOpen((open) => !open)}
-              className="text-sm font-medium text-primary hover:text-primary/80"
-            >
-              Save search
-            </button>
-          )}
         </div>
       )}
-
-      {saveSearchOpen && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
-          <input
-            value={saveSearchName}
-            onChange={(event) => setSaveSearchName(event.target.value)}
-            placeholder="Name this search"
-            className="h-8 min-w-[180px] flex-1 rounded-md border border-input bg-background px-2 text-sm"
-          />
-          <button
-            type="button"
-            onClick={handleSaveSearch}
-            disabled={!saveSearchName.trim()}
-            className="h-8 rounded-md bg-primary px-3 text-xs text-primary-foreground disabled:opacity-50"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => setSaveSearchOpen(false)}
-            className="h-8 rounded-md px-3 text-xs text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {saveSearchMessage && <p className="text-xs text-muted-foreground">{saveSearchMessage}</p>}
 
       {error && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">

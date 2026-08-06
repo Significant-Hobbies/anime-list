@@ -45,7 +45,7 @@ const FAQ = [
     a: 'No — search, stats, and the schedule work fully signed-out. Sign in with Google only if you want a personal watchlist.',
   },
   {
-    q: 'How many titles does Shelf cover?',
+    q: 'How many titles does Anime List cover?',
     a: 'Roughly 14,800+ anime and ~25,000 top manga titles — the slice of MyAnimeList that meets a quality bar on score, scored-by count, members, and year.',
   },
   {
@@ -98,7 +98,8 @@ export default function HomePage() {
             </Link>
             {quizAboveFold && (
               <Link
-                to="/quiz"
+                to="/discover"
+                hash="quiz"
                 onClick={() => trackHomeSurfaceClick('quiz', 'hero')}
                 className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >

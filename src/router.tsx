@@ -24,9 +24,6 @@ const StatsPage = lazy(() => import('./pages/StatsPage'));
 const MangaSearchPage = lazy(() => import('./pages/MangaSearchPage'));
 const MangaStatsPage = lazy(() => import('./pages/MangaStatsPage'));
 const MangaWatchlistPage = lazy(() => import('./pages/MangaWatchlistPage'));
-const AlertsPage = lazy(() => import('./pages/AlertsPage'));
-const CollectionsPage = lazy(() => import('./pages/CollectionsPage'));
-const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
 const CatalogUpdatesPage = lazy(() => import('./pages/CatalogUpdatesPage'));
@@ -127,24 +124,6 @@ const mangaWatchlistRoute = createRoute({
   component: MangaWatchlistPage,
 });
 
-const alertsRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: '/alerts',
-  component: AlertsPage,
-});
-
-const collectionsRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: '/collections',
-  component: CollectionsPage,
-});
-
-const publicCollectionRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: '/c/$slug',
-  component: PublicCollectionPage,
-});
-
 const quizRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/quiz',
@@ -197,9 +176,6 @@ const routeTree = rootRoute.addChildren([
     randomRoute,
     scheduleRoute,
     watchlistRoute,
-    alertsRoute,
-    collectionsRoute,
-    publicCollectionRoute,
     statsRoute,
     mangaStatsRoute,
     mangaWatchlistRoute,

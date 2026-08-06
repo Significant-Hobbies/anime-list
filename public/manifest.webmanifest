@@ -1,6 +1,6 @@
 {
-  "name": "Shelf — Discover anime & manga",
-  "short_name": "Shelf",
+  "name": "Anime List by Significant Hobbies",
+  "short_name": "Anime List",
   "description": "Filter and explore 35,000+ anime and manga titles from MyAnimeList. Search, stats, and a personal watchlist in one place.",
   "id": "/",
   "start_url": "/",

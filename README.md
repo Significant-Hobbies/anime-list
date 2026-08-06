@@ -1,4 +1,4 @@
-# MAL Explorer
+# Anime List by Significant Hobbies
 
 A modern anime discovery platform that helps you find your next favorite show.
 

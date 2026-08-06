@@ -33,7 +33,7 @@ frontend changes were required.
 - Positive: one platform for API + cron; sub-ms warm responses from the
   in-memory cache; no separate host to pay for or monitor.
 - Positive: cron is now a first-class Cloudflare trigger, reliable for the
-  daily cache reload and saved-search alert evaluation.
+  daily catalog cache reload.
 - Constraint: any Node-only dependency is off-limits in the worker; the
   filter engine is kept pure for this reason (see
   [`../../knowledge/learnings.md`](../../knowledge/learnings.md)).

@@ -9,7 +9,7 @@ import { z } from 'zod';
 // accepts PATs) handles authentication. No endpoint logic is duplicated here.
 
 const AUTH_ERROR_MESSAGE =
-  'Authentication required: provide a valid Personal Access Token (shelf_...) or JWT via the Authorization header. Create a token at /mcp.';
+  'Authentication required: provide a valid Personal Access Token (anime_list_...) or JWT via the Authorization header. Create a token at /mcp.';
 
 interface ToolDef {
   name: string;
@@ -146,7 +146,7 @@ const TOOLS: ToolDef[] = [
 
 function buildServer(origin: string, authHeader: string | null): McpServer {
   const server = new McpServer(
-    { name: 'shelf', version: '1.0.0' },
+    { name: 'anime-list-by-significant-hobbies', version: '1.0.0' },
     { capabilities: { tools: {}, resources: {}, prompts: {} } }
   );
 

@@ -27,7 +27,7 @@ export function ResultsGridSkeleton() {
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-            Building your shelf
+            Building your anime list
           </p>
           <h2 className="mt-1 text-xl font-semibold text-foreground">Finding strong matches</h2>
         </div>

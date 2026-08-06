@@ -42,9 +42,6 @@ export default function Footer() {
           <Link to="/mcp" className="hover:text-foreground transition-colors">
             MCP
           </Link>
-          <Link to="/changelog" className="hover:text-foreground transition-colors">
-            Changelog
-          </Link>
           <Link to="/catalog-updates" className="hover:text-foreground transition-colors">
             Catalog updates
           </Link>

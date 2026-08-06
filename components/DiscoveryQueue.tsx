@@ -36,6 +36,26 @@ function MediaBadge({ mediaType }: { mediaType?: 'anime' | 'manga' }) {
   );
 }
 
+function DiscoveryQueueSkeleton() {
+  return (
+    <div className="mx-auto max-w-2xl" role="status" aria-label="Loading discovery queue">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="grid animate-pulse md:grid-cols-[12rem_1fr]">
+          <div className="aspect-[2/3] bg-muted md:aspect-auto md:min-h-80" />
+          <div className="space-y-4 p-6">
+            <div className="h-4 w-28 rounded bg-muted" />
+            <div className="h-7 w-3/4 rounded bg-muted" />
+            <div className="h-4 w-full rounded bg-muted/70" />
+            <div className="h-4 w-5/6 rounded bg-muted/70" />
+            <div className="h-10 w-full rounded-lg bg-muted" />
+          </div>
+        </div>
+      </div>
+      <span className="sr-only">Finding titles for you…</span>
+    </div>
+  );
+}
+
 interface DiscoveryCardProps {
   item: DiscoveryItem;
   onDismiss: (malId: number, mediaType?: 'anime' | 'manga') => void;
@@ -236,13 +256,13 @@ export function DiscoveryQueue() {
 
   const isPending = dismissMutation.isPending || addMutation.isPending;
 
-  if (authLoading) return null;
+  if (authLoading || (user && isLoading)) return <DiscoveryQueueSkeleton />;
 
   if (!user) {
     return (
       <div className="container mx-auto py-8">
         <div className="mx-auto flex max-w-lg flex-col items-center justify-center rounded-xl border border-border bg-card px-6 py-12 text-center shadow-sm">
-          <h1 className="text-3xl font-bold">Weekly Discovery</h1>
+          <h2 className="text-3xl font-bold">Weekly Discovery</h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Sign in to get a seasonal anime and manga queue ranked against your watchlist. Search
             stays public; discovery needs your taste history.
@@ -255,19 +275,10 @@ export function DiscoveryQueue() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h1>
-        <div className="text-center p-8 text-muted-foreground">Finding shows for you…</div>
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h1>
+        <h2 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h2>
         <div className="text-center p-8 text-destructive">
           Could not load the discovery queue. Please try again later.
         </div>
@@ -287,7 +298,7 @@ export function DiscoveryQueue() {
   if (results.length === 0) {
     return (
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h1>
+        <h2 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h2>
         <div className="text-center p-8 text-muted-foreground">
           Nothing new to show right now — check back later!
         </div>
@@ -298,7 +309,7 @@ export function DiscoveryQueue() {
   if (!currentItem) {
     return (
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h1>
+        <h2 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h2>
         <div className="text-center p-8 text-muted-foreground">
           You've worked through this batch.{' '}
           <button
@@ -318,7 +329,7 @@ export function DiscoveryQueue() {
   return (
     <div className="container mx-auto py-8">
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold">Weekly Discovery</h1>
+        <h2 className="text-3xl font-bold">Weekly Discovery</h2>
         <p className="text-muted-foreground text-sm mt-1">
           {seasonLabel && <span>{seasonLabel} · </span>}
           {animeCount} anime · {mangaCount} manga · item {currentIndex + 1} of {results.length}
