@@ -18,7 +18,7 @@ Last updated: 2026-08-07
 ### External
 
 - **Google OAuth + JWT:** `jose`; httpOnly `mal_auth_token` cookie (7d).
-- **Cloudflare D1:** catalog tables + per-user watchlists, schedule, and access tokens; database `anime-list`, Worker binding `DB`, global read replicas for read-only search batches. Retired alert and collection tables remain preserved without runtime routes.
+- **Cloudflare D1:** catalog tables + per-user watchlists, schedule, and access tokens; database `anime-list`, Worker binding `DB`. Read-only search batches use the Sessions API and are replica-ready; global replication is currently disabled at the database setting. Retired alert and collection tables remain preserved without runtime routes.
 - **Relational persistence:** Cloudflare D1 is authoritative; the retired Turso database was deleted on 2026-08-02.
 - **Jikan API:** daily GH Action sync + quarterly full refresh.
 - **MAL CDN:** poster images (recurring operational risk).
