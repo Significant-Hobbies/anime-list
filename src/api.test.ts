@@ -1,5 +1,40 @@
-import { describe, expect, it } from 'vitest';
-import { assertCatalogRowsFetched } from './api';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { assertCatalogRowsFetched, fetchFromApi } from './api';
+
+vi.mock('./utils/file', () => ({
+  delay: vi.fn().mockResolvedValue(undefined),
+}));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe('fetchFromApi', () => {
+  it('retries a transient HTTP failure', async () => {
+    const payload = { data: [{ mal_id: 1 }] };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 504 })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => payload });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await expect(fetchFromApi('https://api.jikan.moe/example')).resolves.toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns null after the bounded retry count', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 504 });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await expect(fetchFromApi('https://api.jikan.moe/example')).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
 
 describe('assertCatalogRowsFetched', () => {
   it('rejects an empty anime refresh', () => {
