@@ -5,6 +5,7 @@
 ```
 Browser (Vite SPA, Cloudflare Pages)
    │  TanStack Query (client cache) + nuqs (URL state)
+   │  /api/* Worker Route (bypasses the Pages Function proxy in production)
    ▼
 mal-api (Cloudflare Worker, Hono)  ── cron 0 3 * * * ──▶ reload catalog caches
    │  in-memory animeStore / mangaStore (stale-while-revalidate, 1h TTL)
@@ -21,6 +22,8 @@ Pages Functions (`functions/anime/[malId].ts`, `functions/manga/[malId].ts`)
 sit on Cloudflare Pages in front of the SPA shell and rewrite detail-page HTML
 for crawlable SEO (see
 [`decisions/0003-crawlable-detail-pages.md`](decisions/0003-crawlable-detail-pages.md)).
+`functions/api/*` remains a preview/fallback proxy; the production hostname
+routes `/api/*` directly to `mal-api` through `wrangler.cron.toml`.
 
 Cloudflare D1 is production-authoritative. Retired alert and collection tables
 remain preserved but are not exposed through runtime routes.

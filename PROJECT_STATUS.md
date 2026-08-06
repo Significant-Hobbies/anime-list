@@ -149,7 +149,9 @@ Last updated: 2026-08-07
 
 ### Architecture
 
-- Vite SPA calls `mal-api` worker; TanStack Query caches responses client-side.
+- Vite SPA calls `mal-api` through a same-origin `/api/*` Worker Route;
+  TanStack Query caches responses client-side, while Pages previews retain the
+  Function proxy as a fallback.
 - Worker loads full anime (~14.8k) + manga (~20.7k) catalogs into in-memory stores with 1hr stale-while-revalidate.
 - D1 stores catalog tables + per-user watchlists, schedule, and access tokens through the `DB` Worker binding. Retired alert and collection tables remain dormant.
 - Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
