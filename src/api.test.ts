@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { assertCatalogRowsFetched, fetchFromApi } from './api';
+import { assertCatalogRefreshComplete, assertCatalogRowsFetched, fetchFromApi } from './api';
 
 vi.mock('./utils/file', () => ({
   delay: vi.fn().mockResolvedValue(undefined),
@@ -51,5 +51,17 @@ describe('assertCatalogRowsFetched', () => {
 
   it('accepts a non-empty refresh', () => {
     expect(() => assertCatalogRowsFetched('anime', 1)).not.toThrow();
+  });
+});
+
+describe('assertCatalogRefreshComplete', () => {
+  it('rejects a partial refresh after preserving fetched rows', () => {
+    expect(() => assertCatalogRefreshComplete('anime', ['summer 2026 page 3'])).toThrow(
+      'Catalog refresh incomplete: Jikan failed for anime summer 2026 page 3 after retries.'
+    );
+  });
+
+  it('accepts a refresh with no failed pages', () => {
+    expect(() => assertCatalogRefreshComplete('manga', [])).not.toThrow();
   });
 });
