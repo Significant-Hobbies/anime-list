@@ -41,7 +41,9 @@ remain preserved but are not exposed through runtime routes.
   transforms in `src/dataProcessor.ts`; aggregation in `src/statistics.ts`.
 - **Persistence (Cloudflare D1):** one `DB` binding owns both catalogs and all
   user state. `src/db/client.ts` preserves the narrow execute/batch result
-  shape used by domain modules; `migrations/d1/` is the only schema authority.
+  shape used by domain modules and routes read-only batches through an
+  unconstrained D1 session so catalogue searches can use global read replicas;
+  `migrations/d1/` is the only schema authority.
 - **In-memory cache (`src/store/`):** `animeStore` / `mangaStore` load the
   full catalog from D1 with a 1h stale-while-revalidate TTL and a shared
   `coldLoadPromise` to dedupe cold-start stampede across concurrent requests

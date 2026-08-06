@@ -10,12 +10,19 @@ function createFakeDatabase() {
   const batch = vi.fn(async (statements: unknown[]) =>
     statements.map(() => ({ results: [], meta: { changes: 1 } }))
   );
+  const sessionBatch = vi.fn(async (statements: unknown[]) =>
+    statements.map(() => ({ results: [], meta: { changes: 0 } }))
+  );
+  const session = { prepare, batch: sessionBatch, getBookmark: vi.fn(() => null) };
+  const withSession = vi.fn(() => session);
 
   return {
-    database: { prepare, batch } as unknown as D1Database,
+    database: { prepare, batch, withSession } as unknown as D1Database,
     prepare,
     bind,
     batch,
+    sessionBatch,
+    withSession,
   };
 }
 
@@ -44,6 +51,18 @@ describe('D1 database client', () => {
     expect(fake.batch).toHaveBeenCalledTimes(3);
     expect(results).toHaveLength(205);
     expect(results.every((result) => result.rowsAffected === 1)).toBe(true);
+  });
+
+  it('uses an unconstrained D1 session for read-only batches', async () => {
+    const fake = createFakeDatabase();
+    const db = createD1Client(fake.database);
+
+    await db.batch(['SELECT 1', 'SELECT 2'], 'read');
+
+    expect(fake.withSession).toHaveBeenCalledOnce();
+    expect(fake.withSession).toHaveBeenCalledWith('first-unconstrained');
+    expect(fake.sessionBatch).toHaveBeenCalledOnce();
+    expect(fake.batch).not.toHaveBeenCalled();
   });
 });
 
