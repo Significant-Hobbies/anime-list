@@ -1,7 +1,7 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { describe, expect, it, vi } from 'vitest';
 import { createD1Client } from './client';
-import { bindStatement } from './operatorClient';
+import { bindStatement, parseWranglerResults } from './operatorClient';
 
 function createFakeDatabase() {
   const all = vi.fn(async () => ({ results: [{ value: 1 }], meta: { changes: 2 } }));
@@ -60,5 +60,24 @@ describe('Wrangler statement binding', () => {
   it('rejects placeholder and argument mismatches', () => {
     expect(() => bindStatement({ sql: 'SELECT ?', args: [] })).toThrow(/fewer arguments/);
     expect(() => bindStatement({ sql: 'SELECT 1', args: [1] })).toThrow(/more arguments/);
+  });
+});
+
+describe('Wrangler result parsing', () => {
+  it('ignores status output before a JSON batch result', () => {
+    const output = `├ Checking if file needs uploading
+│ 🌀 Uploading complete.
+│
+[
+  {"results":[{"Rows written":2}],"success":true,"meta":{"changes":2}}
+]`;
+
+    expect(parseWranglerResults(output)).toEqual([
+      { results: [{ 'Rows written': 2 }], success: true, meta: { changes: 2 } },
+    ]);
+  });
+
+  it('rejects output without a JSON result', () => {
+    expect(() => parseWranglerResults('Upload failed')).toThrow(/did not return a JSON result/);
   });
 });

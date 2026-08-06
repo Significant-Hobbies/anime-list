@@ -87,9 +87,14 @@ export function bindStatement(statement: DatabaseStatement): string {
   return sql;
 }
 
-function parseResults(stdout: string): WranglerResult[] {
+export function parseWranglerResults(stdout: string): WranglerResult[] {
   const trimmed = stdout.trim();
-  const parsed = JSON.parse(trimmed) as WranglerResult[];
+  const jsonLineIndex = trimmed.split('\n').findIndex((line) => line.trimStart().startsWith('['));
+  if (jsonLineIndex === -1) {
+    throw new Error('Wrangler D1 command did not return a JSON result');
+  }
+  const jsonPayload = trimmed.split('\n').slice(jsonLineIndex).join('\n');
+  const parsed = JSON.parse(jsonPayload) as WranglerResult[];
   if (!Array.isArray(parsed) || parsed.some((result) => result.success === false)) {
     throw new Error('Wrangler D1 command returned an unsuccessful result');
   }
@@ -132,7 +137,7 @@ function createWranglerD1Client(options: OperatorDatabaseOptions): DatabaseClien
       ],
       { maxBuffer: 128 * 1024 * 1024 }
     );
-    return parseResults(stdout);
+    return parseWranglerResults(stdout);
   };
 
   const run = (args: string[]): Promise<WranglerResult[]> => {

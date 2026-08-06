@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { delay } from './utils/file';
 import { API_CONFIG } from './config';
 import type { BaseAnimeItem, AnimeItem } from './types/anime';
@@ -29,15 +28,36 @@ interface ApiResponse<T> {
   };
 }
 
-const fetchFromApi = async <T>(url: string): Promise<T | null> => {
-  try {
-    // Run delay and API call in parallel for efficient rate limiting
-    const [response] = await Promise.all([axios.get(url), delay(API_CONFIG.rateLimit)]);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching ${url}:`, error instanceof Error ? error.message : String(error));
-    return null;
+const MAX_API_ATTEMPTS = 3;
+
+export const fetchFromApi = async <T>(
+  url: string,
+  maxAttempts: number = MAX_API_ATTEMPTS
+): Promise<T | null> => {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // Always complete the rate-limit delay, including when the request fails.
+      const [request] = await Promise.allSettled([
+        fetch(url, { headers: { Accept: 'application/json' } }),
+        delay(API_CONFIG.rateLimit),
+      ]);
+      if (request.status === 'rejected') throw request.reason;
+      if (!request.value.ok) {
+        throw new Error(`Request failed with status code ${request.value.status}`);
+      }
+      return (await request.value.json()) as T;
+    } catch (error) {
+      console.error(
+        `Error fetching ${url} (attempt ${attempt}/${maxAttempts}):`,
+        error instanceof Error ? error.message : String(error)
+      );
+      if (attempt < maxAttempts) {
+        console.warn(`Retrying ${url}...`);
+      }
+    }
   }
+
+  return null;
 };
 
 export function assertCatalogRowsFetched(kind: 'anime' | 'manga', count: number): void {
@@ -142,7 +162,6 @@ export const updateLatestTopMangaData = async (
   let stalePages = 0;
   const seenMalIds = new Set<number>();
   const FLUSH_EVERY_PAGES = 25;
-  const MAX_PAGE_RETRIES = 3;
   const MAX_STALE_PAGES = 5;
 
   console.log(`Fetching top manga (up to ${maxPages} pages)...`);
@@ -158,18 +177,10 @@ export const updateLatestTopMangaData = async (
 
   for (let page = 1; page <= maxPages; page++) {
     const url = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.topManga}?page=${page}&limit=20`;
-    let data: ApiResponse<RawMangaItem[]> | null = null;
-
-    for (let attempt = 1; attempt <= MAX_PAGE_RETRIES; attempt++) {
-      data = await fetchFromApi<ApiResponse<RawMangaItem[]>>(url);
-      if (data?.data && Array.isArray(data.data)) break;
-      if (attempt < MAX_PAGE_RETRIES) {
-        console.warn(`  page ${page} failed (attempt ${attempt}/${MAX_PAGE_RETRIES}), retrying...`);
-      }
-    }
+    const data = await fetchFromApi<ApiResponse<RawMangaItem[]>>(url);
 
     if (!data?.data || !Array.isArray(data.data)) {
-      console.error(`Invalid manga data on page ${page} after ${MAX_PAGE_RETRIES} attempts`);
+      console.error(`Invalid manga data on page ${page} after retries`);
       break;
     }
 
