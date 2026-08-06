@@ -19,9 +19,9 @@ export const onRequest: PagesFunction = async (context) => {
   const html = rewriteStaticSeo(await response.text(), surface, url.origin);
   const headers = new Headers(response.headers);
   headers.set('content-type', 'text/html; charset=utf-8');
-  // Keep releases and catalog metadata fresh on the custom domain. Hashed
-  // assets remain immutable; only generated HTML needs frequent revalidation.
-  headers.set('cache-control', 'public, max-age=0, s-maxage=300, must-revalidate');
+  // HTML identifies the active release and must change atomically with a Pages
+  // deployment. Hashed assets remain immutable via public/_headers.
+  headers.set('cache-control', 'no-store');
   return new Response(html, {
     status: response.status,
     statusText: response.statusText,
