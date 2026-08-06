@@ -35,7 +35,10 @@ function normalizeStatement(statement: DatabaseStatement): { sql: string; args: 
   return { sql, args };
 }
 
-function prepare(database: D1Database, statement: DatabaseStatement): D1PreparedStatement {
+function prepare(
+  database: Pick<D1Database, 'prepare'>,
+  statement: DatabaseStatement
+): D1PreparedStatement {
   const { sql, args } = normalizeStatement(statement);
   const prepared = database.prepare(sql);
   return args.length > 0 ? prepared.bind(...args) : prepared;
@@ -62,12 +65,13 @@ export function createD1Client(database: D1Database): DatabaseClient {
       return toResult(result);
     },
 
-    async batch(statements) {
+    async batch(statements, mode) {
       const results: DatabaseResult[] = [];
+      const queryTarget = mode === 'read' ? database.withSession('first-unconstrained') : database;
       for (let offset = 0; offset < statements.length; offset += D1_BATCH_SIZE) {
         const chunk = statements.slice(offset, offset + D1_BATCH_SIZE);
-        const chunkResults = await database.batch<Record<string, unknown>>(
-          chunk.map((statement) => prepare(database, statement))
+        const chunkResults = await queryTarget.batch<Record<string, unknown>>(
+          chunk.map((statement) => prepare(queryTarget, statement))
         );
         results.push(...chunkResults.map(toResult));
       }
