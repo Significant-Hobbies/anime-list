@@ -68,6 +68,14 @@ export function assertCatalogRowsFetched(kind: 'anime' | 'manga', count: number)
   }
 }
 
+export function assertCatalogRefreshComplete(kind: 'anime' | 'manga', failedPages: string[]): void {
+  if (failedPages.length > 0) {
+    throw new Error(
+      `Catalog refresh incomplete: Jikan failed for ${kind} ${failedPages.join(', ')} after retries.`
+    );
+  }
+}
+
 // Fetch the last two seasons and update the bound D1 database.
 export const updateLatestTwoSeasonData = async (): Promise<void> => {
   const p0 = performance.now();
@@ -101,6 +109,7 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
   ];
 
   const allFetchedAnime: AnimeItem[] = [];
+  const failedPages: string[] = [];
 
   for (const { season, year } of seasonsToFetch) {
     console.log(`Fetching ${season} ${year}...`);
@@ -109,7 +118,10 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
       const url = `${API_CONFIG.baseUrl}/seasons/${year}/${season}?page=${page}&limit=25`;
       const data = await fetchFromApi<ApiResponse<RawAnimeItem[]>>(url);
 
-      if (!data?.data || !Array.isArray(data.data)) break;
+      if (!data?.data || !Array.isArray(data.data)) {
+        failedPages.push(`${season} ${year} page ${page}`);
+        break;
+      }
 
       // Transform and collect anime
       for (const rawAnime of data.data) {
@@ -148,6 +160,8 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
     console.log('No changes detected.');
   }
 
+  assertCatalogRefreshComplete('anime', failedPages);
+
   console.log(`\n✓ Season update completed in ${(performance.now() - p0) / 1000}s`);
 };
 
@@ -160,6 +174,7 @@ export const updateLatestTopMangaData = async (
   let totalSaved = 0;
   let uniqueCount = 0;
   let stalePages = 0;
+  const failedPages: string[] = [];
   const seenMalIds = new Set<number>();
   const FLUSH_EVERY_PAGES = 25;
   const MAX_STALE_PAGES = 5;
@@ -181,6 +196,7 @@ export const updateLatestTopMangaData = async (
 
     if (!data?.data || !Array.isArray(data.data)) {
       console.error(`Invalid manga data on page ${page} after retries`);
+      failedPages.push(`page ${page}`);
       break;
     }
 
@@ -223,6 +239,7 @@ export const updateLatestTopMangaData = async (
   await flushPending();
 
   assertCatalogRowsFetched('manga', totalSaved);
+  assertCatalogRefreshComplete('manga', failedPages);
   console.log(`Saved ${totalSaved} manga total.`);
 
   console.log(
