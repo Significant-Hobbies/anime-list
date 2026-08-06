@@ -8,7 +8,8 @@ Browser (Vite SPA, Cloudflare Pages)
    ▼
 mal-api (Cloudflare Worker, Hono)  ── cron 0 3 * * * ──▶ reload catalog caches
    │  in-memory animeStore / mangaStore (stale-while-revalidate, 1h TTL)
-   │  edge Cache API (search 1h, stats 300s, detail 24h anonymous)
+   │  D1 batch + search-order indexes (default catalog search)
+   │  edge Cache API (stats 300s, detail 24h anonymous)
    ▼
 Cloudflare D1 (`DB`)  ──  anime_data, manga_data, watchlists, schedule, tokens, users
    ▲
@@ -68,7 +69,7 @@ remain preserved but are not exposed through runtime routes.
 | Surface | TTL | Notes |
 | --- | --- | --- |
 | Worker in-memory catalog | 1h stale-while-revalidate | Cron reloads daily at 03:00 UTC |
-| `/api/search` edge | 180s | keyed by encoded filter + auth flag |
+| `/api/search` | uncached | common searches use one D1 batch call; weighted/personalized searches use the in-memory fallback |
 | `/api/stats` edge | 300s | |
 | `/api/last-updated` edge | cached only on the uncached public read path | |
 | Generated app/detail HTML | `max-age=0, s-maxage=300` | avoids release drift while retaining a short edge cache |

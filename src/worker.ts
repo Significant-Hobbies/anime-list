@@ -121,7 +121,6 @@ type Env = {
   POSTHOG_API_KEY?: string;
 };
 
-const SEARCH_CACHE_TTL_SECONDS = 3600;
 const STATS_CACHE_TTL_SECONDS = 300;
 // last-updated is a global, public, non-user value that changes once daily via
 // the cron sync. Edge-caching it keeps the only previously-uncached public read
@@ -219,40 +218,6 @@ async function resolveUser(
   }
   return verifyToken(token);
 }
-
-const toHex = (buffer: ArrayBuffer): string =>
-  Array.from(new Uint8Array(buffer))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-
-const buildSearchCacheRequest = async (
-  origin: string,
-  payload: {
-    filters: unknown;
-    sortBy: string | undefined;
-    airing: 'yes' | 'no' | 'any';
-    pagesize: number;
-    offset: number;
-  }
-): Promise<Request> => {
-  const normalizedPayload = {
-    filters: payload.filters,
-    sortBy: payload.sortBy ?? null,
-    airing: payload.airing,
-    pagesize: payload.pagesize,
-    offset: payload.offset,
-  };
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(JSON.stringify(normalizedPayload))
-  );
-  const key = toHex(digest);
-  const cacheUrl = new URL('https://mal-cache.local/api/search');
-  cacheUrl.searchParams.set('v', '1');
-  cacheUrl.searchParams.set('k', key);
-  cacheUrl.searchParams.set('o', origin || 'none');
-  return new Request(cacheUrl.toString(), { method: 'GET' });
-};
 
 // ── Google OAuth (using jose JWKS instead of google-auth-library) ──────
 
@@ -518,7 +483,6 @@ app.get('/api/changelog', async (c) => {
 
 // Search
 app.post('/api/search', optionalAuth, async (c) => {
-  const edgeCache = (caches as unknown as { default: Cache }).default;
   const body = await c.req.json();
   const parsed = filterRequestSchema.safeParse(body);
   if (!parsed.success) {
@@ -533,26 +497,9 @@ app.post('/api/search', optionalAuth, async (c) => {
 
   const { filters, sortBy, airing, hideWatched, includeWatched, pagesize, offset } = parsed.data;
   const user = c.get('user');
-  const canUseCache = hideWatched.length === 0 && includeWatched.length === 0;
-  let cacheRequest: Request | null = null;
+  const canUseD1Search = hideWatched.length === 0 && includeWatched.length === 0;
 
-  if (canUseCache) {
-    cacheRequest = await buildSearchCacheRequest(c.req.header('origin') || 'none', {
-      filters,
-      sortBy,
-      airing,
-      pagesize,
-      offset,
-    });
-    const cachedResponse = await edgeCache.match(cacheRequest);
-    if (cachedResponse) {
-      const response = new Response(cachedResponse.body, cachedResponse);
-      response.headers.set('X-Search-Cache', 'HIT');
-      return response;
-    }
-  }
-
-  const simpleSearchPage = canUseCache
+  const simpleSearchPage = canUseD1Search
     ? await trace(
         'db:search:simple',
         () => getSimpleAnimeSearchPage({ filters, sortBy, airing, pagesize, offset }),
@@ -565,21 +512,9 @@ app.post('/api/search', optionalAuth, async (c) => {
       totalFiltered: simpleSearchPage.totalFiltered,
       filteredList: simpleSearchPage.page.map(toSearchAnime),
     });
-
-    if (!cacheRequest) {
-      response.headers.set('X-Search-Cache', 'BYPASS');
-      return response;
-    }
-
-    response.headers.set('X-Search-Cache', 'MISS');
-    response.headers.set('X-Search-Path', 'simple');
-    const cacheableResponse = new Response(response.body, response);
-    cacheableResponse.headers.set(
-      'Cache-Control',
-      `public, max-age=0, s-maxage=${SEARCH_CACHE_TTL_SECONDS}`
-    );
-    c.executionCtx.waitUntil(edgeCache.put(cacheRequest, cacheableResponse.clone()));
-    return cacheableResponse;
+    response.headers.set('X-Search-Cache', 'BYPASS');
+    response.headers.set('X-Search-Path', 'd1');
+    return response;
   }
 
   let filtered = await trace('db:search', () => filterAnimeList(filters), { project: 'mal-api' });
@@ -618,21 +553,9 @@ app.post('/api/search', optionalAuth, async (c) => {
     filteredList: takePage(sorted, pagesize, offset).map(toSearchAnime),
   });
 
-  if (!canUseCache || !cacheRequest) {
-    response.headers.set('X-Search-Cache', 'BYPASS');
-    response.headers.set('X-Search-Path', 'memory');
-    return response;
-  }
-
-  response.headers.set('X-Search-Cache', 'MISS');
+  response.headers.set('X-Search-Cache', 'BYPASS');
   response.headers.set('X-Search-Path', 'memory');
-  const cacheableResponse = new Response(response.body, response);
-  cacheableResponse.headers.set(
-    'Cache-Control',
-    `public, max-age=0, s-maxage=${SEARCH_CACHE_TTL_SECONDS}`
-  );
-  c.executionCtx.waitUntil(edgeCache.put(cacheRequest, cacheableResponse.clone()));
-  return cacheableResponse;
+  return response;
 });
 
 // Stats
