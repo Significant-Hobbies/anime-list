@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
 ## Why / What
 
@@ -23,7 +23,7 @@ Last updated: 2026-08-06
 - **Jikan API:** daily GH Action sync + quarterly full refresh.
 - **MAL CDN:** poster images (recurring operational risk).
 - **PostHog:** client analytics.
-- **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 1h, stats 300s, detail 24h anonymous only).
+- **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (stats 300s, detail 24h anonymous only).
 - **Worker secrets (names only):** `JWT_SECRET`, `GOOGLE_CLIENT_ID`; any legacy unused Turso credential bindings are separate credential-cleanup work.
 - **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `VITE_SAASMAKER_API_KEY`, optional `VITE_HOME_QUIZ_ABOVE_FOLD` (forces treatment for all visitors in the homepage A/B test; the live 50/50 split uses the `ab_home` cookie — see "Engagement measurement").
 
@@ -155,7 +155,7 @@ Last updated: 2026-08-06
 - Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
 - Worker cron `0 3 * * *` reloads catalog caches after the GitHub Action refresh.
 - GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, and a manual (`workflow_dispatch`) Pages deploy — no auto-deploy on push.
-- Edge caches: search 1h, stats 300s, detail 24h (anonymous only).
+- Edge caches: stats 300s, detail 24h (anonymous only); catalog search is D1-first and uncached.
 - CORS allowlist for Pages, worker, localhost, PR previews.
 - Deploy branch guard on `pnpm deploy` (clean `main` only).
 
@@ -164,8 +164,9 @@ Last updated: 2026-08-06
 - ~14.8k anime + ~20.7k manga with quality gates (score, scored_by, members, favorites, year).
 - Advanced multi-field filters with active filter explanation chips (`ActiveFilterChip`).
 - Smart ranking: log-scale popularity + MAL score balance.
-- Common searches use bounded D1 count/page queries and a one-hour edge cache;
-  weighted or personalized searches retain the in-memory fallback.
+- Common searches use indexed count/page statements in one D1 batch call, with
+  no response-cache dependency; weighted or personalized searches retain the
+  in-memory fallback.
 - Daily GH Action Jikan sync + quarterly full manga refresh + worker cron 03:00 UTC cache reload.
 
 ### Personal & discovery

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AnimeField, FilterAction } from '../config';
-import { buildAnimeSearchWhere } from './animeData';
+import { buildAnimeSearchWhere, getSimpleAnimeSearchPage } from './animeData';
+import { setDbClient, type DatabaseClient } from './client';
 
 describe('buildAnimeSearchWhere', () => {
   it('translates the default popularity filter', () => {
@@ -52,5 +53,49 @@ describe('buildAnimeSearchWhere', () => {
         'any'
       )
     ).toBeNull();
+  });
+
+  it('gets the page and total count in one D1 batch call', async () => {
+    const execute = vi.fn();
+    const batch = vi.fn(async () => [
+      { rows: [{ count: 42 }], rowsAffected: 0 },
+      {
+        rows: [
+          {
+            mal_id: 1,
+            url: 'https://example.com/anime/1',
+            title: 'Cowboy Bebop',
+            score: 8.75,
+            genres: '{}',
+            themes: '{}',
+            demographics: '{}',
+          },
+        ],
+        rowsAffected: 0,
+      },
+    ]);
+    setDbClient({ execute, batch } as DatabaseClient);
+
+    const result = await getSimpleAnimeSearchPage({
+      filters: [],
+      sortBy: AnimeField.Score,
+      airing: 'any',
+      pagesize: 40,
+      offset: 0,
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(batch).toHaveBeenCalledOnce();
+    expect(batch).toHaveBeenCalledWith(
+      [
+        { sql: expect.stringContaining('SELECT COUNT(*) AS count'), args: [] },
+        { sql: expect.stringContaining('ORDER BY score DESC'), args: [40, 0] },
+      ],
+      'read'
+    );
+    expect(result).toMatchObject({
+      totalFiltered: 42,
+      page: [{ mal_id: 1, title: 'Cowboy Bebop', points: 8.75 }],
+    });
   });
 });

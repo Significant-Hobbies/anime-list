@@ -351,18 +351,24 @@ export async function getSimpleAnimeSearchPage({
   if (!searchWhere) return null;
   const { whereClause, args } = searchWhere;
   const db = getDb();
-  const [countResult, pageResult] = await Promise.all([
-    db.execute({
-      sql: `SELECT COUNT(*) AS count FROM anime_data ${whereClause}`,
-      args,
-    }),
-    db.execute({
-      sql: `SELECT * FROM anime_data ${whereClause}
-            ORDER BY ${sortColumn} DESC, mal_id ASC
-            LIMIT ? OFFSET ?`,
-      args: [...args, pagesize, offset],
-    }),
-  ]);
+  // D1 batch sends both optimized statements in one binding call. A window
+  // count looks simpler, but forces SQLite to materialize and sort the full
+  // filtered set before LIMIT; on this catalog it is measurably slower.
+  const [countResult, pageResult] = await db.batch(
+    [
+      {
+        sql: `SELECT COUNT(*) AS count FROM anime_data ${whereClause}`,
+        args,
+      },
+      {
+        sql: `SELECT * FROM anime_data ${whereClause}
+              ORDER BY ${sortColumn} DESC, mal_id ASC
+              LIMIT ? OFFSET ?`,
+        args: [...args, pagesize, offset],
+      },
+    ],
+    'read'
+  );
 
   return {
     totalFiltered: Number(countResult.rows[0]?.count ?? 0),
