@@ -14,6 +14,7 @@ import type { DiscoveryQueueResponse } from '@/lib/types';
 import GoogleSignInButton from './GoogleSignInButton';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Skeleton } from './ui/loading-state';
 
 type DiscoveryItem = DiscoveryQueueResponse['results'][number];
 
@@ -38,20 +39,25 @@ function MediaBadge({ mediaType }: { mediaType?: 'anime' | 'manga' }) {
 
 function DiscoveryQueueSkeleton() {
   return (
-    <div className="mx-auto max-w-2xl" role="status" aria-label="Loading discovery queue">
+    <div
+      className="mx-auto max-w-2xl"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Loading discovery queue"
+    >
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="grid animate-pulse md:grid-cols-[12rem_1fr]">
-          <div className="aspect-[2/3] bg-muted md:aspect-auto md:min-h-80" />
+        <div className="grid md:grid-cols-[12rem_1fr]">
+          <Skeleton className="aspect-[2/3] rounded-none md:aspect-auto md:min-h-80" />
           <div className="space-y-4 p-6">
-            <div className="h-4 w-28 rounded bg-muted" />
-            <div className="h-7 w-3/4 rounded bg-muted" />
-            <div className="h-4 w-full rounded bg-muted/70" />
-            <div className="h-4 w-5/6 rounded bg-muted/70" />
-            <div className="h-10 w-full rounded-lg bg-muted" />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-7 w-3/4" />
+            <Skeleton className="h-4 w-full bg-muted/45" />
+            <Skeleton className="h-4 w-5/6 bg-muted/45" />
+            <Skeleton className="h-10 w-full rounded-lg" />
           </div>
         </div>
       </div>
-      <span className="sr-only">Finding titles for you…</span>
     </div>
   );
 }

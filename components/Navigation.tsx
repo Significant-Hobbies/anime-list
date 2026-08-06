@@ -2,7 +2,7 @@
 
 import { Link, useRouterState } from '@tanstack/react-router';
 import { useAuth } from '@/lib/auth';
-import { SITE_NAME } from '@/lib/brand';
+import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -14,6 +14,7 @@ import {
 import GoogleSignInButton from './GoogleSignInButton';
 import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
+import { Skeleton } from '@/components/ui/loading-state';
 
 const animeLinks = [
   { href: '/discover', label: 'Discover' },
@@ -58,9 +59,15 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-3 sm:gap-6">
         <Link
           to={homeHref}
-          className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground sm:text-base"
+          aria-label="Anime List by Significant Hobbies"
+          className="flex min-w-0 shrink-0 flex-col items-start justify-center gap-0.5 whitespace-nowrap text-foreground"
         >
-          {SITE_NAME}
+          <span className="text-sm font-semibold leading-none tracking-tight sm:text-base">
+            {PRODUCT_NAME}
+          </span>
+          <span className="text-[8px] font-medium leading-none text-muted-foreground sm:text-[9px]">
+            by {PUBLISHER_NAME}
+          </span>
         </Link>
 
         <div className="hidden sm:flex items-center gap-1 rounded-lg bg-muted/60 p-1">
@@ -148,9 +155,11 @@ export default function Navigation() {
           </DropdownMenu>
         </div>
 
-        <div className="flex min-w-28 items-center justify-end gap-3">
+        <div className="flex min-w-10 items-center justify-end gap-3 sm:min-w-28">
           {loading ? (
-            <span className="h-9 w-28" aria-hidden />
+            <div role="status" aria-label="Checking sign-in status">
+              <Skeleton className="h-8 w-24 rounded-full" />
+            </div>
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -5,6 +5,7 @@ import { getStats, getWatchlistTags } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
+import { RefreshIndicator, StatsGridSkeleton } from '@/components/ui/loading-state';
 
 export default function StatsPage() {
   const { user } = useAuth();
@@ -30,6 +31,7 @@ export default function StatsPage() {
       getStats({
         includeWatched: includeStatuses,
       }),
+    placeholderData: (previous) => previous,
   });
 
   const toggleIncludeStatus = (status: string) => {
@@ -92,12 +94,10 @@ export default function StatsPage() {
         </div>
       )}
 
+      <RefreshIndicator active={isFetching && !!stats} label="Updating anime statistics" />
+
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
-          ))}
-        </div>
+        <StatsGridSkeleton label="Loading anime statistics" />
       ) : error ? (
         <div className="flex flex-col items-start gap-3">
           <p className="text-destructive text-sm">

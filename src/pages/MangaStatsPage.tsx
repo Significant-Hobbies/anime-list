@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import StatsCharts from '@/components/StatsCharts';
 import { getMangaStats } from '@/lib/api';
+import { RefreshIndicator, StatsGridSkeleton } from '@/components/ui/loading-state';
 
 export default function MangaStatsPage() {
   const {
@@ -23,12 +24,10 @@ export default function MangaStatsPage() {
         </p>
       </div>
 
+      <RefreshIndicator active={isFetching && !!stats} label="Updating manga statistics" />
+
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
-          ))}
-        </div>
+        <StatsGridSkeleton label="Loading manga statistics" />
       ) : error ? (
         <div className="flex flex-col items-start gap-3">
           <p className="text-destructive text-sm">

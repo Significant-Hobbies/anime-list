@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getChangelog } from '@/lib/api';
 import type { ChangelogEntry } from '@/lib/api';
+import { ListSkeleton, RefreshIndicator } from '@/components/ui/loading-state';
 
 const TYPE_COLORS: Record<string, string> = {
   TV: 'bg-blue-500/15 text-blue-400',
@@ -34,6 +35,7 @@ export default function CatalogUpdatesPage() {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['changelog'],
     queryFn: () => getChangelog(200),
+    placeholderData: (previous) => previous,
   });
 
   const grouped = data ? groupByDate(data.changes) : {};
@@ -46,22 +48,10 @@ export default function CatalogUpdatesPage() {
         <p className="text-sm text-muted-foreground mt-1">Recently added anime to the database</p>
       </div>
 
+      <RefreshIndicator active={isFetching && !!data} label="Updating catalog history" />
+
       {isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-border bg-card/50 p-4 space-y-3 animate-pulse"
-            >
-              <div className="h-4 w-40 bg-muted rounded" />
-              <div className="space-y-2">
-                <div className="h-3 w-full bg-muted rounded" />
-                <div className="h-3 w-3/4 bg-muted rounded" />
-                <div className="h-3 w-1/2 bg-muted rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <ListSkeleton label="Loading catalog history" rows={4} />
       ) : isError ? (
         <div className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
           <p className="text-sm text-muted-foreground">

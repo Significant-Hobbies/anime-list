@@ -11,6 +11,7 @@ import { trackActivated, trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_WATCH_TAGS, resolveTagColor } from '@/lib/watchStatus';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
 
 const compactNumber = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -30,16 +31,21 @@ function formatStat(value?: number | null, compact = false): string | null {
 
 function LoadingSkeleton({ isModal = false }: { isModal?: boolean }) {
   return (
-    <div className={cn('space-y-6 animate-pulse', isModal ? 'p-6' : 'px-6 py-10')}>
-      {!isModal && <div className="h-9 w-32 rounded-md bg-muted" />}
+    <section
+      className={cn('space-y-6', isModal ? 'p-6' : 'px-6 py-10')}
+      aria-busy="true"
+      aria-label="Loading manga details"
+    >
+      <LoadingStatus label="Loading manga details" />
+      {!isModal && <Skeleton className="h-9 w-32" />}
       <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-4 aspect-[2/3] rounded-sm bg-surface-container-high" />
+        <Skeleton className="aspect-[2/3] lg:col-span-4" />
         <div className="lg:col-span-8 space-y-4 rounded-sm border border-outline/10 bg-surface-container-low p-6">
-          <div className="h-12 w-2/3 rounded bg-muted" />
-          <div className="h-32 w-full rounded bg-muted" />
+          <Skeleton className="h-12 w-2/3" />
+          <Skeleton className="h-32 w-full bg-muted/45" />
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -3,7 +3,7 @@
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getLastUpdated } from '@/lib/api';
-import { SITE_NAME } from '@/lib/brand';
+import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -30,7 +30,12 @@ export default function Footer() {
     <footer className="max-w-7xl mx-auto px-4 sm:px-6 py-8 mt-8 border-t border-border">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
-          <span className="font-medium text-foreground">{SITE_NAME}</span>
+          <span className="inline-flex flex-col items-start gap-0.5 text-foreground">
+            <span className="font-medium leading-none">{PRODUCT_NAME}</span>
+            <span className="text-[9px] leading-none text-muted-foreground">
+              by {PUBLISHER_NAME}
+            </span>
+          </span>
           {data?.lastUpdated && (
             <>
               <span className="text-border">·</span>

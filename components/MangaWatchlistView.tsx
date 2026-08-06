@@ -16,22 +16,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn, getMangaDetailHref } from '@/lib/utils';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
+import { ListSkeleton, RefreshIndicator } from '@/components/ui/loading-state';
 
 function WatchlistSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-8 w-24 rounded-full bg-muted animate-pulse" />
-        ))}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
-        ))}
-      </div>
-    </div>
-  );
+  return <ListSkeleton label="Loading manga watchlist" rows={6} />;
 }
 
 export default function MangaWatchlistView() {
@@ -92,7 +80,7 @@ export default function MangaWatchlistView() {
     }
   }, [tags, activeTab]);
 
-  if (authLoading) return null;
+  if (authLoading) return <WatchlistSkeleton />;
 
   if (!user) {
     return (
@@ -129,6 +117,7 @@ export default function MangaWatchlistView() {
 
   return (
     <div className="space-y-5">
+      <RefreshIndicator active={isFetching} label="Updating manga watchlist" />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Manga Watchlist</h1>
         <p className="text-sm text-muted-foreground mt-1">

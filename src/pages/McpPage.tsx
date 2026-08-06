@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { getApiUrl } from '@/lib/apiConfig';
 import { listTokens, createToken, revokeToken, type ApiTokenMetadata } from '@/lib/api';
 import { SITE_NAME } from '@/lib/brand';
+import { TableSkeleton } from '@/components/ui/loading-state';
 
 const API_URL = getApiUrl();
 const MCP_ENDPOINT = `${API_URL}/api/mcp`;
@@ -175,7 +176,7 @@ function TokenManager() {
 
       <div className="mt-6">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <TableSkeleton label="Loading access tokens" />
         ) : data?.tokens?.length ? (
           <table className="w-full">
             <thead>

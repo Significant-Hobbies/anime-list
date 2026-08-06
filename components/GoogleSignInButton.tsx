@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
 
 const PRODUCTION_GOOGLE_CLIENT_ID =
   '207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com';
@@ -25,12 +26,12 @@ declare global {
           renderButton: (
             parent: HTMLElement,
             options: {
-              type: 'standard';
-              theme: 'outline';
-              size: 'medium';
-              shape: 'rectangular';
-              text: 'signin_with';
-              logo_alignment: 'left';
+              type: 'standard' | 'icon';
+              theme: 'outline' | 'filled_blue' | 'filled_black';
+              size: 'small' | 'medium';
+              shape: 'rectangular' | 'pill' | 'circle' | 'square';
+              text?: 'signin_with';
+              logo_alignment?: 'left' | 'center';
             }
           ) => void;
         };
@@ -68,6 +69,7 @@ export default function GoogleSignInButton() {
   const { login } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const clientId = getGoogleClientId();
@@ -80,13 +82,12 @@ export default function GoogleSignInButton() {
       const identityApi = window.google.accounts.id;
       initializeGoogleIdentity(identityApi, clientId);
       identityApi.renderButton(buttonRef.current, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'medium',
-        shape: 'rectangular',
-        text: 'signin_with',
-        logo_alignment: 'left',
+        type: 'icon',
+        theme: 'filled_black',
+        size: 'small',
+        shape: 'circle',
       });
+      setReady(true);
     };
 
     if (window.google) {
@@ -113,5 +114,15 @@ export default function GoogleSignInButton() {
     return () => script.removeEventListener('load', onLoad);
   }, [login]);
 
-  return <div ref={buttonRef} className="min-h-8 min-w-24" />;
+  return (
+    <div className="relative h-5 w-5" aria-busy={!ready || undefined}>
+      {!ready && (
+        <>
+          <Skeleton className="absolute inset-0 rounded-full" />
+          <LoadingStatus label="Loading Google sign-in" />
+        </>
+      )}
+      <div ref={buttonRef} className="relative h-5 w-5 overflow-hidden rounded-full" />
+    </div>
+  );
 }

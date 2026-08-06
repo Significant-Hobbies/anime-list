@@ -25,22 +25,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn, getAnimeDetailHref } from '@/lib/utils';
 import { getDefaultTagColor, resolveTagColor, toRgba } from '@/lib/watchStatus';
+import { ListSkeleton, RefreshIndicator } from '@/components/ui/loading-state';
 
 function WatchlistSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-8 w-24 rounded-full bg-muted animate-pulse" />
-        ))}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
-        ))}
-      </div>
-    </div>
-  );
+  return <ListSkeleton label="Loading anime watchlist" rows={6} />;
 }
 
 export default function WatchlistView() {
@@ -217,7 +205,7 @@ export default function WatchlistView() {
     });
   }, [tags]);
 
-  if (authLoading) return null;
+  if (authLoading) return <WatchlistSkeleton />;
 
   if (!user) {
     return (
@@ -266,6 +254,7 @@ export default function WatchlistView() {
 
   return (
     <div className="space-y-5">
+      <RefreshIndicator active={isFetching} label="Updating anime watchlist" />
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex gap-2 flex-wrap">
           {tags.map((tag) => {

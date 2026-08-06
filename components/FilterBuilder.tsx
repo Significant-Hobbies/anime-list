@@ -37,8 +37,8 @@ import {
   GenrePills,
   SegmentedControl,
 } from './discover/ui';
-import { cn } from '@/lib/utils';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
+import { RefreshIndicator } from './ui/loading-state';
 
 const DEFAULT_FILTER: SearchFilter = {
   field: 'score',
@@ -645,10 +645,8 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
 
       {data && (
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-muted-foreground">
-            {totalFiltered.toLocaleString()} titles
-            {isFetching && ' · updating…'}
-          </p>
+          <p className="text-sm text-muted-foreground">{totalFiltered.toLocaleString()} titles</p>
+          <RefreshIndicator active={isFetching} label="Updating anime results" />
         </div>
       )}
 
@@ -672,7 +670,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
         {loading && !data ? (
           <ResultsGridSkeleton />
         ) : data ? (
-          <div className={cn('transition-opacity duration-300', isFetching && 'opacity-50')}>
+          <div aria-busy={isFetching || undefined}>
             <ResultsGrid results={data} />
 
             {totalPages > 1 && (

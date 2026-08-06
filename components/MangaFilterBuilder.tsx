@@ -33,8 +33,8 @@ import {
   FilterSection,
   GenrePills,
 } from './discover/ui';
-import { cn } from '@/lib/utils';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
+import { RefreshIndicator } from './ui/loading-state';
 
 const DEFAULT_FILTER: SearchFilter = {
   field: 'score',
@@ -459,10 +459,10 @@ export default function MangaFilterBuilder() {
       </DiscoverPanel>
 
       {data && (
-        <p className="text-sm text-muted-foreground">
-          {totalFiltered.toLocaleString()} titles
-          {isFetching && ' · updating…'}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground">{totalFiltered.toLocaleString()} titles</p>
+          <RefreshIndicator active={isFetching} label="Updating manga results" />
+        </div>
       )}
 
       {error && (
@@ -485,7 +485,7 @@ export default function MangaFilterBuilder() {
         {loading && !data ? (
           <MangaResultsGridSkeleton />
         ) : data ? (
-          <div className={cn('transition-opacity duration-300', isFetching && 'opacity-50')}>
+          <div aria-busy={isFetching || undefined}>
             <MangaResultsGrid results={data} />
 
             {totalPages > 1 && (

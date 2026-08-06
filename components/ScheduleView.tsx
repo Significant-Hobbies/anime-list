@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/auth';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn, getAnimeDetailHref } from '@/lib/utils';
+import { RefreshIndicator, Skeleton } from '@/components/ui/loading-state';
 
 // ── Client-side timeline computation (uses local timezone) ─────────────
 
@@ -103,15 +104,21 @@ function buildTimeline(
 
 function ScheduleSkeleton() {
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Loading schedule"
+    >
       <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
+          <Skeleton key={i} className="h-20 rounded-xl" />
         ))}
       </div>
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
+          <Skeleton key={i} className="h-16 rounded-xl bg-muted/45" />
         ))}
       </div>
     </div>
@@ -331,7 +338,7 @@ export default function ScheduleView() {
 
   // ── Auth gates ──────────────────────────────────────────────────────
 
-  if (authLoading) return null;
+  if (authLoading) return <ScheduleSkeleton />;
 
   if (!user) {
     return (
@@ -378,6 +385,7 @@ export default function ScheduleView() {
 
   return (
     <div className="space-y-5">
+      <RefreshIndicator active={isFetching} label="Updating schedule" />
       {/* Ep/day control + Stats */}
       <div className="flex items-center gap-3">
         <label className="text-sm text-muted-foreground">Episodes per day</label>
