@@ -70,22 +70,24 @@ export default function HomePage() {
     <div className="-mt-8 -mx-4 sm:-mx-6">
       <section className="px-4 sm:px-6 pt-16 pb-20 sm:pt-24 sm:pb-28">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-            Anime &amp; manga, indexed from MyAnimeList
+          <div data-home-react-copy>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+              Anime &amp; manga, indexed from MyAnimeList
+            </div>
+            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
+              Find your next anime in 30 seconds.
+            </h1>
+            <p className="mt-5 mx-auto max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+              Filter 35,000+ anime and manga titles from MyAnimeList by score, genre, year, and
+              members. Free, no sign-up to search, private watchlist if you want one.
+            </p>
           </div>
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
-            Find your next anime in 30 seconds.
-          </h1>
-          <p className="mt-5 mx-auto max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            Filter 35,000+ anime and manga titles from MyAnimeList by score, genre, year, and
-            members. Free, no sign-up to search, private watchlist if you want one.
-          </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               to="/search"
               onClick={() => trackHomeSurfaceClick('search', 'hero')}
-              className="inline-flex min-h-10 items-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="inline-flex min-h-10 items-center rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
             >
               Filter the catalog
             </Link>
@@ -204,7 +206,7 @@ export default function HomePage() {
           <Link
             to="/search"
             onClick={() => trackHomeSurfaceClick('search', 'footer_cta')}
-            className="mt-6 inline-flex min-h-10 items-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="mt-6 inline-flex min-h-10 items-center rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
           >
             Open {SITE_NAME}
           </Link>

@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react';
-import { Outlet } from '@tanstack/react-router';
+import { Suspense, lazy, useEffect } from 'react';
+import { Outlet, useRouterState } from '@tanstack/react-router';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/lib/auth';
@@ -9,6 +9,12 @@ import { PageShellSkeleton, RouteProgress } from '@/components/ui/loading-state'
 const FeedbackWidgetWrapper = lazy(() => import('@/components/FeedbackWidgetWrapper'));
 
 export default function RootLayout() {
+  const isHome = useRouterState({ select: (state) => state.location.pathname === '/' });
+
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-home', isHome);
+  }, [isHome]);
+
   return (
     <AnalyticsProvider>
       <AuthProvider>

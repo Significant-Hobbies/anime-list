@@ -6,7 +6,23 @@
     <meta name="theme-color" content="#09090b" />
     <style>
       #lcp-shell { display: none; }
-      html[data-home] #lcp-shell { display: block; }
+      html[data-home] #lcp-shell {
+        display: block;
+        position: absolute;
+        top: 7.5rem;
+        right: 1rem;
+        left: 1rem;
+        z-index: 1;
+        pointer-events: none;
+      }
+      html[data-home] [data-home-react-copy] { visibility: hidden; }
+      @media (min-width: 640px) {
+        html[data-home] #lcp-shell {
+          top: 9.5rem;
+          right: 1.5rem;
+          left: 1.5rem;
+        }
+      }
     </style>
     <script>
       if (window.location.pathname === '/') document.documentElement.dataset.home = '';
@@ -45,28 +61,22 @@
 <!-- fleet-jsonld:end -->
 </head>
   <body data-analytics="true" style="margin:0;background:#09090b;color:#fafafa;font-family:system-ui,sans-serif;">
-    <!-- LCP shell: mirrors home hero so first paint doesn't wait on React + fonts + CSS.
-         Placed OUTSIDE #root so React hydration doesn't wipe it before app content paints. -->
-    <div id="lcp-shell" style="position:fixed;inset:0;z-index:0;pointer-events:none;">
-      <div style="min-height:100vh;background:#09090b;color:#fafafa;">
-        <header style="border-bottom:1px solid #27272a;">
-          <div style="margin:0 auto;max-width:80rem;padding:1rem 1.5rem;">
-            <span style="display:flex;flex-direction:column;gap:0.125rem;line-height:1;">
-              <span style="font-size:1rem;font-weight:600;">Anime List</span>
-              <span style="font-size:0.5625rem;font-weight:500;color:#a1a1aa;">by Significant Hobbies</span>
-            </span>
-          </div>
-        </header>
-        <main style="max-width:48rem;margin:0 auto;padding:6rem 1.5rem 5rem;text-align:center;">
-          <p style="margin:0 0 1.5rem;display:inline-flex;align-items:center;gap:0.5rem;padding:0.25rem 0.75rem;border-radius:9999px;border:1px solid #27272a;background:#18181b;font-size:0.75rem;color:#a1a1aa;">
-            Anime &amp; manga, indexed from MyAnimeList
-          </p>
-          <h1 style="margin:0;font-size:clamp(2.25rem,5vw,3.75rem);font-weight:600;line-height:1.1;letter-spacing:-0.02em;">
-            Find your next anime in 30 seconds.
-          </h1>
-        </main>
+    <!-- Persistent home copy: the matching React copy reserves layout but stays
+         invisible, so the LCP candidate is painted with the initial HTML. -->
+    <section id="lcp-shell" aria-labelledby="lcp-shell-title">
+      <div style="max-width:48rem;margin:0 auto;text-align:center;">
+        <p style="margin:0 0 1.5rem;display:inline-flex;align-items:center;gap:0.5rem;padding:0.25rem 0.75rem;border-radius:9999px;border:1px solid #27272a;background:#18181b;font-size:0.75rem;line-height:1rem;color:#a1a1aa;">
+          <span style="width:0.375rem;height:0.375rem;border-radius:9999px;background:#818cf8;"></span>
+          Anime &amp; manga, indexed from MyAnimeList
+        </p>
+        <h1 id="lcp-shell-title" style="margin:0;font-size:clamp(2.25rem,5vw,3.75rem);font-weight:600;line-height:1.1;letter-spacing:-0.025em;">
+          Find your next anime in 30 seconds.
+        </h1>
+        <p style="max-width:42rem;margin:1.25rem auto 0;font-size:clamp(1rem,2vw,1.125rem);line-height:1.75rem;color:#a1a1aa;">
+          Filter 35,000+ anime and manga titles from MyAnimeList by score, genre, year, and members. Free, no sign-up to search, private watchlist if you want one.
+        </p>
       </div>
-    </div>
+    </section>
     <div id="root">
       <!-- ssr:start -->
       <!-- ssr:end -->
