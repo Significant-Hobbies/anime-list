@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { assertCatalogRefreshComplete, assertCatalogRowsFetched, fetchFromApi } from './api';
+import {
+  assertCatalogRefreshComplete,
+  assertCatalogRowsFetched,
+  fetchFromApi,
+  isRequiredSeasonPage,
+} from './api';
 
 vi.mock('./utils/file', () => ({
   delay: vi.fn().mockResolvedValue(undefined),
@@ -63,5 +68,16 @@ describe('assertCatalogRefreshComplete', () => {
 
   it('accepts a refresh with no failed pages', () => {
     expect(() => assertCatalogRefreshComplete('manga', [])).not.toThrow();
+  });
+});
+
+describe('isRequiredSeasonPage', () => {
+  it('fails closed when the first page for a season is unavailable', () => {
+    expect(isRequiredSeasonPage(1)).toBe(true);
+  });
+
+  it('allows an incremental refresh to keep rows fetched before a tail-page timeout', () => {
+    expect(isRequiredSeasonPage(2)).toBe(false);
+    expect(isRequiredSeasonPage(3)).toBe(false);
   });
 });

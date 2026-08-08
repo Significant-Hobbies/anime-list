@@ -76,6 +76,10 @@ export function assertCatalogRefreshComplete(kind: 'anime' | 'manga', failedPage
   }
 }
 
+export function isRequiredSeasonPage(page: number): boolean {
+  return page === 1;
+}
+
 // Fetch the last two seasons and update the bound D1 database.
 export const updateLatestTwoSeasonData = async (): Promise<void> => {
   const p0 = performance.now();
@@ -113,13 +117,21 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
 
   for (const { season, year } of seasonsToFetch) {
     console.log(`Fetching ${season} ${year}...`);
+    const seasonStartCount = allFetchedAnime.length;
     let page = 1;
     while (true) {
       const url = `${API_CONFIG.baseUrl}/seasons/${year}/${season}?page=${page}&limit=25`;
       const data = await fetchFromApi<ApiResponse<RawAnimeItem[]>>(url);
 
       if (!data?.data || !Array.isArray(data.data)) {
-        failedPages.push(`${season} ${year} page ${page}`);
+        const failedPage = `${season} ${year} page ${page}`;
+        if (isRequiredSeasonPage(page)) {
+          failedPages.push(failedPage);
+        } else {
+          console.warn(
+            `Jikan failed for optional ${failedPage} after retries; keeping ${allFetchedAnime.length - seasonStartCount} fetched rows for this season.`
+          );
+        }
         break;
       }
 
