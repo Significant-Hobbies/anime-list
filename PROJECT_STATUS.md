@@ -55,6 +55,10 @@ Last updated: 2026-08-07
 
 ## Timeline
 
+- **2026-08-09** — Adopted the Fleet Ultracite baseline for core TypeScript,
+  React, and Vitest code. Explicit compatibility exceptions preserve current
+  behavior while 200 files pass with zero diagnostics; generated catalogs and
+  the hand-authored HTML shell remain outside the checked surface.
 - **2026-08-06** — Consolidated the weekly queue and taste quiz under Discover,
   retired Alerts and Collections without deleting their D1 data, promoted
   catalog updates in navigation, and standardized the product name as Anime
@@ -192,6 +196,7 @@ without deleting user data.
 
 ### Tests & ops
 
+- Shared Ultracite lint baseline with a clean 200-file check.
 - Vitest: 106 tests across 24 files (D1, API proxy, import/export, filters,
   recommendations, schedule, SEO rewrite, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll,
