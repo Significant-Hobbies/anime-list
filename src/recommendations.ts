@@ -67,14 +67,57 @@ export function buildTasteRecommendations(
     sampledTitles: watchedAnime.length,
   };
 
-  const recommendations = catalog
-    .filter((anime) => !watchedIds.has(String(anime.mal_id)))
-    .map((anime) => scoreAnime(anime, genreWeights, themeWeights, typeWeights))
-    .filter((item) => item.tasteScore > 0)
-    .sort((a, b) => b.tasteScore - a.tasteScore || (b.score ?? 0) - (a.score ?? 0))
-    .slice(0, limit);
+  const recommendations = rankRecommendations(
+    catalog,
+    watchedIds,
+    genreWeights,
+    themeWeights,
+    typeWeights,
+    limit
+  );
 
   return { profile, recommendations };
+}
+
+function rankRecommendations(
+  catalog: AnimeItem[],
+  watchedIds: Set<string>,
+  genreWeights: Map<string, number>,
+  themeWeights: Map<string, number>,
+  typeWeights: Map<string, number>,
+  limit: number
+): TasteRecommendation[] {
+  if (limit <= 0) {
+    return catalog
+      .filter((anime) => !watchedIds.has(String(anime.mal_id)))
+      .map((anime) => scoreAnime(anime, genreWeights, themeWeights, typeWeights))
+      .filter((item) => item.tasteScore > 0)
+      .sort(compareRecommendations)
+      .slice(0, limit);
+  }
+
+  const recommendations: TasteRecommendation[] = [];
+  for (const anime of catalog) {
+    if (watchedIds.has(String(anime.mal_id))) continue;
+    const candidate = scoreAnime(anime, genreWeights, themeWeights, typeWeights);
+    if (candidate.tasteScore <= 0) continue;
+
+    const insertionIndex = recommendations.findIndex(
+      (recommendation) => compareRecommendations(candidate, recommendation) < 0
+    );
+    if (insertionIndex === -1) {
+      if (recommendations.length < limit) recommendations.push(candidate);
+      continue;
+    }
+
+    recommendations.splice(insertionIndex, 0, candidate);
+    if (recommendations.length > limit) recommendations.pop();
+  }
+  return recommendations;
+}
+
+function compareRecommendations(left: TasteRecommendation, right: TasteRecommendation): number {
+  return right.tasteScore - left.tasteScore || (right.score ?? 0) - (left.score ?? 0);
 }
 
 function scoreAnime(
