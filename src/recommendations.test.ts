@@ -72,4 +72,27 @@ describe('buildTasteRecommendations', () => {
 
     expect(result.recommendations.map((item) => item.mal_id)).toEqual([2]);
   });
+
+  it('keeps only the highest-ranked recommendations in stable order', () => {
+    const watchlist: WatchlistData = {
+      user: { id: 'u1', name: 'User' },
+      anime: {
+        '1': { id: '1', status: 'Done' },
+      },
+    };
+
+    const result = buildTasteRecommendations(
+      [
+        anime(1, 'Watched', ['Action']),
+        { ...anime(2, 'Lower score', ['Action']), score: 7 },
+        { ...anime(3, 'First tied score', ['Action']), score: 8 },
+        { ...anime(4, 'Highest score', ['Action']), score: 9 },
+        { ...anime(5, 'Second tied score', ['Action']), score: 8 },
+      ],
+      watchlist,
+      3
+    );
+
+    expect(result.recommendations.map((item) => item.mal_id)).toEqual([4, 3, 5]);
+  });
 });
