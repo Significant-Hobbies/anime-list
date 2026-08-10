@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleMcpRequest } from '../worker/mcpRoutes';
 
 async function mcpCall(method: string, params?: unknown, authHeader?: string | null) {
@@ -15,6 +15,11 @@ async function mcpCall(method: string, params?: unknown, authHeader?: string | n
 }
 
 describe('handleMcpRequest', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   it('responds to initialize with server info and tools capability', async () => {
     const res = await mcpCall('initialize', {
       protocolVersion: '2025-06-18',
@@ -48,6 +53,36 @@ describe('handleMcpRequest', () => {
       ])
     );
     expect(names).toHaveLength(10);
+    for (const tool of tools) {
+      expect(tool.annotations?.readOnlyHint).toBe(true);
+      expect(tool.annotations?.destructiveHint).toBe(false);
+      expect(tool.annotations?.idempotentHint).toBe(true);
+      expect(tool.inputSchema).toBeDefined();
+      expect(tool.outputSchema).toBeDefined();
+    }
+  });
+
+  it('rejects an owner watchlist read before making an upstream request', async () => {
+    const res = await mcpCall('tools/call', {
+      name: 'list_watchlist',
+      arguments: {},
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.result.isError).toBe(true);
+    expect(body.result.structuredContent.error.code).toBe('unauthorized');
+    expect(JSON.stringify(body)).not.toContain('mal_auth_token');
+  });
+
+  it('rejects browser-session JWTs for owner tools', async () => {
+    const res = await mcpCall(
+      'tools/call',
+      { name: 'list_watchlist', arguments: {} },
+      'Bearer header.payload.signature'
+    );
+    const body = await res.json();
+    expect(body.result.isError).toBe(true);
+    expect(body.result.structuredContent.error.code).toBe('unauthorized');
   });
 
   it('returns 405-equivalent for unsupported methods via the transport', async () => {
@@ -63,5 +98,125 @@ describe('handleMcpRequest', () => {
     });
     const res = await handleMcpRequest(request, null);
     expect(res.status).toBeLessThan(500);
+  });
+
+  it('normalizes successful reads and strips credential-shaped upstream fields', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ mal_id: 1, title: 'Cowboy Bebop', token: 'upstream-secret' }), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await mcpCall('tools/call', {
+      name: 'get_anime_detail',
+      arguments: { mal_id: 1 },
+    });
+    const body = await res.json();
+
+    expect(body.result.isError).not.toBe(true);
+    expect(body.result.structuredContent.data).toMatchObject({
+      mal_id: 1,
+      canonicalUrl: 'https://anime.significanthobbies.com/anime/1',
+    });
+    expect(JSON.stringify(body)).not.toContain('upstream-secret');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a rate limit once and returns a stable retryable error', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('busy', { status: 429 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await mcpCall('tools/call', {
+      name: 'get_anime_stats',
+      arguments: {},
+    });
+    const body = await res.json();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(body.result.structuredContent.error).toMatchObject({
+      code: 'rate_limited',
+      retryable: true,
+    });
+    expect(JSON.stringify(body)).not.toContain('busy');
+  });
+
+  it('classifies timeout and malformed JSON without leaking upstream details', async () => {
+    const timeoutFetch = vi
+      .fn()
+      .mockRejectedValue(new DOMException('private timeout', 'TimeoutError'));
+    vi.stubGlobal('fetch', timeoutFetch);
+    const timeoutRes = await mcpCall('tools/call', {
+      name: 'get_anime_stats',
+      arguments: {},
+    });
+    const timeoutBody = await timeoutRes.json();
+    expect(timeoutFetch).toHaveBeenCalledTimes(2);
+    expect(timeoutBody.result.structuredContent.error.code).toBe('timeout');
+    expect(JSON.stringify(timeoutBody)).not.toContain('private timeout');
+
+    const malformedFetch = vi
+      .fn()
+      .mockResolvedValue(new Response('database password=hidden', { status: 200 }));
+    vi.stubGlobal('fetch', malformedFetch);
+    const malformedRes = await mcpCall('tools/call', {
+      name: 'get_anime_stats',
+      arguments: {},
+    });
+    const malformedBody = await malformedRes.json();
+    expect(malformedBody.result.structuredContent.error.code).toBe('invalid_upstream_response');
+    expect(JSON.stringify(malformedBody)).not.toContain('password=hidden');
+  });
+
+  it('treats a rejected owner PAT as unauthorized and never forwards cookies', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('forbidden', { status: 403 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await mcpCall(
+      'tools/call',
+      { name: 'list_watchlist', arguments: {} },
+      'Bearer anime_list_revoked'
+    );
+    const body = await res.json();
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+
+    expect(body.result.structuredContent.error.code).toBe('unauthorized');
+    expect(init.headers).toMatchObject({ Authorization: 'Bearer anime_list_revoked' });
+    expect(init.headers).not.toHaveProperty('Cookie');
+    expect(JSON.stringify(body)).not.toContain('forbidden');
+  });
+
+  it('rejects oversized catalog inputs before any upstream request', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await mcpCall('tools/call', {
+      name: 'search_anime',
+      arguments: { filters: [], pagesize: 51, offset: 0, airing: 'any' },
+    });
+
+    expect(res.status).toBeLessThan(500);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('stops a chunked upstream response when it crosses the byte bound', async () => {
+    let cancelled = false;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(new Uint8Array(600_000));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(stream)));
+
+    const res = await mcpCall('tools/call', {
+      name: 'get_anime_stats',
+      arguments: {},
+    });
+    const body = await res.json();
+
+    expect(body.result.structuredContent.error.code).toBe('invalid_upstream_response');
+    expect(cancelled).toBe(true);
   });
 });
