@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { isRs256Jwt, verifyAnimeAuth0Subject } from './auth0Mcp';
 
 const issuer = 'https://fleet-test.us.auth0.com/';
-const audience = 'https://anime-mcp.significanthobbies.com/anime-list/mcp';
+const audience = 'https://mcp.significanthobbies.com/anime-list/mcp';
 
 async function fixture() {
   const { privateKey, publicKey } = await generateKeyPair('RS256');
@@ -36,7 +36,7 @@ describe('Anime List Auth0 MCP verification', () => {
     expect(isRs256Jwt(valid)).toBe(true);
     await expect(verifyAnimeAuth0Subject(valid, env, signed.getKey)).resolves.toBe('google-user-1');
     for (const overrides of [
-      { aud: 'https://reader-mcp.significanthobbies.com/reader/mcp' },
+      { aud: 'https://mcp.significanthobbies.com/reader/mcp' },
       { permissions: ['reader.read'] },
       { sub: 'auth0|not-google' },
       { exp: Math.floor(Date.now() / 1000) + 7_200 },

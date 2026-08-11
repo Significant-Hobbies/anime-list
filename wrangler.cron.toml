@@ -18,7 +18,7 @@ crons = ["0 3 * * *"]
 NODE_ENV = "production"
 WRITE_FREEZE = "false"
 AUTH0_ISSUER = "https://dev-0suel086hm1blvg7.us.auth0.com/"
-AUTH0_MCP_AUDIENCE = "https://anime-mcp.significanthobbies.com/anime-list/mcp"
+AUTH0_MCP_AUDIENCE = "https://mcp.significanthobbies.com/anime-list/mcp"
 
 [[d1_databases]]
 binding = "DB"
