@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleMcpRequest } from '../worker/mcpRoutes';
 
-async function mcpCall(method: string, params?: unknown, authHeader?: string | null) {
+async function mcpCall(
+  method: string,
+  params?: unknown,
+  authHeader?: string | null,
+  federated = false
+) {
   const request = new Request('http://localhost:8787/api/mcp', {
     method: 'POST',
     headers: {
@@ -11,7 +16,7 @@ async function mcpCall(method: string, params?: unknown, authHeader?: string | n
     },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params ?? {} }),
   });
-  return handleMcpRequest(request, authHeader ?? null);
+  return handleMcpRequest(request, authHeader ?? null, federated);
 }
 
 describe('handleMcpRequest', () => {
@@ -83,6 +88,28 @@ describe('handleMcpRequest', () => {
     const body = await res.json();
     expect(body.result.isError).toBe(true);
     expect(body.result.structuredContent.error.code).toBe('unauthorized');
+  });
+
+  it('forwards only a product-verified federated bearer to owner reads', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ user: { id: 'anime-user-1' }, anime: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const bearer = 'Bearer header.payload.signature';
+    const res = await mcpCall(
+      'tools/call',
+      { name: 'list_watchlist', arguments: {} },
+      bearer,
+      true
+    );
+    const body = await res.json();
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(body.result.isError).not.toBe(true);
+    expect(init?.headers).toMatchObject({
+      Authorization: bearer,
+    });
   });
 
   it('returns 405-equivalent for unsupported methods via the transport', async () => {

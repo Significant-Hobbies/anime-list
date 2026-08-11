@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { isAllowedOrigin } from './corsOrigins';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
+import { isRs256Jwt, verifyAnimeAuth0Subject } from './auth0Mcp';
 import { handleAgentEdge } from './agent-edge.mjs';
 import { configurePostHog, trace, flushPostHog } from './telemetry';
 import { isWriteFrozenRequest } from './writeFreeze';
@@ -40,7 +41,7 @@ import {
   getSimpleAnimeSearchPage,
 } from './db/animeData';
 import { getLastMangaDataUpdate } from './db/mangaData';
-import { findOrCreateUser } from './db/users';
+import { findOrCreateUser, findUserByGoogleId } from './db/users';
 import {
   hideWatchedItems,
   includeOnlyWatchedItems,
@@ -119,6 +120,8 @@ type Env = {
   JWT_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   POSTHOG_API_KEY?: string;
+  AUTH0_ISSUER?: string;
+  AUTH0_MCP_AUDIENCE?: string;
 };
 
 const STATS_CACHE_TTL_SECONDS = 300;
@@ -208,6 +211,7 @@ function extractToken(c: { req: { header: (name: string) => string | undefined }
 // their last_used_at is touched best-effort via waitUntil.
 async function resolveUser(
   token: string,
+  env: Env,
   ctx?: { waitUntil: (p: Promise<unknown>) => void }
 ): Promise<AuthPayload | null> {
   if (isApiToken(token)) {
@@ -215,6 +219,14 @@ async function resolveUser(
     if (!resolved) return null;
     if (ctx) ctx.waitUntil(touchApiTokenLastUsed(resolved.tokenId));
     return { userId: resolved.userId, email: '', name: '' };
+  }
+  if (isRs256Jwt(token)) {
+    const googleId = await verifyAnimeAuth0Subject(token, env);
+    if (!googleId) return null;
+    const user = await findUserByGoogleId(googleId);
+    return user
+      ? { userId: user.id, email: user.email, name: user.name, picture: user.picture }
+      : null;
   }
   return verifyToken(token);
 }
@@ -350,7 +362,7 @@ const optionalAuth = async (
 ) => {
   const token = extractToken(c);
   if (token) {
-    const user = await resolveUser(token, c.executionCtx);
+    const user = await resolveUser(token, c.env as Env, c.executionCtx);
     if (user) c.set('user', user);
   }
   await next();
@@ -362,12 +374,13 @@ const requireAuth = async (
     set: (key: string, value: unknown) => void;
     json: (data: unknown, status?: number) => Response;
     executionCtx: { waitUntil: (p: Promise<unknown>) => void };
+    env: Env;
   },
   next: () => Promise<void>
 ) => {
   const token = extractToken(c);
   if (!token) return c.json({ error: 'Authentication required' }, 401);
-  const user = await resolveUser(token, c.executionCtx);
+  const user = await resolveUser(token, c.env, c.executionCtx);
   if (!user) return c.json({ error: 'Invalid or expired token' }, 401);
   c.set('user', user);
   await next();
@@ -1258,7 +1271,25 @@ app.all('/api/mcp', async (c) => {
     return c.json({ error: 'Method not allowed' }, 405);
   }
   const authHeader = c.req.header('Authorization') ?? null;
-  return handleMcpRequest(c.req.raw, authHeader);
+  const token = extractBearerToken(authHeader ?? undefined);
+  let federated = false;
+  if (token && isRs256Jwt(token)) {
+    const googleId = await verifyAnimeAuth0Subject(token, c.env);
+    if (!googleId)
+      return c.json({ code: 'UNAUTHORIZED', message: 'Valid Anime List OAuth required.' }, 401);
+    const user = await findUserByGoogleId(googleId);
+    if (!user) {
+      return c.json(
+        {
+          code: 'ACCOUNT_NOT_FOUND',
+          message: 'Sign in to Anime List with the same Google account first.',
+        },
+        403
+      );
+    }
+    federated = true;
+  }
+  return handleMcpRequest(c.req.raw, authHeader, federated);
 });
 
 // ── Personal Access Tokens ─────────────────────────────────────────────

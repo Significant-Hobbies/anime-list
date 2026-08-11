@@ -5,8 +5,9 @@ import { z } from 'zod';
 // MCP server: a thin protocol adapter over the existing /api/* endpoints.
 // Each tool subrequests the corresponding endpoint and returns the body.
 // Public tools send no auth header; watchlist tools forward the caller's
-// PAT Authorization header so the existing requireAuth middleware handles
-// authentication. Browser-session JWTs and cookies are intentionally excluded.
+// PAT Authorization header or a product-verified federated bearer so the
+// existing requireAuth middleware handles authentication. Browser-session
+// JWTs and cookies are intentionally excluded.
 
 const AUTH_ERROR_MESSAGE =
   'Authentication required: provide a valid Personal Access Token (anime_list_...) via the Authorization header. Create a token at /mcp.';
@@ -303,10 +304,9 @@ async function boundedResponseText(response: Response): Promise<string | null> {
   return new TextDecoder().decode(joined);
 }
 
-function buildServer(origin: string, authHeader: string | null): McpServer {
-  const personalAccessToken = /^Bearer anime_list_[A-Za-z0-9_-]+$/.test(authHeader ?? '')
-    ? authHeader
-    : null;
+function buildServer(origin: string, authHeader: string | null, federated = false): McpServer {
+  const readCredential =
+    /^Bearer anime_list_[A-Za-z0-9_-]+$/.test(authHeader ?? '') || federated ? authHeader : null;
   const server = new McpServer(
     { name: 'anime-list-by-significant-hobbies', version: '1.0.0' },
     { capabilities: { tools: {}, resources: {}, prompts: {} } }
@@ -334,12 +334,12 @@ function buildServer(origin: string, authHeader: string | null): McpServer {
         const url = tool.buildUrl
           ? tool.buildUrl(origin, args as Record<string, unknown>)
           : `${origin}${tool.path}`;
-        if (tool.auth && !personalAccessToken) {
+        if (tool.auth && !readCredential) {
           return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
         }
         const headers: Record<string, string> = { Accept: 'application/json' };
         if (tool.method === 'POST') headers['Content-Type'] = 'application/json';
-        if (tool.auth && personalAccessToken) headers['Authorization'] = personalAccessToken;
+        if (tool.auth && readCredential) headers['Authorization'] = readCredential;
 
         const init: RequestInit = { method: tool.method, headers };
         if (tool.method === 'POST' && tool.buildBody) {
@@ -418,7 +418,8 @@ function buildServer(origin: string, authHeader: string | null): McpServer {
 
 export async function handleMcpRequest(
   request: Request,
-  authHeader: string | null
+  authHeader: string | null,
+  federated = false
 ): Promise<Response> {
   const origin = new URL(request.url).origin;
   // Stateless, JSON responses — no SSE, no session state. Ideal for
@@ -427,7 +428,7 @@ export async function handleMcpRequest(
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
-  const server = buildServer(origin, authHeader);
+  const server = buildServer(origin, authHeader, federated);
   await server.connect(transport);
   const response = await transport.handleRequest(request);
   await server.close();
