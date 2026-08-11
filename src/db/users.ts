@@ -10,6 +10,23 @@ export interface DbUser {
   created_at: string;
 }
 
+export async function findUserByGoogleId(googleId: string): Promise<DbUser | null> {
+  const result = await getDb().execute({
+    sql: 'SELECT id, google_id, email, name, picture, created_at FROM users WHERE google_id = ?',
+    args: [googleId],
+  });
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    id: row.id as string,
+    google_id: row.google_id as string,
+    email: row.email as string,
+    name: row.name as string,
+    picture: (row.picture as string | null) ?? undefined,
+    created_at: row.created_at as string,
+  };
+}
+
 export async function findOrCreateUser(profile: {
   googleId: string;
   email: string;
