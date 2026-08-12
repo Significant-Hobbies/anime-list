@@ -5,7 +5,7 @@ import { isAllowedOrigin } from './corsOrigins';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { isRs256Jwt, verifyAnimeAuth0Subject } from './auth0Mcp';
 import { handleAgentEdge } from './agent-edge.mjs';
-import { configurePostHog, trace, flushPostHog } from './telemetry';
+import { trace } from './telemetry';
 import { isWriteFrozenRequest } from './writeFreeze';
 import {
   CATALOG_UNAVAILABLE_CODE,
@@ -322,21 +322,6 @@ app.use('*', async (c, next) => {
   process.env.JWT_SECRET = c.env.JWT_SECRET;
   process.env.GOOGLE_CLIENT_ID = c.env.GOOGLE_CLIENT_ID;
   await next();
-});
-
-// PostHog tracing middleware
-const POSTHOG_KEY = 'phc_qgiAarw4Co4pw9fz3Fxj4UJaHmqzFetqs4JrXhGc35Nd';
-const POSTHOG_HOST = 'https://us.i.posthog.com';
-
-let phConfigured = false;
-app.use('*', async (c, next) => {
-  const posthogKey = c.env.POSTHOG_API_KEY || POSTHOG_KEY;
-  if (!phConfigured) {
-    configurePostHog(posthogKey, POSTHOG_HOST);
-    phConfigured = true;
-  }
-  await next();
-  c.executionCtx.waitUntil(flushPostHog());
 });
 
 // CORS

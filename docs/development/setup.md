@@ -33,6 +33,8 @@ Authoritative list lives in `package.json`. Common commands:
 | `pnpm build` | Vite production build (`prebuild` regenerates SEO dataset, `postbuild` emits sitemaps) |
 | `pnpm preview` | Vite preview |
 | `pnpm test` | Vitest unit tests |
+| `pnpm test:coverage` | Whole-source coverage with regression floors |
+| `pnpm quality` | Aggregate Fleet code-health, build, and bundle gate |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
 | `pnpm test:e2e:anime-detail` | Playwright detail-page spec |
 | `pnpm typecheck` | `tsc --noEmit -p tsconfig.app.json` |

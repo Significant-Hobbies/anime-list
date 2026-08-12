@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-08-07
+Last updated: 2026-08-12
 
 ## Why / What
 
@@ -45,7 +45,9 @@ Last updated: 2026-08-07
 | `pnpm preview` | Vite preview |
 | `pnpm deploy` | Clean `main` guard + build + `wrangler pages deploy` |
 | `pnpm deploy:worker` | Deploy `mal-api` worker |
-| `pnpm test` | Vitest (106 tests across 24 files) |
+| `pnpm test` | Vitest (132 tests across 28 files) |
+| `pnpm test:coverage` | Whole-source coverage with explicit regression floors |
+| `pnpm quality` | Aggregate Fleet code-health, build, and bundle gate |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
 | `pnpm typecheck` / `pnpm lint` | TS (`tsc`) + Biome |
 | `pnpm db:migrate:local` / `db:migrate:remote` | Apply D1 migrations |
@@ -55,6 +57,12 @@ Last updated: 2026-08-07
 
 ## Timeline
 
+- **2026-08-12** — Adopted the Fleet code-health contract with whole-source
+  coverage, Knip unused-code and cycle analysis, Lizard complexity ceilings,
+  jscpd duplication ceilings, dependency severity and suppression accounting,
+  and repository hygiene. Removed retired saved-search and operator-script
+  code plus unused exports and no-op Worker telemetry before recording bounded
+  debt.
 - **2026-08-09** — Adopted the Fleet Ultracite baseline for core TypeScript,
   React, and Vitest code. Explicit compatibility exceptions preserve current
   behavior while 200 files pass with zero diagnostics; generated catalogs and
@@ -196,8 +204,10 @@ without deleting user data.
 
 ### Tests & ops
 
-- Shared Ultracite lint baseline with a clean 200-file check.
-- Vitest: 106 tests across 24 files (D1, API proxy, import/export, filters,
+- Shared Ultracite lint baseline with a clean 200-file check, plus one aggregate
+  Fleet quality gate for formatting, types, tests, unused code, complexity,
+  duplication, dependency risk/cycles, suppressions, build, size, and hygiene.
+- Vitest: 132 tests across 28 files (D1, API proxy, import/export, filters,
   recommendations, schedule, SEO rewrite, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll,
   plus hermetic signed-in coverage for discovery and watchlist import preview.

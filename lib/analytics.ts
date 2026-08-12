@@ -86,7 +86,7 @@ function appendToList(key: string, value: string): void {
 }
 
 /** True when this browser has already seen `userId` signed in before. */
-export function hasPriorActivity(userId: string): boolean {
+function hasPriorActivity(userId: string): boolean {
   return readList(SEEN_USERS_KEY).includes(userId);
 }
 

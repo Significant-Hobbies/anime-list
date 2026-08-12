@@ -49,6 +49,8 @@ pnpm dev:be               # Worker only
 pnpm dev:fe               # Frontend only
 pnpm build                # Vite production build
 pnpm test                 # Vitest unit tests
+pnpm test:coverage        # Whole-source coverage with regression floors
+pnpm quality              # Full Fleet code-health and build gate
 pnpm test:e2e:anime-detail
 pnpm db:seed              # Seed anime catalog from JSON
 pnpm db:seed:manga        # Seed manga catalog from JSON
@@ -61,6 +63,10 @@ pnpm db:rehearse          # Run synthetic D1 catalog/auth/ownership journeys
 pnpm deploy               # Cloudflare Pages
 pnpm deploy:worker        # Cloudflare Worker
 ```
+
+The quality gate must remain regression-proof: remove safe dead code before
+accepting an exception, and lower checked-in complexity, duplication, coverage,
+or suppression baselines whenever the measured result improves.
 
 ## Architecture notes
 - **Backend**: Worker `mal-api` serves all API traffic; cron reloads anime + manga caches from D1 daily.

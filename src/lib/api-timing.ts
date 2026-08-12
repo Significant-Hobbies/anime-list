@@ -158,12 +158,3 @@ export function initApiTiming(options?: ApiTimingOptions): void {
     if (document.visibilityState === 'hidden') collectAndFlush();
   });
 }
-
-/** Stop sampling and flush remaining entries. */
-export function stopApiTiming(): void {
-  if (_flushTimer) {
-    clearInterval(_flushTimer);
-    _flushTimer = null;
-  }
-  collectAndFlush();
-}

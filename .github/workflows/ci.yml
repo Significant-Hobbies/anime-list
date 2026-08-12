@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
 
       - uses: pnpm/action-setup@v6
 
@@ -19,13 +21,13 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: python -m pip install lizard==1.23.0
       - run: pnpm db:migrate:local
       - run: pnpm db:rehearse
-      - run: node --test scripts/lib/d1-import.test.mjs
-      - run: pnpm lint
-      - run: pnpm test
+      - run: pnpm quality
       - run: pnpm exec wrangler deploy --dry-run --config wrangler.local.toml --outdir .wrangler/dry-run
-      - run: pnpm build
-      - name: Check bundle size
-        run: pnpm run size

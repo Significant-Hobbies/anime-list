@@ -13,11 +13,7 @@ A modern anime discovery platform that helps you find your next favorite show.
 | Database | Cloudflare D1 (`DB` binding) |
 | Auth | Google OAuth 2.0 + JWT |
 | Analytics | PostHog (`local posthog-js wrapper`) |
-| CI/CD | GitHub Actions — CI (D1 migration/rehearsal + lint/test/build/size); manual Worker/Pages deploy; daily Wrangler D1 sync |
-
-> Migration state: this branch prepares D1 and fails closed before deployment.
-> Live production remains Turso-authoritative until the cutover receipt is
-> explicitly approved, imported, verified, and deployed.
+| CI/CD | GitHub Actions — CI (D1 migration/rehearsal + aggregate code-health/build gate); manual Worker/Pages deploy; daily Wrangler D1 sync |
 
 > Local and production API traffic is served by the `mal-api` Cloudflare Worker on port **8787** during `pnpm dev`.
 
@@ -130,6 +126,8 @@ pnpm dev:be        # Worker only (port 8787)
 pnpm dev:fe        # Frontend only
 pnpm build         # Vite production build
 pnpm test          # Vitest unit tests
+pnpm test:coverage # Whole-source coverage with regression floors
+pnpm quality       # Fleet code-health, build, and bundle gate
 pnpm db:seed       # Migrate and seed local D1 from JSON
 pnpm db:update     # Update anime data from Jikan API
 pnpm db:rehearse   # Isolated D1 catalog + ownership rehearsal
@@ -164,7 +162,7 @@ pnpm db:rehearse   # Isolated D1 catalog + ownership rehearsal
 
 **Note**: This project uses MyAnimeList data via the Jikan API. Not affiliated with MyAnimeList.net.
 
-**For Developers**: See [AGENTS.md](AGENTS.md) for agent operating rules, [STATUS.md](STATUS.md) for the current objective and active work, and [docs/index.md](docs/index.md) for the full knowledge base (architecture, decisions, operations runbooks, and learnings).
+**For Developers**: See [AGENTS.md](AGENTS.md) for agent operating rules, [PROJECT_STATUS.md](PROJECT_STATUS.md) for current product truth, GitHub Issues for open work, and [docs/index.md](docs/index.md) for the full knowledge base (architecture, decisions, operations runbooks, and learnings).
 
 ## License
 
