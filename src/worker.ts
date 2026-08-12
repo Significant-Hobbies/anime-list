@@ -81,6 +81,7 @@ import { buildScheduleTimelineResponse, addScheduleItems } from './services/sche
 import { buildTasteRecommendations } from './recommendations';
 import { registerMangaRoutes } from './worker/mangaRoutes';
 import { handleMcpRequest } from './worker/mcpRoutes';
+import { boundedReadPage, compareWatchlistIds, pageReadItems } from './worker/readPagination';
 import {
   createApiToken,
   isApiToken,
@@ -807,10 +808,18 @@ app.get('/api/watchlist', requireAuth, async (c) => {
 
   if (!watchlist) return c.json({ error: 'Watchlist not found' }, 404);
 
-  if (status) {
-    const filteredAnime = Object.values(watchlist.anime).filter((item) => item.status === status);
-    return c.json(filteredAnime);
+  const filteredAnime = Object.values(watchlist.anime)
+    .filter((item) => !status || item.status === status)
+    .sort(compareWatchlistIds);
+  const paginated = c.req.query('limit') !== undefined || c.req.query('offset') !== undefined;
+
+  if (paginated) {
+    return c.json(
+      pageReadItems(filteredAnime, boundedReadPage(c.req.query('limit'), c.req.query('offset')))
+    );
   }
+
+  if (status) return c.json(filteredAnime);
 
   return c.json(watchlist);
 });
@@ -818,7 +827,12 @@ app.get('/api/watchlist', requireAuth, async (c) => {
 app.get('/api/watchlist/tags', requireAuth, async (c) => {
   const user = c.get('user')!;
   const tags = await getUserTags(user.userId);
-  return c.json({ tags });
+  const paginated = c.req.query('limit') !== undefined || c.req.query('offset') !== undefined;
+  return c.json(
+    paginated
+      ? pageReadItems(tags, boundedReadPage(c.req.query('limit'), c.req.query('offset')))
+      : { tags }
+  );
 });
 
 app.post('/api/watchlist/tags', requireAuth, async (c) => {
@@ -898,25 +912,32 @@ app.get('/api/watchlist/enriched', requireAuth, async (c) => {
   // Synopsis was historically included but is unused by the watchlist UI; on
   // a 500-row list it added ~150 KB of body. Detail page fetches the full
   // anime payload separately.
-  const items = Object.values(watchlist.anime).map((entry) => {
-    const anime = animeMap.get(entry.id);
-    return {
-      mal_id: entry.id,
-      watchStatus: entry.status,
-      note: entry.note,
-      title: anime?.title_english || anime?.title || entry.title || `ID: ${entry.id}`,
-      image: anime?.image,
-      score: anime?.score,
-      year: anime?.year,
-      type: anime?.type,
-      episodes: anime?.episodes,
-      members: anime?.members,
-      genres: anime ? Object.keys(anime.genres) : [],
-      url: anime?.url,
-    };
-  });
+  const items = Object.values(watchlist.anime)
+    .sort(compareWatchlistIds)
+    .map((entry) => {
+      const anime = animeMap.get(entry.id);
+      return {
+        mal_id: entry.id,
+        watchStatus: entry.status,
+        note: entry.note,
+        title: anime?.title_english || anime?.title || entry.title || `ID: ${entry.id}`,
+        image: anime?.image,
+        score: anime?.score,
+        year: anime?.year,
+        type: anime?.type,
+        episodes: anime?.episodes,
+        members: anime?.members,
+        genres: anime ? Object.keys(anime.genres) : [],
+        url: anime?.url,
+      };
+    });
 
-  return c.json({ items });
+  const paginated = c.req.query('limit') !== undefined || c.req.query('offset') !== undefined;
+  return c.json(
+    paginated
+      ? pageReadItems(items, boundedReadPage(c.req.query('limit'), c.req.query('offset')))
+      : { items }
+  );
 });
 
 app.post('/api/watchlist/import/preview', requireAuth, async (c) => {

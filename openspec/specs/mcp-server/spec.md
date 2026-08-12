@@ -114,27 +114,27 @@ limit? }` and returning the same shape as `GET /api/anime/random`. Public.
 - **THEN** the system returns at least one random anime summary
 
 ### Requirement: list_watchlist tool
-The system SHALL expose `list_watchlist` (auth-gated) returning the
-authenticated user's anime watchlist in the same shape as
-`GET /api/watchlist` (`{ user, anime }`).
+The system SHALL expose `list_watchlist` (auth-gated) with bounded `limit` and
+`offset` inputs. It SHALL return the authenticated user's anime watchlist in
+deterministic MAL-id order as `{ items, total, nextOffset, hasMore }`.
 
 #### Scenario: User has watched anime
 - **WHEN** an authenticated user calls the tool
-- **THEN** the system returns `{ user, anime }` with one entry per
-  `anime_watchlist` row
+- **THEN** the system can enumerate every `anime_watchlist` row by following
+  `nextOffset` until it is `null`, without gaps or duplicates
 
 ### Requirement: list_manga_watchlist tool
-The system SHALL expose `list_manga_watchlist` (auth-gated) returning the
-authenticated user's manga watchlist in the same shape as
-`GET /api/manga/watchlist`.
+The system SHALL expose `list_manga_watchlist` (auth-gated) with bounded
+`limit` and `offset` inputs, returning `{ items, total, nextOffset, hasMore }`
+in deterministic MAL-id order.
 
 #### Scenario: User has watched manga
 - **WHEN** an authenticated user calls the tool
 - **THEN** the system returns the user's manga watchlist
 
 ### Requirement: list_watchlist_tags tool
-The system SHALL expose `list_watchlist_tags` (auth-gated) returning the
-authenticated user's tags in the same shape as `GET /api/watchlist/tags`.
+The system SHALL expose `list_watchlist_tags` (auth-gated) with bounded
+`limit` and `offset` inputs, returning `{ items, total, nextOffset, hasMore }`.
 
 #### Scenario: User has tags
 - **WHEN** an authenticated user calls the tool
@@ -142,9 +142,10 @@ authenticated user's tags in the same shape as `GET /api/watchlist/tags`.
   ascending
 
 ### Requirement: get_watchlist_enriched tool
-The system SHALL expose `get_watchlist_enriched` (auth-gated) returning the
-authenticated user's enriched watchlist in the same shape as
-`GET /api/watchlist/enriched` (`{ items }`).
+The system SHALL expose `get_watchlist_enriched` (auth-gated) with bounded
+`limit` and `offset` inputs. It SHALL return the authenticated user's enriched
+watchlist as `{ items, total, nextOffset, hasMore }` in deterministic MAL-id
+order.
 
 #### Scenario: Enriched watchlist
 - **WHEN** an authenticated user calls the tool
