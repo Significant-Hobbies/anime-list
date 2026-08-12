@@ -213,6 +213,58 @@ describe('handleMcpRequest', () => {
     expect(JSON.stringify(body)).not.toContain('forbidden');
   });
 
+  it('exposes truthful continuation metadata for authenticated watchlist pages', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        items: Array.from({ length: 23 }, (_, index) => ({
+          id: String(101 + index),
+          status: 'Done',
+        })),
+        total: 123,
+        nextOffset: null,
+        hasMore: false,
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await mcpCall(
+      'tools/call',
+      { name: 'list_watchlist', arguments: { limit: 50, offset: 100 } },
+      'Bearer anime_list_valid'
+    );
+    const body = await res.json();
+    const data = body.result.structuredContent.data;
+
+    expect(data.items).toHaveLength(23);
+    expect(data).toMatchObject({ total: 123, nextOffset: null, hasMore: false });
+    expect(body.result.structuredContent.truncated).toBe(false);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      'http://localhost:8787/api/watchlist?limit=50&offset=100'
+    );
+  });
+
+  it('marks non-terminal authenticated pages as truncated', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          items: [{ id: '1', status: 'Watching' }],
+          total: 2,
+          nextOffset: 1,
+          hasMore: true,
+        })
+      )
+    );
+    const res = await mcpCall(
+      'tools/call',
+      { name: 'list_watchlist', arguments: { limit: 1, offset: 0 } },
+      'Bearer anime_list_valid'
+    );
+    const body = await res.json();
+    expect(body.result.structuredContent.truncated).toBe(true);
+    expect(body.result.structuredContent.data.nextOffset).toBe(1);
+  });
+
   it('rejects oversized catalog inputs before any upstream request', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

@@ -15,6 +15,7 @@ import {
 } from '../types/manga';
 import type { MangaFilterRequestBody } from '../validators/mangaFilters';
 import type { MangaItem } from '../types/manga';
+import { boundedReadPage, compareWatchlistIds, pageReadItems } from './readPagination';
 
 type AuthMiddleware = (
   c: {
@@ -208,7 +209,12 @@ export function registerMangaRoutes(
     const user = c.get('user')!;
     const watchlist = await getMangaWatchlist(user.userId);
     if (!watchlist) return c.json({ error: 'Manga watchlist not found' }, 404);
-    return c.json(watchlist);
+    const paginated = c.req.query('limit') !== undefined || c.req.query('offset') !== undefined;
+    if (!paginated) return c.json(watchlist);
+    const items = Object.values(watchlist.manga).sort(compareWatchlistIds);
+    return c.json(
+      pageReadItems(items, boundedReadPage(c.req.query('limit'), c.req.query('offset')))
+    );
   });
 
   app.post('/api/manga/watched/add', requireAuth, async (c) => {

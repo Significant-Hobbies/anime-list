@@ -13,6 +13,10 @@ const AUTH_ERROR_MESSAGE =
   'Authentication required: provide a valid Personal Access Token (anime_list_...) via the Authorization header. Create a token at /mcp.';
 const MAX_RESPONSE_BYTES = 1_000_000;
 const REQUEST_TIMEOUT_MS = 10_000;
+const watchlistPageInput = {
+  limit: z.number().int().min(1).max(50).default(50),
+  offset: z.number().int().min(0).max(1_000_000).default(0),
+};
 
 const filterValueSchema = z.union([
   z.string().max(200),
@@ -161,42 +165,42 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_watchlist',
     description:
-      "The authenticated user's anime watchlist (same shape as GET /api/watchlist: { user, anime }). Requires a PAT.",
+      "Page through the authenticated user's complete anime watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
     method: 'GET',
     path: '/api/watchlist',
     auth: true,
-    buildUrl: (origin) => `${origin}/api/watchlist`,
-    inputSchema: {},
+    buildUrl: (origin, a) => `${origin}/api/watchlist?limit=${a.limit}&offset=${a.offset}`,
+    inputSchema: watchlistPageInput,
   },
   {
     name: 'list_manga_watchlist',
     description:
-      "The authenticated user's manga watchlist (same shape as GET /api/manga/watchlist). Requires a PAT.",
+      "Page through the authenticated user's complete manga watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
     method: 'GET',
     path: '/api/manga/watchlist',
     auth: true,
-    buildUrl: (origin) => `${origin}/api/manga/watchlist`,
-    inputSchema: {},
+    buildUrl: (origin, a) => `${origin}/api/manga/watchlist?limit=${a.limit}&offset=${a.offset}`,
+    inputSchema: watchlistPageInput,
   },
   {
     name: 'list_watchlist_tags',
     description:
-      "The authenticated user's watchlist tags with per-tag counts (same shape as GET /api/watchlist/tags: { tags }). Requires a PAT.",
+      "Page through the authenticated user's watchlist tags with per-tag anime counts. Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
     method: 'GET',
     path: '/api/watchlist/tags',
     auth: true,
-    buildUrl: (origin) => `${origin}/api/watchlist/tags`,
-    inputSchema: {},
+    buildUrl: (origin, a) => `${origin}/api/watchlist/tags?limit=${a.limit}&offset=${a.offset}`,
+    inputSchema: watchlistPageInput,
   },
   {
     name: 'get_watchlist_enriched',
     description:
-      "The authenticated user's anime watchlist joined with catalog metadata (title, image, score, genres). Same shape as GET /api/watchlist/enriched: { items }. Requires a PAT.",
+      "Page through the authenticated user's complete anime watchlist joined with catalog metadata (title, image, score, genres). Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
     method: 'GET',
     path: '/api/watchlist/enriched',
     auth: true,
-    buildUrl: (origin) => `${origin}/api/watchlist/enriched`,
-    inputSchema: {},
+    buildUrl: (origin, a) => `${origin}/api/watchlist/enriched?limit=${a.limit}&offset=${a.offset}`,
+    inputSchema: watchlistPageInput,
   },
 ];
 
@@ -250,9 +254,10 @@ function addCanonicalUrls(value: unknown, toolName: string): unknown {
     Object.entries(value).map(([key, item]) => [key, addCanonicalUrls(item, toolName)])
   );
   const malId = record.mal_id ?? record.malId ?? record.id;
-  if (typeof malId === 'number' && Number.isInteger(malId) && malId > 0) {
+  const numericMalId = typeof malId === 'string' && /^\d+$/.test(malId) ? Number(malId) : malId;
+  if (typeof numericMalId === 'number' && Number.isInteger(numericMalId) && numericMalId > 0) {
     const kind = toolName.includes('manga') ? 'manga' : 'anime';
-    record.canonicalUrl = `https://anime.significanthobbies.com/${kind}/${malId}`;
+    record.canonicalUrl = `https://anime.significanthobbies.com/${kind}/${numericMalId}`;
   }
   return record;
 }
@@ -395,6 +400,11 @@ function buildServer(origin: string, authHeader: string | null, federated = fals
             'Anime List returned invalid JSON.'
           );
         }
+        const hasMore =
+          parsed !== null &&
+          typeof parsed === 'object' &&
+          !Array.isArray(parsed) &&
+          (parsed as Record<string, unknown>).hasMore === true;
         const data = {
           schemaVersion: '1' as const,
           ok: true,
@@ -402,7 +412,7 @@ function buildServer(origin: string, authHeader: string | null, federated = fals
           generatedAt: new Date().toISOString(),
           retrievalMode: tool.auth ? ('owner-watchlist' as const) : ('public-catalog' as const),
           data: stripSensitive(addCanonicalUrls(parsed, tool.name)),
-          truncated: false,
+          truncated: hasMore,
           sourceUrl: url,
         };
         return {
