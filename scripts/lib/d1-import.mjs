@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export const APPLICATION_TABLES = new Set([
+const APPLICATION_TABLES = new Set([
   'users',
   'user_tags',
   'anime_watchlist',

@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:import": "node --test scripts/lib/d1-import.test.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:anime-detail": "playwright test e2e/anime-detail.spec.ts",
@@ -44,7 +45,15 @@
     "size": "size-limit",
     "size:check": "size-limit --json",
     "knip": "knip --no-exit-code --reporter symbols",
-    "knip:strict": "knip --reporter symbols"
+    "knip:strict": "knip --reporter symbols",
+    "quality:unused": "node scripts/check-code-health.mjs unused",
+    "quality:complexity": "node scripts/check-code-health.mjs complexity",
+    "quality:duplication": "node scripts/check-code-health.mjs duplication",
+    "quality:cycles": "node scripts/check-code-health.mjs cycles",
+    "quality:dependencies": "node scripts/check-code-health.mjs dependencies",
+    "quality:suppressions": "node scripts/check-code-health.mjs suppressions",
+    "quality:hygiene": "node scripts/check-code-health.mjs hygiene",
+    "quality": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm test:import && pnpm quality:unused && pnpm quality:complexity && pnpm quality:duplication && pnpm quality:cycles && pnpm quality:dependencies && pnpm quality:suppressions && pnpm build && pnpm size && pnpm quality:hygiene"
   },
   "keywords": [],
   "author": "",
@@ -73,7 +82,6 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.12.1",
     "@biomejs/biome": "2.5.5",
     "@cloudflare/workers-types": "4.20260424.1",
     "@playwright/test": "1.62.0",
@@ -89,6 +97,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "concurrently": "9.2.1",
     "husky": "9.1.7",
+    "jscpd": "5.0.14",
     "jsdom": "^29.0.0",
     "knip": "^6.29.0",
     "lightningcss": "1.33.0",
@@ -104,7 +113,14 @@
   },
   "pnpm": {
     "overrides": {
-      "shell-quote": "1.9.0"
+      "brace-expansion@>=4.0.0 <5.0.9": "5.0.9",
+      "fast-uri@<3.1.5": "3.1.5",
+      "ip-address@<10.3.1": "10.3.1",
+      "js-yaml@>=4.0.0 <4.3.1": "4.3.1",
+      "nanoid@<3.3.17": "3.3.17",
+      "postcss@<=8.5.22": "8.5.23",
+      "shell-quote": "1.9.0",
+      "undici@>=7.0.0 <7.29.0": "7.29.0"
     }
   }
 }

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/worker.ts",
+    "src/agent-edge.mjs",
+    "functions/_middleware.ts",
+    "functions/api/[[path]].ts",
+    "functions/anime/[malId].ts",
+    "functions/manga/[malId].ts"
+  ],
+  "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"],
+  "ignore": [
+    // Optional documentation presentation config and ambient widget declaration.
+    "blume.config.ts",
+    "lib/feedback-widget/index.d.ts"
+  ],
+  "ignoreDependencies": [
+    // Child-process/CLI/config-only tools and the CSS import are not visible in the module graph.
+    "jscpd",
+    "lightningcss",
+    "pino-pretty",
+    "shadcn",
+    "tailwindcss",
+    "tw-animate-css"
+  ],
+  "ignoreBinaries": ["blume"],
+  "ignoreIssues": {
+    // Generated agent metadata and UI primitives intentionally expose a public surface.
+    "**/agent-edge.*": ["exports", "types"],
+    "components/ui/**": ["exports", "types"]
+  }
+}

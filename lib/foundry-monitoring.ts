@@ -41,35 +41,6 @@ export async function capturePageCrash(
   });
 }
 
-type ErrorBoundaryScope =
-  | 'root'
-  | 'global'
-  | 'anime-detail'
-  | 'watchlist'
-  | 'schedule'
-  | 'stats'
-  | 'unknown';
-
-export async function captureError(
-  error: unknown,
-  options: { scope?: ErrorBoundaryScope; digest?: string; source?: string } = {}
-) {
-  try {
-    const posthog = await loadPosthog();
-    posthog.capture('error_captured', {
-      project_id: PROJECT_SLUG,
-      route: route(),
-      scope: options.scope ?? 'unknown',
-      digest: options.digest,
-      source: options.source ?? 'error_boundary',
-      message: messageFrom(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-  } catch {
-    // Never let monitoring throw inside an error boundary.
-  }
-}
-
 export function installBrowserMonitoring() {
   if (typeof window === 'undefined') return () => {};
 

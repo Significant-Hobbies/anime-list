@@ -12,16 +12,6 @@ export interface CollectionRow {
   updated_at: string;
 }
 
-export interface CollectionItemRow {
-  id: string;
-  collection_id: string;
-  mal_id: string;
-  media_type: string;
-  position: number;
-  note: string | null;
-  created_at: string;
-}
-
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -48,15 +38,6 @@ async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
   }
 }
 
-export async function listUserCollections(userId: string): Promise<CollectionRow[]> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM collections WHERE user_id = ? ORDER BY updated_at DESC',
-    args: [userId],
-  });
-  return result.rows as unknown as CollectionRow[];
-}
-
 export async function getCollectionBySlug(
   slug: string,
   options: { ownerId?: string; publicOnly?: boolean } = {}
@@ -77,15 +58,6 @@ export async function getCollectionBySlug(
     args,
   });
   return result.rows.length ? (result.rows[0] as unknown as CollectionRow) : null;
-}
-
-export async function getCollectionItems(collectionId: string): Promise<CollectionItemRow[]> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM collection_items WHERE collection_id = ? ORDER BY position ASC, created_at ASC',
-    args: [collectionId],
-  });
-  return result.rows as unknown as CollectionItemRow[];
 }
 
 export async function createCollection(
@@ -118,57 +90,6 @@ export async function createCollection(
   }
 
   return (await getCollectionBySlug(slug, { ownerId: userId }))!;
-}
-
-export async function updateCollection(
-  userId: string,
-  id: string,
-  input: {
-    title?: string;
-    description?: string;
-    visibility?: string;
-    items?: Array<{ mal_id: string; media_type?: string; note?: string }>;
-  }
-): Promise<CollectionRow | null> {
-  const db = getDb();
-  const current = await db.execute({
-    sql: 'SELECT * FROM collections WHERE id = ? AND user_id = ? LIMIT 1',
-    args: [id, userId],
-  });
-  if (!current.rows.length) return null;
-
-  const row = current.rows[0] as unknown as CollectionRow;
-  const nextTitle = input.title?.trim() ?? row.title;
-  const nextSlug =
-    input.title && input.title.trim() !== row.title ? await uniqueSlug(nextTitle, id) : row.slug;
-
-  await db.execute({
-    sql: `UPDATE collections
-          SET title = ?, description = ?, visibility = ?, slug = ?, updated_at = datetime('now')
-          WHERE id = ? AND user_id = ?`,
-    args: [
-      nextTitle,
-      input.description?.trim() ?? row.description,
-      input.visibility ?? row.visibility,
-      nextSlug,
-      id,
-      userId,
-    ],
-  });
-
-  if (input.items) {
-    await replaceCollectionItems(id, input.items);
-  }
-
-  return getCollectionBySlug(nextSlug, { ownerId: userId });
-}
-
-export async function deleteCollection(userId: string, id: string): Promise<void> {
-  const db = getDb();
-  await db.batch([
-    { sql: 'DELETE FROM collection_items WHERE collection_id = ?', args: [id] },
-    { sql: 'DELETE FROM collections WHERE id = ? AND user_id = ?', args: [id, userId] },
-  ]);
 }
 
 async function replaceCollectionItems(

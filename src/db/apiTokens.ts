@@ -1,7 +1,7 @@
 import { getDb } from './client';
 
 export const TOKEN_PREFIX = 'anime_list_';
-export const LEGACY_TOKEN_PREFIX = 'shelf_';
+const LEGACY_TOKEN_PREFIX = 'shelf_';
 
 export function isApiToken(rawToken: string): boolean {
   return rawToken.startsWith(TOKEN_PREFIX) || rawToken.startsWith(LEGACY_TOKEN_PREFIX);
