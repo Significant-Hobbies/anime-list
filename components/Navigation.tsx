@@ -1,20 +1,11 @@
 'use client';
 
 import { Link, useRouterState } from '@tanstack/react-router';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import GoogleSignInButton from './GoogleSignInButton';
-import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
-import { Skeleton } from '@/components/ui/loading-state';
 
 const animeLinks = [
   { href: '/discover', label: 'Discover' },
@@ -43,9 +34,26 @@ function isActiveLink(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function sectionClassName(active: boolean): string {
+  return `px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+    active
+      ? 'bg-background text-foreground shadow-sm'
+      : 'text-muted-foreground hover:text-foreground'
+  }`;
+}
+
+function closeDetails(event: React.MouseEvent<HTMLElement>) {
+  event.currentTarget.closest('details')?.removeAttribute('open');
+}
+
+function closeDetailsOnEscape(event: React.KeyboardEvent<HTMLElement>) {
+  if (event.key === 'Escape') event.currentTarget.removeAttribute('open');
+}
+
 export default function Navigation() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, loading, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mangaMode = isMangaPath(pathname);
   const links = mangaMode ? mangaLinks : animeLinks;
   // Site brand link goes to the marketing landing; section toggle goes to the
@@ -71,26 +79,10 @@ export default function Navigation() {
         </Link>
 
         <div className="hidden sm:flex items-center gap-1 rounded-lg bg-muted/60 p-1">
-          <Link
-            to={animeSectionHref}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-              !mangaMode
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
+          <Link to={animeSectionHref} className={sectionClassName(!mangaMode)}>
             Anime
           </Link>
-          <Link
-            to={mangaSectionHref}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-              mangaMode
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
+          <Link to={mangaSectionHref} className={sectionClassName(mangaMode)}>
             Manga
           </Link>
         </div>
@@ -102,10 +94,9 @@ export default function Navigation() {
               <Link
                 key={link.href}
                 to={link.href}
-                className={cn(
-                  'px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                   active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                )}
+                }`}
               >
                 {link.label}
               </Link>
@@ -113,77 +104,106 @@ export default function Navigation() {
           })}
         </div>
 
-        <div className="flex xl:hidden flex-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-popover border-border">
-              <DropdownMenuItem asChild>
+        <details
+          open={mobileMenuOpen}
+          className="group relative flex-1 xl:hidden"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setMobileMenuOpen(false);
+          }}
+        >
+          <summary
+            role="button"
+            aria-controls="primary-mobile-navigation"
+            aria-expanded={mobileMenuOpen}
+            aria-haspopup="menu"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            onClick={(event) => {
+              event.preventDefault();
+              setMobileMenuOpen((open) => !open);
+            }}
+            className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-md transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </summary>
+          <div
+            id="primary-mobile-navigation"
+            role="menu"
+            className="absolute left-0 top-full z-50 mt-2 min-w-48 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+          >
+            <Link
+              to={animeSectionHref}
+              onClick={() => setMobileMenuOpen(false)}
+              role="menuitem"
+              className={`flex min-h-11 items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent sm:hidden ${
+                !mangaMode ? 'text-primary' : ''
+              }`}
+            >
+              Anime
+            </Link>
+            <Link
+              to={mangaSectionHref}
+              onClick={() => setMobileMenuOpen(false)}
+              role="menuitem"
+              className={`flex min-h-11 items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent sm:hidden ${
+                mangaMode ? 'text-primary' : ''
+              }`}
+            >
+              Manga
+            </Link>
+            {links.map((link) => {
+              const active = isActiveLink(pathname, link.href);
+              return (
                 <Link
-                  to={animeSectionHref}
-                  className={cn('w-full cursor-pointer text-sm', !mangaMode ? 'text-primary' : '')}
+                  key={link.href}
+                  to={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  role="menuitem"
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex min-h-11 items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                    active ? 'text-primary' : ''
+                  }`}
                 >
-                  Anime
+                  {link.label}
                 </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  to={mangaSectionHref}
-                  className={cn('w-full cursor-pointer text-sm', mangaMode ? 'text-primary' : '')}
-                >
-                  Manga
-                </Link>
-              </DropdownMenuItem>
-              {links.map((link) => {
-                const active = isActiveLink(pathname, link.href);
-                return (
-                  <DropdownMenuItem key={link.href} asChild>
-                    <Link
-                      to={link.href}
-                      className={cn('w-full cursor-pointer text-sm', active ? 'text-primary' : '')}
-                    >
-                      {link.label}
-                    </Link>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+              );
+            })}
+          </div>
+        </details>
 
         <div className="flex min-w-10 items-center justify-end gap-3 sm:min-w-28">
           {loading ? (
             <div role="status" aria-label="Checking sign-in status">
-              <Skeleton className="h-8 w-24 rounded-full" />
+              <div aria-hidden="true" className="h-8 w-24 rounded-full bg-muted/70 animate-pulse" />
             </div>
           ) : user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 h-9 px-2">
-                  <Avatar className="h-7 w-7">
-                    {user.picture && <AvatarImage src={user.picture} alt={user.name} />}
-                    <AvatarFallback className="text-xs bg-primary/15 text-primary">
-                      {user.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden sm:inline text-sm text-muted-foreground">
-                    {user.name.split(' ')[0]}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover border-border">
-                <DropdownMenuItem className="text-xs text-muted-foreground">
-                  {user.email}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout} className="text-sm">
+            <details className="relative" onKeyDown={closeDetailsOnEscape}>
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md px-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-xs text-primary">
+                  {user.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user.name.charAt(0).toUpperCase()
+                  )}
+                </span>
+                <span className="hidden text-sm text-muted-foreground sm:inline">
+                  {user.name.split(' ')[0]}
+                </span>
+              </summary>
+              <div className="absolute right-0 top-full z-50 mt-2 min-w-48 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md">
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">{user.email}</div>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="block w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                >
                   Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </button>
+              </div>
+            </details>
           ) : (
             <GoogleSignInButton />
           )}

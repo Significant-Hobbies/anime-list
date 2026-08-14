@@ -4,13 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 /**
- * Single QueryClient for the whole app, created once at module scope.
- *
- * The provider must wrap the entire router, not just the data-heavy `appRoute`
- * subtree: RootLayout renders <Footer /> (which calls useQuery) on every route,
- * and the changelog/about/privacy/terms routes live directly under the root
- * route. Scoping the provider to `appRoute` left those trees without a
- * QueryClient and crashed prod with "No QueryClient set".
+ * Shared QueryClient for the lazy-loaded data-route subtree.
+ * Module scope preserves its cache when the provider temporarily unmounts.
  */
 const queryClient = new QueryClient({
   defaultOptions: {

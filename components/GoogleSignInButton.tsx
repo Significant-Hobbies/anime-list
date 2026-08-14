@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
-import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
 
 const PRODUCTION_GOOGLE_CLIENT_ID =
   '207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com';
@@ -118,8 +117,13 @@ export default function GoogleSignInButton() {
     <div className="relative h-5 w-5" aria-busy={!ready || undefined}>
       {!ready && (
         <>
-          <Skeleton className="absolute inset-0 rounded-full" />
-          <LoadingStatus label="Loading Google sign-in" />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-full bg-muted/70 animate-pulse"
+          />
+          <span className="sr-only" role="status" aria-live="polite">
+            Loading Google sign-in
+          </span>
         </>
       )}
       <div ref={buttonRef} className="relative h-5 w-5 overflow-hidden rounded-full" />

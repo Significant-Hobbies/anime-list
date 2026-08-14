@@ -40,13 +40,11 @@ export type RawMangaData = ({
 
 export enum MangaField {
   MalId = 'mal_id',
-  Url = 'url',
   Title = 'title',
   TitleEnglish = 'title_english',
   Type = 'type',
   Chapters = 'chapters',
   Volumes = 'volumes',
-  Published = 'published',
   Score = 'score',
   ScoredBy = 'scored_by',
   Rank = 'rank',

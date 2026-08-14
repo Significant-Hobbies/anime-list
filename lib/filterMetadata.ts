@@ -1,4 +1,5 @@
 import { createParser } from 'nuqs';
+import { serializeFilters } from './filterSerialization';
 import type { FieldOptions, FilterActions, SearchFilter } from './types';
 
 /**
@@ -23,7 +24,7 @@ export const filtersParser = createParser<SearchFilter[]>({
     }
   },
   serialize(value) {
-    return JSON.stringify({ f: value });
+    return serializeFilters(value);
   },
 });
 

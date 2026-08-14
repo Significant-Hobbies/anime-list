@@ -1,15 +1,16 @@
 import { Outlet } from '@tanstack/react-router';
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
+import { QueryProvider } from '@/lib/query-provider';
 
 /**
- * Adds nuqs URL-state for the data-heavy routes that need it.
- * TanStack Query lives at the app root (see main.tsx) because Footer and the
- * top-level routes also call useQuery, so the QueryClient can't be scoped here.
+ * Adds query caching and nuqs URL-state only for data-heavy routes.
  */
 export default function AppProvidersLayout() {
   return (
-    <NuqsAdapter>
-      <Outlet />
-    </NuqsAdapter>
+    <QueryProvider>
+      <NuqsAdapter>
+        <Outlet />
+      </NuqsAdapter>
+    </QueryProvider>
   );
 }

@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-08-12
+Last updated: 2026-08-14
 
 ## Why / What
 
@@ -45,7 +45,7 @@ Last updated: 2026-08-12
 | `pnpm preview` | Vite preview |
 | `pnpm deploy` | Clean `main` guard + build + `wrangler pages deploy` |
 | `pnpm deploy:worker` | Deploy `mal-api` worker |
-| `pnpm test` | Vitest (132 tests across 28 files) |
+| `pnpm test` | Vitest (140 tests across 32 files) |
 | `pnpm test:coverage` | Whole-source coverage with explicit regression floors |
 | `pnpm quality` | Aggregate Fleet code-health, build, and bundle gate |
 | `pnpm test:e2e` | Playwright (desktop + mobile) |
@@ -57,6 +57,13 @@ Last updated: 2026-08-12
 
 ## Timeline
 
+- **2026-08-14** — Reduced initial client work by deferring query/monitoring
+  providers, bounded full recommendation scoring to the requested result set,
+  centralized filter serialization, and simplified responsive navigation.
+  Mobile destinations now meet the 44px touch floor and the disclosure exposes
+  explicit Open/Close and expanded state at 390 and 768 pixels. The same pass
+  patched the high-severity transitive Nano ID advisory in the development
+  toolchain; production deployment remains manual.
 - **2026-08-12** — Adopted the Fleet code-health contract with whole-source
   coverage, Knip unused-code and cycle analysis, Lizard complexity ceilings,
   jscpd duplication ceilings, dependency severity and suppression accounting,
@@ -207,7 +214,7 @@ without deleting user data.
 - Shared Ultracite lint baseline with a clean 200-file check, plus one aggregate
   Fleet quality gate for formatting, types, tests, unused code, complexity,
   duplication, dependency risk/cycles, suppressions, build, size, and hygiene.
-- Vitest: 132 tests across 28 files (D1, API proxy, import/export, filters,
+- Vitest: 140 tests across 32 files (D1, API proxy, import/export, filters,
   recommendations, schedule, SEO rewrite, detail cache).
 - Playwright: anime detail load, mobile touch targets, no horizontal scroll,
   plus hermetic signed-in coverage for discovery and watchlist import preview.

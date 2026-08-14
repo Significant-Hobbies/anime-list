@@ -96,24 +96,28 @@ function rankRecommendations(
       .slice(0, limit);
   }
 
-  const recommendations: TasteRecommendation[] = [];
+  const recommendations: Array<{ anime: AnimeItem; tasteScore: number }> = [];
   for (const anime of catalog) {
     if (watchedIds.has(String(anime.mal_id))) continue;
-    const candidate = scoreAnime(anime, genreWeights, themeWeights, typeWeights);
-    if (candidate.tasteScore <= 0) continue;
+    const tasteScore = scoreAnimeTaste(anime, genreWeights, themeWeights, typeWeights);
+    if (tasteScore <= 0) continue;
 
     const insertionIndex = recommendations.findIndex(
-      (recommendation) => compareRecommendations(candidate, recommendation) < 0
+      (recommendation) =>
+        (recommendation.tasteScore - tasteScore ||
+          (recommendation.anime.score ?? 0) - (anime.score ?? 0)) < 0
     );
     if (insertionIndex === -1) {
-      if (recommendations.length < limit) recommendations.push(candidate);
+      if (recommendations.length < limit) recommendations.push({ anime, tasteScore });
       continue;
     }
 
-    recommendations.splice(insertionIndex, 0, candidate);
+    recommendations.splice(insertionIndex, 0, { anime, tasteScore });
     if (recommendations.length > limit) recommendations.pop();
   }
-  return recommendations;
+  return recommendations.map(({ anime }) =>
+    scoreAnime(anime, genreWeights, themeWeights, typeWeights)
+  );
 }
 
 function compareRecommendations(left: TasteRecommendation, right: TasteRecommendation): number {
@@ -127,34 +131,7 @@ function scoreAnime(
   typeWeights: Map<string, number>
 ): TasteRecommendation {
   const reasons: string[] = [];
-  let tasteScore = 0;
-
-  for (const genre of Object.keys(anime.genres)) {
-    const weight = genreWeights.get(genre) ?? 0;
-    if (weight > 0) {
-      tasteScore += weight * 2;
-      reasons.push(`matches ${genre}`);
-    } else if (weight < 0) {
-      tasteScore += weight;
-    }
-  }
-
-  for (const theme of Object.keys(anime.themes)) {
-    const weight = themeWeights.get(theme) ?? 0;
-    if (weight > 0) {
-      tasteScore += weight * 1.4;
-      reasons.push(`shares ${theme}`);
-    } else if (weight < 0) {
-      tasteScore += weight * 0.7;
-    }
-  }
-
-  if (anime.type) {
-    tasteScore += typeWeights.get(anime.type) ?? 0;
-  }
-
-  tasteScore += Math.min(2, Math.max(0, (anime.score ?? 0) - 7));
-  tasteScore += Math.min(1, Math.log10(Math.max(1, anime.members ?? 1)) / 8);
+  const tasteScore = scoreAnimeTaste(anime, genreWeights, themeWeights, typeWeights, reasons);
 
   return {
     mal_id: anime.mal_id,
@@ -167,9 +144,49 @@ function scoreAnime(
     url: anime.url,
     genres: Object.keys(anime.genres),
     themes: Object.keys(anime.themes),
-    tasteScore: Math.round(tasteScore * 10) / 10,
+    tasteScore,
     reasons: Array.from(new Set(reasons)).slice(0, 4),
   };
+}
+
+function scoreAnimeTaste(
+  anime: AnimeItem,
+  genreWeights: Map<string, number>,
+  themeWeights: Map<string, number>,
+  typeWeights: Map<string, number>,
+  reasons?: string[]
+): number {
+  let tasteScore = 0;
+
+  for (const genre in anime.genres) {
+    if (!Object.hasOwn(anime.genres, genre)) continue;
+    const weight = genreWeights.get(genre) ?? 0;
+    if (weight > 0) {
+      tasteScore += weight * 2;
+      reasons?.push(`matches ${genre}`);
+    } else if (weight < 0) {
+      tasteScore += weight;
+    }
+  }
+
+  for (const theme in anime.themes) {
+    if (!Object.hasOwn(anime.themes, theme)) continue;
+    const weight = themeWeights.get(theme) ?? 0;
+    if (weight > 0) {
+      tasteScore += weight * 1.4;
+      reasons?.push(`shares ${theme}`);
+    } else if (weight < 0) {
+      tasteScore += weight * 0.7;
+    }
+  }
+
+  if (anime.type) {
+    tasteScore += typeWeights.get(anime.type) ?? 0;
+  }
+
+  tasteScore += Math.min(2, Math.max(0, (anime.score ?? 0) - 7));
+  tasteScore += Math.min(1, Math.log10(Math.max(1, anime.members ?? 1)) / 8);
+  return Math.round(tasteScore * 10) / 10;
 }
 
 function statusWeight(status: string) {
