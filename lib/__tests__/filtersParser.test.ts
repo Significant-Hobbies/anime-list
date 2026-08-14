@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { filtersParser } from '../filterMetadata';
+import { serializeFilters } from '../filterSerialization';
 import type { SearchFilter } from '../types';
 
 const sample: SearchFilter[] = [
@@ -13,6 +14,7 @@ describe('filtersParser', () => {
     // TanStack auto-parses it into a real array. Wrapping it keeps the adapter on
     // its object branch so the round-trip survives.
     const serialized = filtersParser.serialize(sample);
+    expect(serialized).toBe(serializeFilters(sample));
     expect(serialized.startsWith('[')).toBe(false);
     expect(JSON.parse(serialized)).toEqual({ f: sample });
   });

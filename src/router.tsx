@@ -1,7 +1,6 @@
 import { lazy } from 'react';
 import { createRouter, createRootRoute, createRoute, notFound } from '@tanstack/react-router';
 import RootLayout from './RootLayout';
-import AppProvidersLayout from './AppProvidersLayout';
 import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 
@@ -13,6 +12,7 @@ function validateMalId(malId: string) {
 }
 
 const SearchPage = lazy(() => import('./pages/SearchPage'));
+const AppProvidersLayout = lazy(() => import('./AppProvidersLayout'));
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
 const AnimeDetailPage = lazy(() => import('./pages/AnimeDetailPage'));
 const MangaDetailPage = lazy(() => import('./pages/MangaDetailPage'));
@@ -161,7 +161,7 @@ const termsRoute = createRoute({
 });
 
 const mcpRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/mcp',
   component: McpPage,
 });
@@ -183,12 +183,12 @@ const routeTree = rootRoute.addChildren([
     mangaRoute,
     quizRoute,
     catalogUpdatesRoute,
+    mcpRoute,
   ]),
   changelogRoute,
   aboutRoute,
   privacyRoute,
   termsRoute,
-  mcpRoute,
 ]);
 
 export const router = createRouter({

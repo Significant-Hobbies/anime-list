@@ -1,7 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
 import { getLastUpdated } from '@/lib/api';
 import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
 
@@ -20,11 +20,21 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function Footer() {
-  const { data } = useQuery({
-    queryKey: ['lastUpdated'],
-    queryFn: getLastUpdated,
-    staleTime: 5 * 60 * 1000,
-  });
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getLastUpdated()
+      .then((data) => {
+        if (!cancelled) setLastUpdated(data.lastUpdated);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <footer className="max-w-7xl mx-auto px-4 sm:px-6 py-8 mt-8 border-t border-border">
@@ -36,10 +46,10 @@ export default function Footer() {
               by {PUBLISHER_NAME}
             </span>
           </span>
-          {data?.lastUpdated && (
+          {lastUpdated && (
             <>
               <span className="text-border">·</span>
-              <span>Updated {timeAgo(data.lastUpdated)}</span>
+              <span>Updated {timeAgo(lastUpdated)}</span>
             </>
           )}
         </div>

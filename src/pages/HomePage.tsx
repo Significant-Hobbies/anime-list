@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { SITE_NAME } from '@/lib/brand';
 import { trackHomeSurfaceClick, trackHomepageVariantSeen } from '@/lib/engagement';
-import { filtersParser } from '@/lib/filterMetadata';
+import { serializeFilters } from '@/lib/filterSerialization';
 import { homeVariant } from '@/lib/flags';
 import type { SearchFilter } from '@/lib/types';
 
@@ -13,7 +13,7 @@ const TOP_TV_FILTERS: SearchFilter[] = [
   { field: 'type', action: 'EQUALS', value: 'TV' },
 ];
 const TOP_TV_HREF = `/search?af=${encodeURIComponent(
-  filtersParser.serialize(TOP_TV_FILTERS)
+  serializeFilters(TOP_TV_FILTERS)
 )}&airing=no&sort=score`;
 
 const FEATURES = [

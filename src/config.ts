@@ -1,11 +1,9 @@
 export enum AnimeField {
   MalId = 'mal_id',
-  Url = 'url',
   Title = 'title',
   TitleEnglish = 'title_english',
   Type = 'type',
   Episodes = 'episodes',
-  Aired = 'aired',
   Score = 'score',
   ScoredBy = 'scored_by',
   Rank = 'rank',

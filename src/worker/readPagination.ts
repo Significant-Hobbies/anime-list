@@ -1,4 +1,4 @@
-export const READ_PAGE_MAX = 50;
+const READ_PAGE_MAX = 50;
 
 export interface ReadPage {
   limit: number;

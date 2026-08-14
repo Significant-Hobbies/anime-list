@@ -1,0 +1,18 @@
+{
+  "schema_version": "codevetter-performance-flows/v1",
+  "flows": [
+    {
+      "sources": ["src/recommendations.ts"],
+      "performance": {
+        "adapter": "vitest",
+        "target": "src/recommendations.performance.test.ts",
+        "name": "scales taste recommendations across the checked-in catalog"
+      },
+      "correctness": {
+        "adapter": "vitest",
+        "target": "src/recommendations.test.ts",
+        "name": "keeps only the highest-ranked recommendations in stable order"
+      }
+    }
+  ]
+}
