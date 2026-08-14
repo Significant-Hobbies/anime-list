@@ -63,6 +63,7 @@ import {
   parseImportPayload,
   withImportConflicts,
   type WatchlistImportMode,
+  type WatchlistImportPreview,
 } from './watchlistSync';
 import {
   addToScheduleSchema,
@@ -925,39 +926,49 @@ app.get('/api/watchlist/enriched', requireAuth, async (c) => {
   );
 });
 
-app.post('/api/watchlist/import/preview', requireAuth, async (c) => {
-  const body = await c.req.json();
-  const user = c.get('user')!;
-  const source = body.source === 'anilist' ? 'anilist' : body.source === 'shelf' ? 'shelf' : 'mal';
+type WatchlistImportSource = 'mal' | 'anilist' | 'shelf';
+
+type ImportRequestResult =
+  | { ok: true; source: WatchlistImportSource; preview: WatchlistImportPreview }
+  | { ok: false; error: string; status: number };
+
+function parseImportRequest(body: { source?: unknown; payload?: unknown }): ImportRequestResult {
+  const source: WatchlistImportSource =
+    body.source === 'anilist' ? 'anilist' : body.source === 'shelf' ? 'shelf' : 'mal';
   const payload = typeof body.payload === 'string' ? body.payload : '';
   if (!payload.trim()) {
-    return c.json({ error: 'Import payload is required' }, 400);
+    return { ok: false, error: 'Import payload is required', status: 400 };
   }
   const preview = parseImportPayload(source, payload);
   if (!preview) {
-    return c.json({ error: 'Invalid import payload' }, 400);
+    return { ok: false, error: 'Invalid import payload', status: 400 };
+  }
+  return { ok: true, source, preview };
+}
+
+app.post('/api/watchlist/import/preview', requireAuth, async (c) => {
+  const body = await c.req.json();
+  const user = c.get('user')!;
+  const parsed = parseImportRequest(body);
+  if (!parsed.ok) {
+    return c.json({ error: parsed.error }, parsed.status);
   }
   const watchlist = await getAnimeWatchlist(user.userId);
-  return c.json(withImportConflicts(preview, watchlist?.anime ?? {}));
+  return c.json(withImportConflicts(parsed.preview, watchlist?.anime ?? {}));
 });
 
 app.post('/api/watchlist/import/apply', requireAuth, async (c) => {
   const body = await c.req.json();
   const user = c.get('user')!;
-  const source = body.source === 'anilist' ? 'anilist' : body.source === 'shelf' ? 'shelf' : 'mal';
+  const parsed = parseImportRequest(body);
+  if (!parsed.ok) {
+    return c.json({ error: parsed.error }, parsed.status);
+  }
   const mode: WatchlistImportMode =
     body.mode === 'replace' ? 'replace' : body.mode === 'skip' ? 'skip' : 'merge';
-  const payload = typeof body.payload === 'string' ? body.payload : '';
-  if (!payload.trim()) {
-    return c.json({ error: 'Import payload is required' }, 400);
-  }
-  const preview = parseImportPayload(source, payload);
-  if (!preview) {
-    return c.json({ error: 'Invalid import payload' }, 400);
-  }
   const watchlist = await getAnimeWatchlist(user.userId);
   const existing = watchlist?.anime ?? {};
-  const resolvedPreview = withImportConflicts(preview, existing);
+  const resolvedPreview = withImportConflicts(parsed.preview, existing);
   const entries = applyImportMode(resolvedPreview, existing, mode);
   const result = await importAnimeWatchlistEntries(entries, user.userId);
   return c.json({ ...resolvedPreview, imported: result.imported, mode });
