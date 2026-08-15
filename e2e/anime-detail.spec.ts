@@ -48,7 +48,9 @@ test('detail page serves unique title in HTML and app still mounts', async ({ pa
 });
 
 test('unknown anime id gets noindex and app still mounts', async ({ page }) => {
-  await page.goto('/anime/999999999');
+  const response = await page.goto('/anime/999999999');
+
+  expect(response?.status()).toBe(404);
 
   // The page should have a noindex meta tag
   const robotsMeta = await page.locator('meta[name="robots"]').getAttribute('content');

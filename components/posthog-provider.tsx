@@ -6,13 +6,21 @@
 // loads posthog-js where it's needed. Dropping the wrapper shaves ~50 KB
 // from the main bundle (psi-swarm coverage flagged the waste).
 import { useEffect } from 'react';
+import { useRouterState } from '@tanstack/react-router';
 
+import { trackPageView } from '@/lib/analytics';
 import { installBrowserMonitoring } from '@/lib/foundry-monitoring';
 
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   useEffect(() => {
     return installBrowserMonitoring();
   }, []);
+
+  useEffect(() => {
+    trackPageView();
+  }, [pathname]);
 
   return <>{children}</>;
 }

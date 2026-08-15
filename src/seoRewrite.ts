@@ -3,7 +3,7 @@
  *
  * Used by Pages Functions to serve crawlable HTML for /anime/:id and
  * /manga/:id routes. Replaces the <!-- seo:start/end --> head block,
- * inserts JSON-LD, and injects a hidden SSR summary after <div id="root">.
+ * inserts JSON-LD, and injects a crawlable SSR summary after <div id="root">.
  *
  * Escaping: all interpolated values are HTML-escaped. The JSON-LD block
  * is JSON.stringify'd (which escapes </script> as <\/script> in JSON
@@ -152,12 +152,12 @@ export function buildSsrSummary(entry: SeoEntry, kind: SeoKind): string {
     facts.push(`<dt>Chapters</dt><dd>${entry.chapters}</dd>`);
 
   return [
-    '<div hidden data-ssr style="display:none">',
+    '<article data-ssr aria-label="Title summary">',
     `  <h1>${titleEsc}</h1>`,
     `  <p><strong>${kindLabel}</strong> — discover, filter, and track on Anime List by Significant Hobbies.</p>`,
     `  <p>${synopsisEsc}</p>`,
     facts.length ? `  <dl>${facts.join('')}</dl>` : '',
-    '</div>',
+    '</article>',
   ]
     .filter(Boolean)
     .join('\n      ');
