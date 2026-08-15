@@ -2,7 +2,7 @@
  * Pages Function: /anime/:malId
  *
  * Rewrites the SPA shell with SEO metadata for popular anime.
- * Unknown/invalid IDs get the shell with noindex.
+ * Unknown/invalid IDs get the shell with noindex and a real 404 status.
  */
 
 import { rewriteShell, rewriteShellNoindex } from '../../src/seoRewrite';
@@ -31,6 +31,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     // Unknown ID: serve shell with noindex
     const html = rewriteShellNoindex(shellHtml);
     return new Response(html, {
+      status: 404,
       headers: {
         'content-type': 'text/html; charset=utf-8',
         'cache-control': 'public, max-age=300, s-maxage=3600',

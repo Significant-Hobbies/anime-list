@@ -132,10 +132,12 @@ describe('buildHeadBlock', () => {
 });
 
 describe('buildSsrSummary', () => {
-  it('produces hidden div with h1 and synopsis', () => {
+  it('produces crawlable article content with h1 and synopsis', () => {
     const summary = buildSsrSummary(animeEntry, 'anime');
     expect(summary).toContain('data-ssr');
-    expect(summary).toContain('display:none');
+    expect(summary).toContain('<article');
+    expect(summary).not.toContain('hidden');
+    expect(summary).not.toContain('display:none');
     expect(summary).toContain('<h1>Fullmetal Alchemist: Brotherhood</h1>');
     expect(summary).toContain('After a horrific alchemy');
   });

@@ -1,17 +1,18 @@
 /**
- * Owner-facing analytics — the fixed 4-event taxonomy.
+ * Owner-facing analytics — the fixed 5-event taxonomy.
  *
- * Every fleet project emits exactly these four events — `signup`, `activated`,
- * `core_action`, `returned` — so a single PostHog project can build one
- * cross-fleet funnel (signup -> activated -> core_action) and a D1/D7
- * retention insight, with no custom dashboard.
+ * Every fleet project emits exactly these five events — `page_view`, `signup`,
+ * `activated`, `core_action`, `returned` — so a single PostHog project can
+ * build one cross-fleet funnel (signup -> activated -> core_action) and a
+ * D1/D7 retention insight, with no custom dashboard.
  *
  * Every event carries `project_id: "anime_list"`.
  *
  * Browser-only: the anime_list app data layer is a separate Express/Hono
- * worker, not Next.js server actions — so all four events route through
+ * worker, not Next.js server actions — so all events route through
  * `posthog-js` (`track`) in the browser.
  *
+ *  - `page_view`   — any page load or route change.
  *  - `signup`      — first Google sign-in for an account (a new user).
  *  - `activated`   — first real value: the user adds their first anime to
  *                    their watchlist.
@@ -32,6 +33,8 @@ async function capture(event: string, properties: Record<string, unknown>) {
 export type CoreAction = 'watchlist_add' | 'anime_search' | 'manga_search';
 
 interface AnalyticsEventMap {
+  /** A page view, tracked on mount and on route changes. */
+  page_view: { project_id: typeof PROJECT };
   /** First Google sign-in for an account. */
   signup: { project_id: typeof PROJECT };
   /** The user reaches first real value — their first watchlist add. */
@@ -130,4 +133,9 @@ export function trackActivated(userId?: string | null): void {
 /** Fire on each completion of the core product action. */
 export function trackCoreAction(action: CoreAction): void {
   emit('core_action', { action });
+}
+
+/** Fire on mount and on every route change. */
+export function trackPageView(): void {
+  emit('page_view', {});
 }
