@@ -39,9 +39,11 @@ jobs:
           echo "✓ Anime data updated successfully"
 
       - name: Update manga data
+        id: manga
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        continue-on-error: true
         run: |
           echo "Starting manga data update..."
           pnpm run db:update:manga:remote
@@ -51,3 +53,8 @@ jobs:
         if: failure()
         run: |
           echo "::error::Catalog data update failed. Check workflow logs."
+
+      - name: Notify on manga partial failure
+        if: steps.manga.outcome == 'failure'
+        run: |
+          echo "::warning::Manga data update failed (likely transient Jikan API issue). Anime data may have succeeded; check workflow logs."
