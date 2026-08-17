@@ -276,11 +276,21 @@ async function main() {
 
     for (const [index, candidate] of jikanFallbackCandidates.entries()) {
       const currentAnime = changedAnimeMap.get(candidate.mal_id) ?? candidate;
-      const jikanUpdate = await fetchJikanAnimeByMalId(
-        candidate.mal_id,
-        DEFAULT_MAX_RETRIES,
-        jikanDelayMs
-      );
+      let jikanUpdate: DirectStatusRecord | null = null;
+      try {
+        jikanUpdate = await fetchJikanAnimeByMalId(
+          candidate.mal_id,
+          DEFAULT_MAX_RETRIES,
+          jikanDelayMs
+        );
+      } catch (error) {
+        // Jikan fallback is best-effort: a transient gateway error (e.g. 504)
+        // for one candidate must not abort the entire quarterly sync. The
+        // AniList pass already captured status changes; skip this candidate.
+        console.warn(
+          `Jikan lookup for ${candidate.mal_id} threw unexpectedly: ${error instanceof Error ? error.message : error}. Skipping.`
+        );
+      }
 
       if (!jikanUpdate) {
         jikanNotFoundMalIds.push(candidate.mal_id);
