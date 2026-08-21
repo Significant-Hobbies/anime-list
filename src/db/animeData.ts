@@ -39,6 +39,8 @@ export interface UpsertSummary {
 
 const UPSERT_BATCH_SIZE = 100;
 
+const nullable = (v: unknown) => v || null;
+
 const buildAnimeUpsertStatement = (anime: AnimeItem) => ({
   sql: `
     INSERT INTO anime_data (
@@ -75,22 +77,22 @@ const buildAnimeUpsertStatement = (anime: AnimeItem) => ({
     anime.mal_id,
     anime.url,
     anime.title,
-    anime.title_english || null,
-    anime.type || null,
-    anime.episodes || null,
-    anime.aired?.from || null,
-    anime.aired?.to || null,
-    anime.score || null,
-    anime.scored_by || null,
-    anime.rank || null,
-    anime.status || null,
-    anime.popularity || null,
-    anime.members || null,
-    anime.favorites || null,
-    anime.synopsis || null,
-    anime.year || null,
-    anime.season || null,
-    anime.image || null,
+    nullable(anime.title_english),
+    nullable(anime.type),
+    nullable(anime.episodes),
+    nullable(anime.aired?.from),
+    nullable(anime.aired?.to),
+    nullable(anime.score),
+    nullable(anime.scored_by),
+    nullable(anime.rank),
+    nullable(anime.status),
+    nullable(anime.popularity),
+    nullable(anime.members),
+    nullable(anime.favorites),
+    nullable(anime.synopsis),
+    nullable(anime.year),
+    nullable(anime.season),
+    nullable(anime.image),
     JSON.stringify(anime.genres),
     JSON.stringify(anime.themes),
     JSON.stringify(anime.demographics),
@@ -200,11 +202,131 @@ const ARRAY_COLUMN_BY_FIELD: Record<ArrayField, string> = {
 };
 
 type SearchWhere = { whereClause: string; args: Array<string | number> };
+type ClauseResult = { clause: string; args: Array<string | number> } | null;
+const SKIP: ClauseResult = null;
 
 function stringValues(value: Filter['value']): string[] | null {
   if (typeof value === 'string') return [value];
   if (Array.isArray(value) && value.every((item) => typeof item === 'string')) return value;
   return null;
+}
+
+const contains = (column: string) => `instr(lower(${column}), lower(?)) > 0`;
+const doesNotContain = (column: string) => `instr(lower(${column}), lower(?)) = 0`;
+
+function buildStringFilterClause(
+  filter: Filter,
+  stringColumn: string,
+  values: string[]
+): ClauseResult {
+  if (filter.action === FilterAction.Equals && values.length === 1) {
+    return { clause: `${stringColumn} IS NOT NULL AND ${stringColumn} = ?`, args: [values[0]] };
+  }
+  if (
+    filter.field === AnimeField.Title &&
+    filter.action === FilterAction.Contains &&
+    values.length === 1
+  ) {
+    return {
+      clause: `(${contains('title')} OR ${contains("COALESCE(title_english, '')")})`,
+      args: [values[0], values[0]],
+    };
+  }
+  if (filter.action === FilterAction.Contains && values.length === 1) {
+    return {
+      clause: `${stringColumn} IS NOT NULL AND ${contains(stringColumn)}`,
+      args: [values[0]],
+    };
+  }
+  if (filter.action === FilterAction.IncludesAll && values.length > 0) {
+    return {
+      clause: `${stringColumn} IS NOT NULL AND (${values.map(() => contains(stringColumn)).join(' AND ')})`,
+      args: values,
+    };
+  }
+  if (filter.action === FilterAction.IncludesAny) {
+    if (values.length === 0) return SKIP;
+    return {
+      clause: `${stringColumn} IS NOT NULL AND (${values.map(() => contains(stringColumn)).join(' OR ')})`,
+      args: values,
+    };
+  }
+  if (filter.action === FilterAction.Excludes) {
+    if (values.length === 0) return SKIP;
+    return {
+      clause: `${stringColumn} IS NOT NULL AND (${values.map(() => doesNotContain(stringColumn)).join(' AND ')})`,
+      args: values,
+    };
+  }
+  return null;
+}
+
+function buildArrayFilterClause(
+  filter: Filter,
+  arrayColumn: string,
+  values: string[]
+): ClauseResult {
+  if (values.length === 0) return SKIP;
+  const jsonSource = `json_each(COALESCE(${arrayColumn}, '{}'))`;
+  const placeholders = values.map(() => '?').join(', ');
+
+  if (filter.action === FilterAction.IncludesAll) {
+    return {
+      clause: values
+        .map(
+          () => `EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key = ? AND json_each.value)`
+        )
+        .join(' AND '),
+      args: values,
+    };
+  }
+  if (filter.action === FilterAction.IncludesAny) {
+    return {
+      clause: `EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key IN (${placeholders}) AND json_each.value)`,
+      args: values,
+    };
+  }
+  if (filter.action === FilterAction.Excludes) {
+    return {
+      clause: `NOT EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key IN (${placeholders}) AND json_each.value)`,
+      args: values,
+    };
+  }
+  return null;
+}
+
+function processFilter(filter: Filter): ClauseResult {
+  if (filter.score_multiplier) return null;
+
+  const numericColumn = NUMERIC_COLUMN_BY_FIELD[filter.field as NumericField];
+  const numericOperator = SQL_OPERATOR_BY_ACTION[filter.action];
+  if (numericColumn && numericOperator && typeof filter.value === 'number') {
+    return { clause: `${numericColumn} ${numericOperator} ?`, args: [filter.value] };
+  }
+
+  const stringColumn = STRING_COLUMN_BY_FIELD[filter.field as StringField];
+  if (stringColumn) {
+    const values = stringValues(filter.value);
+    if (!values) return null;
+    return buildStringFilterClause(filter, stringColumn, values);
+  }
+
+  const arrayColumn = ARRAY_COLUMN_BY_FIELD[filter.field as ArrayField];
+  if (arrayColumn) {
+    const values = stringValues(filter.value);
+    if (!values) return null;
+    return buildArrayFilterClause(filter, arrayColumn, values);
+  }
+
+  return null;
+}
+
+function appendAiringFilter(airing: 'yes' | 'no' | 'any', whereParts: string[]): void {
+  if (airing === 'yes') {
+    whereParts.push("lower(status) = 'currently airing'");
+  } else if (airing === 'no') {
+    whereParts.push("(status IS NULL OR lower(status) <> 'currently airing')");
+  }
 }
 
 export function buildAnimeSearchWhere(
@@ -215,113 +337,14 @@ export function buildAnimeSearchWhere(
   const args: Array<string | number> = [];
 
   for (const filter of filters) {
-    if (filter.score_multiplier) return null;
-
-    const numericColumn = NUMERIC_COLUMN_BY_FIELD[filter.field as NumericField];
-    const numericOperator = SQL_OPERATOR_BY_ACTION[filter.action];
-    if (numericColumn && numericOperator && typeof filter.value === 'number') {
-      whereParts.push(`${numericColumn} ${numericOperator} ?`);
-      args.push(filter.value);
-      continue;
-    }
-
-    const stringColumn = STRING_COLUMN_BY_FIELD[filter.field as StringField];
-    if (stringColumn) {
-      const values = stringValues(filter.value);
-      if (!values) return null;
-
-      if (filter.action === FilterAction.Equals && values.length === 1) {
-        whereParts.push(`${stringColumn} IS NOT NULL AND ${stringColumn} = ?`);
-        args.push(values[0]);
-        continue;
-      }
-
-      const contains = (column: string) => `instr(lower(${column}), lower(?)) > 0`;
-      const doesNotContain = (column: string) => `instr(lower(${column}), lower(?)) = 0`;
-      if (
-        filter.field === AnimeField.Title &&
-        filter.action === FilterAction.Contains &&
-        values.length === 1
-      ) {
-        whereParts.push(`(${contains('title')} OR ${contains("COALESCE(title_english, '')")})`);
-        args.push(values[0], values[0]);
-        continue;
-      }
-      if (filter.action === FilterAction.Contains && values.length === 1) {
-        whereParts.push(`${stringColumn} IS NOT NULL AND ${contains(stringColumn)}`);
-        args.push(values[0]);
-        continue;
-      }
-      if (filter.action === FilterAction.IncludesAll && values.length > 0) {
-        whereParts.push(
-          `${stringColumn} IS NOT NULL AND (${values.map(() => contains(stringColumn)).join(' AND ')})`
-        );
-        args.push(...values);
-        continue;
-      }
-      if (filter.action === FilterAction.IncludesAny) {
-        if (values.length === 0) continue;
-        whereParts.push(
-          `${stringColumn} IS NOT NULL AND (${values.map(() => contains(stringColumn)).join(' OR ')})`
-        );
-        args.push(...values);
-        continue;
-      }
-      if (filter.action === FilterAction.Excludes) {
-        if (values.length === 0) continue;
-        whereParts.push(
-          `${stringColumn} IS NOT NULL AND (${values.map(() => doesNotContain(stringColumn)).join(' AND ')})`
-        );
-        args.push(...values);
-        continue;
-      }
-      return null;
-    }
-
-    const arrayColumn = ARRAY_COLUMN_BY_FIELD[filter.field as ArrayField];
-    if (arrayColumn) {
-      const values = stringValues(filter.value);
-      if (!values) return null;
-      if (values.length === 0) continue;
-      const jsonSource = `json_each(COALESCE(${arrayColumn}, '{}'))`;
-
-      if (filter.action === FilterAction.IncludesAll) {
-        whereParts.push(
-          values
-            .map(
-              () =>
-                `EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key = ? AND json_each.value)`
-            )
-            .join(' AND ')
-        );
-        args.push(...values);
-        continue;
-      }
-      if (filter.action === FilterAction.IncludesAny) {
-        whereParts.push(
-          `EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key IN (${values.map(() => '?').join(', ')}) AND json_each.value)`
-        );
-        args.push(...values);
-        continue;
-      }
-      if (filter.action === FilterAction.Excludes) {
-        whereParts.push(
-          `NOT EXISTS (SELECT 1 FROM ${jsonSource} WHERE json_each.key IN (${values.map(() => '?').join(', ')}) AND json_each.value)`
-        );
-        args.push(...values);
-        continue;
-      }
-      return null;
-    }
-
-    return null;
+    const result = processFilter(filter);
+    if (result === null) return null;
+    if (result === SKIP) continue;
+    whereParts.push(result.clause);
+    args.push(...result.args);
   }
 
-  if (airing === 'yes') {
-    whereParts.push("lower(status) = 'currently airing'");
-  } else if (airing === 'no') {
-    whereParts.push("(status IS NULL OR lower(status) <> 'currently airing')");
-  }
+  appendAiringFilter(airing, whereParts);
 
   return {
     whereClause: whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : '',

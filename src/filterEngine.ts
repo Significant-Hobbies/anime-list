@@ -14,50 +14,44 @@ import { animeStore } from './store/animeStore';
 
 // ── Primitive matchers ─────────────────────────────────────────────────
 
-const evaluateNumericFilter = (
-  value: number,
-  filterValue: number,
-  action: FilterAction
-): boolean => {
-  switch (action) {
-    case FilterAction.Equals:
-      return value === filterValue;
-    case FilterAction.GreaterThan:
-      return value > filterValue;
-    case FilterAction.LessThan:
-      return value < filterValue;
-    case FilterAction.GreaterThanOrEquals:
-      return value >= filterValue;
-    case FilterAction.LessThanOrEquals:
-      return value <= filterValue;
-    default:
-      return false;
-  }
+const NUMERIC_COMPARATORS: Partial<Record<FilterAction, (a: number, b: number) => boolean>> = {
+  [FilterAction.Equals]: (a, b) => a === b,
+  [FilterAction.GreaterThan]: (a, b) => a > b,
+  [FilterAction.LessThan]: (a, b) => a < b,
+  [FilterAction.GreaterThanOrEquals]: (a, b) => a >= b,
+  [FilterAction.LessThanOrEquals]: (a, b) => a <= b,
 };
 
-const evaluateArrayFilter = (
+function evaluateNumericFilter(value: number, filterValue: number, action: FilterAction): boolean {
+  return NUMERIC_COMPARATORS[action]?.(value, filterValue) ?? false;
+}
+
+const ARRAY_MATCHERS: Partial<
+  Record<FilterAction, (mapValue: { [key: string]: number }, values: string[]) => boolean>
+> = {
+  [FilterAction.Excludes]: (mapValue, values) => !values.some((v) => mapValue[v]),
+  [FilterAction.IncludesAll]: (mapValue, values) => values.every((v) => mapValue[v]),
+  [FilterAction.IncludesAny]: (mapValue, values) =>
+    values.length === 0 || values.some((v) => mapValue[v]),
+};
+
+function evaluateArrayFilter(
   mapValue: { [key: string]: number },
   filterValue: string | string[],
   action: FilterAction
-): boolean => {
+): boolean {
   const values = Array.isArray(filterValue) ? filterValue : [filterValue];
-  switch (action) {
-    case FilterAction.Excludes:
-      return !values.some((v) => mapValue[v]);
-    case FilterAction.IncludesAll:
-      return values.every((v) => mapValue[v]);
-    case FilterAction.IncludesAny:
-      return values.length === 0 || values.some((v) => mapValue[v]);
-    default:
-      return false;
-  }
-};
+  return ARRAY_MATCHERS[action]?.(mapValue, values) ?? false;
+}
 
-const matchesStringFilter = (
-  value: unknown,
-  filterValue: unknown,
-  action: FilterAction
-): boolean => {
+function lowerNeedles(filterValue: unknown): string[] | null {
+  if (!Array.isArray(filterValue)) return null;
+  return filterValue
+    .filter((needle): needle is string => typeof needle === 'string' && needle.length > 0)
+    .map((needle) => needle.toLowerCase());
+}
+
+function matchesStringFilter(value: unknown, filterValue: unknown, action: FilterAction): boolean {
   if (typeof value !== 'string') return false;
 
   if (action === FilterAction.Equals) {
@@ -74,36 +68,23 @@ const matchesStringFilter = (
     if (typeof filterValue === 'string') {
       return !value.toLowerCase().includes(filterValue.toLowerCase());
     }
-
-    if (Array.isArray(filterValue)) {
-      const needles = filterValue
-        .filter((needle): needle is string => typeof needle === 'string' && needle.length > 0)
-        .map((needle) => needle.toLowerCase());
-      if (needles.length === 0) {
-        return true;
-      }
-      return needles.every((needle) => !value.toLowerCase().includes(needle));
-    }
-
-    return false;
+    const needles = lowerNeedles(filterValue);
+    if (!needles || needles.length === 0) return true;
+    return needles.every((needle) => !value.toLowerCase().includes(needle));
   }
 
   if (action === FilterAction.IncludesAll || action === FilterAction.IncludesAny) {
-    if (!Array.isArray(filterValue)) return false;
+    const needles = lowerNeedles(filterValue);
+    if (!needles) return false;
+    if (needles.length === 0) return true;
     const haystack = value.toLowerCase();
-    const needles = filterValue
-      .filter((needle): needle is string => typeof needle === 'string' && needle.length > 0)
-      .map((needle) => needle.toLowerCase());
-    if (needles.length === 0) {
-      return true;
-    }
     return action === FilterAction.IncludesAll
       ? needles.every((needle) => haystack.includes(needle))
       : needles.some((needle) => haystack.includes(needle));
   }
 
   return false;
-};
+}
 
 // ── Generic filter matcher ─────────────────────────────────────────────
 
@@ -160,46 +141,28 @@ export const filterCollection = <
 
 // ── Anime field accessor ───────────────────────────────────────────────
 
-const getAnimeFieldValue = (anime: AnimeItem, field: AnimeField): unknown => {
-  switch (field) {
-    case AnimeField.MalId:
-      return anime.mal_id;
-    case AnimeField.Title:
-      return anime.title;
-    case AnimeField.TitleEnglish:
-      return anime.title_english;
-    case AnimeField.Type:
-      return anime.type;
-    case AnimeField.Episodes:
-      return anime.episodes;
-    case AnimeField.Score:
-      return anime.score;
-    case AnimeField.ScoredBy:
-      return anime.scored_by;
-    case AnimeField.Rank:
-      return anime.rank;
-    case AnimeField.Popularity:
-      return anime.popularity;
-    case AnimeField.Members:
-      return anime.members;
-    case AnimeField.Favorites:
-      return anime.favorites;
-    case AnimeField.Year:
-      return anime.year;
-    case AnimeField.Season:
-      return anime.season;
-    case AnimeField.Synopsis:
-      return anime.synopsis;
-    case AnimeField.Genres:
-      return anime.genres;
-    case AnimeField.Themes:
-      return anime.themes;
-    case AnimeField.Demographics:
-      return anime.demographics;
-    default:
-      return undefined;
-  }
+const ANIME_FIELD_ACCESSORS: Record<AnimeField, (anime: AnimeItem) => unknown> = {
+  [AnimeField.MalId]: (a) => a.mal_id,
+  [AnimeField.Title]: (a) => a.title,
+  [AnimeField.TitleEnglish]: (a) => a.title_english,
+  [AnimeField.Type]: (a) => a.type,
+  [AnimeField.Episodes]: (a) => a.episodes,
+  [AnimeField.Score]: (a) => a.score,
+  [AnimeField.ScoredBy]: (a) => a.scored_by,
+  [AnimeField.Rank]: (a) => a.rank,
+  [AnimeField.Popularity]: (a) => a.popularity,
+  [AnimeField.Members]: (a) => a.members,
+  [AnimeField.Favorites]: (a) => a.favorites,
+  [AnimeField.Year]: (a) => a.year,
+  [AnimeField.Season]: (a) => a.season,
+  [AnimeField.Synopsis]: (a) => a.synopsis,
+  [AnimeField.Genres]: (a) => a.genres,
+  [AnimeField.Themes]: (a) => a.themes,
+  [AnimeField.Demographics]: (a) => a.demographics,
 };
+
+const getAnimeFieldValue = (anime: AnimeItem, field: AnimeField): unknown =>
+  ANIME_FIELD_ACCESSORS[field]?.(anime);
 
 // ── Anime-specific filter (checks both title and title_english) ────────
 

@@ -37,13 +37,16 @@ export interface RewriteOptions {
 
 // ── HTML escaping ───────────────────────────────────────────────────────
 
+const HTML_ENTITIES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
 export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return s.replace(/[\x26\x3c\x3e\x22\x27]/g, (char) => HTML_ENTITIES[char]);
 }
 
 export function escapeJsonLd(s: string): string {

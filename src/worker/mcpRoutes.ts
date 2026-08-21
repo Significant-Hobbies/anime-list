@@ -309,6 +309,117 @@ async function boundedResponseText(response: Response): Promise<string | null> {
   return new TextDecoder().decode(joined);
 }
 
+function errorForStatus(tool: ToolDef, status: number) {
+  if (status === 401 || status === 403) {
+    return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
+  }
+  if (status === 404) return stableError(tool, 'not_found', 'Catalog record not found.');
+  if (status === 429)
+    return stableError(tool, 'rate_limited', 'Anime List rate-limited this read.', true);
+  if (status >= 500) {
+    return stableError(
+      tool,
+      'upstream_unavailable',
+      'Anime List is temporarily unavailable.',
+      true
+    );
+  }
+  return stableError(
+    tool,
+    'invalid_upstream_response',
+    `Anime List returned an unsupported status (${status}).`
+  );
+}
+
+function buildRequestInit(
+  tool: ToolDef,
+  args: Record<string, unknown>,
+  readCredential: string | null
+): RequestInit {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (tool.method === 'POST') headers['Content-Type'] = 'application/json';
+  if (tool.auth && readCredential) headers['Authorization'] = readCredential;
+
+  const init: RequestInit = { method: tool.method, headers };
+  if (tool.method === 'POST' && tool.buildBody) {
+    init.body = JSON.stringify(tool.buildBody(args));
+  }
+  return init;
+}
+
+function fetchErrorResult(tool: ToolDef, error: unknown) {
+  const timedOut =
+    error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError');
+  return stableError(
+    tool,
+    timedOut ? 'timeout' : 'upstream_unavailable',
+    timedOut ? 'Anime List read timed out.' : 'Anime List is temporarily unavailable.',
+    true
+  );
+}
+
+function parseResponseText(tool: ToolDef, text: string | null) {
+  if (text === null) {
+    return stableError(
+      tool,
+      'invalid_upstream_response',
+      'Anime List response exceeded the read bound.'
+    );
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return stableError(tool, 'invalid_upstream_response', 'Anime List returned invalid JSON.');
+  }
+}
+
+function hasMoreFlag(parsed: unknown): boolean {
+  return (
+    parsed !== null &&
+    typeof parsed === 'object' &&
+    !Array.isArray(parsed) &&
+    (parsed as Record<string, unknown>).hasMore === true
+  );
+}
+
+function buildToolHandler(origin: string, tool: ToolDef, readCredential: string | null) {
+  return async (args: Record<string, unknown>) => {
+    const url = tool.buildUrl ? tool.buildUrl(origin, args) : `${origin}${tool.path}`;
+    if (tool.auth && !readCredential) {
+      return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
+    }
+
+    let res: Response;
+    try {
+      res = await boundedFetch(url, buildRequestInit(tool, args, readCredential));
+    } catch (error) {
+      return fetchErrorResult(tool, error);
+    }
+
+    if (!res.ok) return errorForStatus(tool, res.status);
+
+    const parsed = parseResponseText(tool, await boundedResponseText(res));
+    if (parsed !== null && typeof parsed === 'object' && 'isError' in parsed) {
+      return parsed;
+    }
+
+    const data = {
+      schemaVersion: '1' as const,
+      ok: true,
+      tool: tool.name,
+      generatedAt: new Date().toISOString(),
+      retrievalMode: tool.auth ? ('owner-watchlist' as const) : ('public-catalog' as const),
+      data: stripSensitive(addCanonicalUrls(parsed, tool.name)),
+      truncated: hasMoreFlag(parsed),
+      sourceUrl: url,
+    };
+    return {
+      content: [{ type: 'text' as const, text: `Anime List returned ${tool.name} data.` }],
+      structuredContent: outputSchema.parse(data),
+    };
+  };
+}
+
 function buildServer(origin: string, authHeader: string | null, federated = false): McpServer {
   const readCredential =
     /^Bearer anime_list_[A-Za-z0-9_-]+$/.test(authHeader ?? '') || federated ? authHeader : null;
@@ -335,91 +446,7 @@ function buildServer(origin: string, authHeader: string | null, federated = fals
           openWorldHint: !tool.auth,
         },
       },
-      async (args) => {
-        const url = tool.buildUrl
-          ? tool.buildUrl(origin, args as Record<string, unknown>)
-          : `${origin}${tool.path}`;
-        if (tool.auth && !readCredential) {
-          return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
-        }
-        const headers: Record<string, string> = { Accept: 'application/json' };
-        if (tool.method === 'POST') headers['Content-Type'] = 'application/json';
-        if (tool.auth && readCredential) headers['Authorization'] = readCredential;
-
-        const init: RequestInit = { method: tool.method, headers };
-        if (tool.method === 'POST' && tool.buildBody) {
-          init.body = JSON.stringify(tool.buildBody(args as Record<string, unknown>));
-        }
-
-        let res: Response;
-        try {
-          res = await boundedFetch(url, init);
-        } catch (error) {
-          const timedOut =
-            error instanceof DOMException &&
-            (error.name === 'TimeoutError' || error.name === 'AbortError');
-          return stableError(
-            tool,
-            timedOut ? 'timeout' : 'upstream_unavailable',
-            timedOut ? 'Anime List read timed out.' : 'Anime List is temporarily unavailable.',
-            true
-          );
-        }
-
-        if (res.status === 401 || res.status === 403) {
-          return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
-        }
-        if (res.status === 404) return stableError(tool, 'not_found', 'Catalog record not found.');
-        if (res.status === 429)
-          return stableError(tool, 'rate_limited', 'Anime List rate-limited this read.', true);
-        if (!res.ok) {
-          return stableError(
-            tool,
-            res.status >= 500 ? 'upstream_unavailable' : 'invalid_upstream_response',
-            res.status >= 500
-              ? 'Anime List is temporarily unavailable.'
-              : `Anime List returned an unsupported status (${res.status}).`,
-            res.status >= 500
-          );
-        }
-        const text = await boundedResponseText(res);
-        if (text === null) {
-          return stableError(
-            tool,
-            'invalid_upstream_response',
-            'Anime List response exceeded the read bound.'
-          );
-        }
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(text) as unknown;
-        } catch {
-          return stableError(
-            tool,
-            'invalid_upstream_response',
-            'Anime List returned invalid JSON.'
-          );
-        }
-        const hasMore =
-          parsed !== null &&
-          typeof parsed === 'object' &&
-          !Array.isArray(parsed) &&
-          (parsed as Record<string, unknown>).hasMore === true;
-        const data = {
-          schemaVersion: '1' as const,
-          ok: true,
-          tool: tool.name,
-          generatedAt: new Date().toISOString(),
-          retrievalMode: tool.auth ? ('owner-watchlist' as const) : ('public-catalog' as const),
-          data: stripSensitive(addCanonicalUrls(parsed, tool.name)),
-          truncated: hasMore,
-          sourceUrl: url,
-        };
-        return {
-          content: [{ type: 'text' as const, text: `Anime List returned ${tool.name} data.` }],
-          structuredContent: outputSchema.parse(data),
-        };
-      }
+      buildToolHandler(origin, tool, readCredential)
     );
   }
 

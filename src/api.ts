@@ -80,82 +80,68 @@ export function isRequiredSeasonPage(page: number): boolean {
   return page === 1;
 }
 
-// Fetch the last two seasons and update the bound D1 database.
-export const updateLatestTwoSeasonData = async (): Promise<void> => {
-  const p0 = performance.now();
+const getSeason = (month: number): string => {
+  if (month >= 1 && month <= 3) return 'winter';
+  if (month >= 4 && month <= 6) return 'spring';
+  if (month >= 7 && month <= 9) return 'summer';
+  return 'fall';
+};
 
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-
-  const getSeason = (month: number): string => {
-    if (month >= 1 && month <= 3) return 'winter';
-    else if (month >= 4 && month <= 6) return 'spring';
-    else if (month >= 7 && month <= 9) return 'summer';
-    else return 'fall';
-  };
-
-  const getPreviousSeason = (season: string, year: number): { season: string; year: number } => {
-    const seasons = ['winter', 'spring', 'summer', 'fall'];
-    const currentIndex = seasons.indexOf(season);
-    if (currentIndex === 0) {
-      return { season: 'fall', year: year - 1 };
-    }
-    return { season: seasons[currentIndex - 1], year };
-  };
-
-  const currentSeason = getSeason(currentMonth);
-  const previousSeasonData = getPreviousSeason(currentSeason, currentYear);
-
-  const seasonsToFetch = [
-    { season: currentSeason, year: currentYear },
-    { season: previousSeasonData.season, year: previousSeasonData.year },
-  ];
-
-  const allFetchedAnime: AnimeItem[] = [];
-  const failedPages: string[] = [];
-
-  for (const { season, year } of seasonsToFetch) {
-    console.log(`Fetching ${season} ${year}...`);
-    const seasonStartCount = allFetchedAnime.length;
-    let page = 1;
-    while (true) {
-      const url = `${API_CONFIG.baseUrl}/seasons/${year}/${season}?page=${page}&limit=25`;
-      const data = await fetchFromApi<ApiResponse<RawAnimeItem[]>>(url);
-
-      if (!data?.data || !Array.isArray(data.data)) {
-        const failedPage = `${season} ${year} page ${page}`;
-        if (isRequiredSeasonPage(page)) {
-          failedPages.push(failedPage);
-        } else {
-          console.warn(
-            `Jikan failed for optional ${failedPage} after retries; keeping ${allFetchedAnime.length - seasonStartCount} fetched rows for this season.`
-          );
-        }
-        break;
-      }
-
-      // Transform and collect anime
-      for (const rawAnime of data.data) {
-        const anime = transformRawAnime(rawAnime);
-        // Only include anime with complete data
-        if (anime.score && anime.scored_by && anime.members && anime.favorites && anime.year) {
-          allFetchedAnime.push(anime);
-        }
-      }
-
-      if (!data.pagination?.has_next_page) break;
-      page++;
-    }
-    console.log(`✓ ${season} ${year} - fetched ${allFetchedAnime.length} anime so far`);
+const getPreviousSeason = (season: string, year: number): { season: string; year: number } => {
+  const seasons = ['winter', 'spring', 'summer', 'fall'];
+  const currentIndex = seasons.indexOf(season);
+  if (currentIndex === 0) {
+    return { season: 'fall', year: year - 1 };
   }
+  return { season: seasons[currentIndex - 1], year };
+};
 
-  assertCatalogRowsFetched('anime', allFetchedAnime.length);
+function isCompleteAnime(anime: AnimeItem): boolean {
+  return Boolean(anime.score && anime.scored_by && anime.members && anime.favorites && anime.year);
+}
 
-  // Save through the configured D1 boundary.
-  console.log(`Saving ${allFetchedAnime.length} anime to database...`);
-  const summary = await upsertAnimeBatch(allFetchedAnime);
+async function fetchSeasonAnime(
+  season: string,
+  year: number,
+  allFetchedAnime: AnimeItem[],
+  failedPages: string[]
+): Promise<void> {
+  console.log(`Fetching ${season} ${year}...`);
+  const seasonStartCount = allFetchedAnime.length;
+  let page = 1;
+  while (true) {
+    const url = `${API_CONFIG.baseUrl}/seasons/${year}/${season}?page=${page}&limit=25`;
+    const data = await fetchFromApi<ApiResponse<RawAnimeItem[]>>(url);
 
+    if (!data?.data || !Array.isArray(data.data)) {
+      const failedPage = `${season} ${year} page ${page}`;
+      if (isRequiredSeasonPage(page)) {
+        failedPages.push(failedPage);
+      } else {
+        console.warn(
+          `Jikan failed for optional ${failedPage} after retries; keeping ${allFetchedAnime.length - seasonStartCount} fetched rows for this season.`
+        );
+      }
+      break;
+    }
+
+    for (const rawAnime of data.data) {
+      const anime = transformRawAnime(rawAnime);
+      if (isCompleteAnime(anime)) {
+        allFetchedAnime.push(anime);
+      }
+    }
+
+    if (!data.pagination?.has_next_page) break;
+    page++;
+  }
+  console.log(`✓ ${season} ${year} - fetched ${allFetchedAnime.length} anime so far`);
+}
+
+function logUpsertSummary(summary: {
+  added: { mal_id: number; title: string }[];
+  updated: { mal_id: number; title: string }[];
+}): void {
   if (summary.added.length > 0) {
     console.log(`\n📥 NEW (${summary.added.length}):`);
     for (const a of summary.added) {
@@ -171,6 +157,37 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
   if (summary.added.length === 0 && summary.updated.length === 0) {
     console.log('No changes detected.');
   }
+}
+
+// Fetch the last two seasons and update the bound D1 database.
+export const updateLatestTwoSeasonData = async (): Promise<void> => {
+  const p0 = performance.now();
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const currentSeason = getSeason(currentMonth);
+  const previousSeasonData = getPreviousSeason(currentSeason, currentYear);
+
+  const seasonsToFetch = [
+    { season: currentSeason, year: currentYear },
+    { season: previousSeasonData.season, year: previousSeasonData.year },
+  ];
+
+  const allFetchedAnime: AnimeItem[] = [];
+  const failedPages: string[] = [];
+
+  for (const { season, year } of seasonsToFetch) {
+    await fetchSeasonAnime(season, year, allFetchedAnime, failedPages);
+  }
+
+  assertCatalogRowsFetched('anime', allFetchedAnime.length);
+
+  // Save through the configured D1 boundary.
+  console.log(`Saving ${allFetchedAnime.length} anime to database...`);
+  const summary = await upsertAnimeBatch(allFetchedAnime);
+  logUpsertSummary(summary);
 
   assertCatalogRefreshComplete('anime', failedPages);
 

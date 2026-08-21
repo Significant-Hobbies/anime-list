@@ -149,6 +149,28 @@ function scoreAnime(
   };
 }
 
+function scoreWeightedKeys(
+  map: { [key: string]: number },
+  weights: Map<string, number>,
+  positiveMultiplier: number,
+  negativeMultiplier: number,
+  reasonPrefix: string,
+  reasons?: string[]
+): number {
+  let score = 0;
+  for (const key in map) {
+    if (!Object.hasOwn(map, key)) continue;
+    const weight = weights.get(key) ?? 0;
+    if (weight > 0) {
+      score += weight * positiveMultiplier;
+      reasons?.push(`${reasonPrefix} ${key}`);
+    } else if (weight < 0) {
+      score += weight * negativeMultiplier;
+    }
+  }
+  return score;
+}
+
 function scoreAnimeTaste(
   anime: AnimeItem,
   genreWeights: Map<string, number>,
@@ -157,28 +179,8 @@ function scoreAnimeTaste(
   reasons?: string[]
 ): number {
   let tasteScore = 0;
-
-  for (const genre in anime.genres) {
-    if (!Object.hasOwn(anime.genres, genre)) continue;
-    const weight = genreWeights.get(genre) ?? 0;
-    if (weight > 0) {
-      tasteScore += weight * 2;
-      reasons?.push(`matches ${genre}`);
-    } else if (weight < 0) {
-      tasteScore += weight;
-    }
-  }
-
-  for (const theme in anime.themes) {
-    if (!Object.hasOwn(anime.themes, theme)) continue;
-    const weight = themeWeights.get(theme) ?? 0;
-    if (weight > 0) {
-      tasteScore += weight * 1.4;
-      reasons?.push(`shares ${theme}`);
-    } else if (weight < 0) {
-      tasteScore += weight * 0.7;
-    }
-  }
+  tasteScore += scoreWeightedKeys(anime.genres, genreWeights, 2, 1, 'matches', reasons);
+  tasteScore += scoreWeightedKeys(anime.themes, themeWeights, 1.4, 0.7, 'shares', reasons);
 
   if (anime.type) {
     tasteScore += typeWeights.get(anime.type) ?? 0;

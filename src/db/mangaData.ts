@@ -38,6 +38,9 @@ const mapMangaRow = (row: Record<string, unknown>): MangaItem => ({
 
 const UPSERT_BATCH_SIZE = 100;
 
+const nullable = (v: unknown) => v || null;
+const toFlag = (v: unknown) => (v ? 1 : 0);
+
 const buildMangaUpsertStatement = (manga: MangaItem) => ({
   sql: `
     INSERT INTO manga_data (
@@ -79,25 +82,25 @@ const buildMangaUpsertStatement = (manga: MangaItem) => ({
     manga.mal_id,
     manga.url,
     manga.title,
-    manga.title_english || null,
-    manga.type || null,
-    manga.chapters || null,
-    manga.volumes || null,
-    manga.published?.from || null,
-    manga.published?.to || null,
-    manga.score || null,
-    manga.scored_by || null,
-    manga.rank || null,
-    manga.status || null,
-    manga.popularity || null,
-    manga.members || null,
-    manga.favorites || null,
-    manga.synopsis || null,
-    manga.year || null,
-    manga.image || null,
-    manga.has_colored ? 1 : 0,
-    manga.is_completed ? 1 : 0,
-    manga.available_in_english ? 1 : 0,
+    nullable(manga.title_english),
+    nullable(manga.type),
+    nullable(manga.chapters),
+    nullable(manga.volumes),
+    nullable(manga.published?.from),
+    nullable(manga.published?.to),
+    nullable(manga.score),
+    nullable(manga.scored_by),
+    nullable(manga.rank),
+    nullable(manga.status),
+    nullable(manga.popularity),
+    nullable(manga.members),
+    nullable(manga.favorites),
+    nullable(manga.synopsis),
+    nullable(manga.year),
+    nullable(manga.image),
+    toFlag(manga.has_colored),
+    toFlag(manga.is_completed),
+    toFlag(manga.available_in_english),
     JSON.stringify(manga.available_languages || []),
     JSON.stringify(manga.genres),
     JSON.stringify(manga.themes),

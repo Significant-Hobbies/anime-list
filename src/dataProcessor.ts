@@ -75,56 +75,33 @@ export const transformRawManga = (rawManga: RawMangaData[0]): MangaItem => {
 };
 
 // Manga filtering functions
-export const getMangaFieldValue = (manga: MangaItem, field: MangaField): unknown => {
-  switch (field) {
-    case MangaField.MalId:
-      return manga.mal_id;
-    case MangaField.Title:
-      return manga.title;
-    case MangaField.TitleEnglish:
-      return manga.title_english;
-    case MangaField.Type:
-      return manga.type;
-    case MangaField.Chapters:
-      return manga.chapters;
-    case MangaField.Volumes:
-      return manga.volumes;
-    case MangaField.Score:
-      return manga.score;
-    case MangaField.ScoredBy:
-      return manga.scored_by;
-    case MangaField.Rank:
-      return manga.rank;
-    case MangaField.Status:
-      return manga.status;
-    case MangaField.Popularity:
-      return manga.popularity;
-    case MangaField.Members:
-      return manga.members;
-    case MangaField.Favorites:
-      return manga.favorites;
-    case MangaField.Year:
-      return manga.year;
-    case MangaField.Synopsis:
-      return manga.synopsis;
-    case MangaField.Genres:
-      return manga.genres;
-    case MangaField.Themes:
-      return manga.themes;
-    case MangaField.Demographics:
-      return manga.demographics;
-    case MangaField.HasColored:
-      return manga.has_colored;
-    case MangaField.IsCompleted:
-      return manga.is_completed;
-    case MangaField.AvailableInEnglish:
-      return manga.available_in_english;
-    case MangaField.AvailableLanguages:
-      return manga.available_languages;
-    default:
-      return undefined;
-  }
+const MANGA_FIELD_ACCESSORS: Record<MangaField, (manga: MangaItem) => unknown> = {
+  [MangaField.MalId]: (m) => m.mal_id,
+  [MangaField.Title]: (m) => m.title,
+  [MangaField.TitleEnglish]: (m) => m.title_english,
+  [MangaField.Type]: (m) => m.type,
+  [MangaField.Chapters]: (m) => m.chapters,
+  [MangaField.Volumes]: (m) => m.volumes,
+  [MangaField.Score]: (m) => m.score,
+  [MangaField.ScoredBy]: (m) => m.scored_by,
+  [MangaField.Rank]: (m) => m.rank,
+  [MangaField.Status]: (m) => m.status,
+  [MangaField.Popularity]: (m) => m.popularity,
+  [MangaField.Members]: (m) => m.members,
+  [MangaField.Favorites]: (m) => m.favorites,
+  [MangaField.Year]: (m) => m.year,
+  [MangaField.Synopsis]: (m) => m.synopsis,
+  [MangaField.Genres]: (m) => m.genres,
+  [MangaField.Themes]: (m) => m.themes,
+  [MangaField.Demographics]: (m) => m.demographics,
+  [MangaField.HasColored]: (m) => m.has_colored,
+  [MangaField.IsCompleted]: (m) => m.is_completed,
+  [MangaField.AvailableInEnglish]: (m) => m.available_in_english,
+  [MangaField.AvailableLanguages]: (m) => m.available_languages,
 };
+
+export const getMangaFieldValue = (manga: MangaItem, field: MangaField): unknown =>
+  MANGA_FIELD_ACCESSORS[field]?.(manga);
 
 export const filterMangaList = async (filters: MangaFilter[]): Promise<MangaItem[]> => {
   try {

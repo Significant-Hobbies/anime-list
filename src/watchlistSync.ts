@@ -192,8 +192,45 @@ export function buildShelfCsvExport(watchlist: Record<string, WatchedAnime>): st
   return [header, ...rows].join('\n');
 }
 
+function splitCsvLines(csv: string): string[] {
+  return csv
+    .trim()
+    .split('\n')
+    .map((line) => (line.endsWith('\r') ? line.slice(0, -1) : line));
+}
+
+function parseCsvCells(line: string): string[] {
+  const cells: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      cells.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
 function parseMalCsv(csv: string): WatchlistImportPreview {
-  const lines = csv.trim().split(/\r?\n/);
+  const lines = splitCsvLines(csv);
   const entries: ExternalWatchlistEntry[] = [];
   let skipped = 0;
 
@@ -201,11 +238,7 @@ function parseMalCsv(csv: string): WatchlistImportPreview {
     if (index === 0 && line.toLowerCase().includes('mal_id')) continue;
     if (!line.trim()) continue;
 
-    const cells =
-      line
-        .match(/("([^"]|"")*"|[^,]+)/g)
-        ?.map((cell) => cell.replace(/^"|"$/g, '').replaceAll('""', '"').trim()) ?? [];
-
+    const cells = parseCsvCells(line);
     const [malId, title, statusRaw, type, episodesRaw, note] = cells;
     const status = normalizeStatus('mal', statusRaw ?? '');
     if (!malId || !status) {

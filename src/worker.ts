@@ -1,11 +1,10 @@
 /// <reference types="@cloudflare/workers-types" />
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { isAllowedOrigin } from './corsOrigins';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { isRs256Jwt, verifyAnimeAuth0Subject } from './auth0Mcp';
 import { handleAgentEdge } from './agent-edge.mjs';
-import { trace } from './telemetry';
 import { isWriteFrozenRequest } from './writeFreeze';
 import {
   CATALOG_UNAVAILABLE_CODE,
@@ -14,7 +13,6 @@ import {
 } from '../lib/apiErrors';
 
 // Business logic imports (all unchanged files)
-import { filterAnimeList } from './filterEngine';
 import {
   addDismissedAnime,
   deleteUserTag,
@@ -31,7 +29,6 @@ import {
   upsertUserTag,
 } from './db/watchlist';
 import { getAnimeStats } from './statistics';
-import { getScoreSortedList } from './utils/statistics';
 import { animeStore } from './store/animeStore';
 import { mangaStore } from './store/mangaStore';
 import {
@@ -78,6 +75,7 @@ import {
 } from './db/schedule';
 import { bindD1Database } from './db/client';
 import { getAnimeDetailSupplementalData } from './controllers/animeDetailService';
+import { executeSearch } from './controllers/searchController';
 import { buildScheduleTimelineResponse, addScheduleItems } from './services/scheduleService';
 import { buildTasteRecommendations } from './recommendations';
 import { registerMangaRoutes } from './worker/mangaRoutes';
@@ -132,13 +130,6 @@ const STATS_CACHE_TTL_SECONDS = 300;
 // endpoint off two full-table MAX(updated_at) scans on every request.
 const LAST_UPDATED_CACHE_TTL_SECONDS = 300;
 const LAST_UPDATED_CACHE_URL = 'https://mal-cache.local/api/last-updated?v=1';
-const SEARCH_SYNOPSIS_MAX = 220;
-
-const truncateSynopsis = (text: string | undefined): string | undefined => {
-  if (!text) return text;
-  if (text.length <= SEARCH_SYNOPSIS_MAX) return text;
-  return `${text.slice(0, SEARCH_SYNOPSIS_MAX - 1).trimEnd()}...`;
-};
 
 // ── JWT helpers (using jose instead of jsonwebtoken) ───────────────────
 
@@ -239,6 +230,8 @@ const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth
 
 // ── Hono app ───────────────────────────────────────────────────────────
 
+type AppContext = Context<{ Bindings: Env; Variables: { user?: AuthPayload } }>;
+
 const app = new Hono<{ Bindings: Env; Variables: { user?: AuthPayload } }>();
 
 // Fleet agent indexing (GEO) — must register before SPA asset fallback.
@@ -269,42 +262,6 @@ const toDetailAnime = (anime: NonNullable<Awaited<ReturnType<typeof getAnimeByMa
   genres: Object.keys(anime.genres ?? {}),
   themes: Object.keys(anime.themes ?? {}),
   demographics: Object.keys(anime.demographics ?? {}),
-});
-
-const toSearchAnime = (anime: {
-  mal_id: number;
-  score?: number;
-  points?: number;
-  title: string;
-  title_english?: string;
-  url: string;
-  synopsis?: string;
-  members?: number;
-  favorites?: number;
-  year?: number;
-  status?: string;
-  genres: Record<string, number>;
-  themes: Record<string, number>;
-  type?: string;
-  image?: string;
-}) => ({
-  id: anime.mal_id,
-  score: anime.score,
-  points: anime.points,
-  name: anime.title,
-  title_english: anime.title_english,
-  link: anime.url,
-  // Card renders line-clamp-3 (~180 chars). Truncate to keep payload small;
-  // full synopsis is on the detail endpoint.
-  synopsis: truncateSynopsis(anime.synopsis),
-  members: anime.members,
-  favorites: anime.favorites,
-  year: anime.year,
-  status: anime.status,
-  genres: Object.keys(anime.genres),
-  themes: Object.keys(anime.themes),
-  type: anime.type,
-  image: anime.image,
 });
 
 // Bind relational persistence before any route touches domain state.
@@ -494,72 +451,65 @@ app.post('/api/search', optionalAuth, async (c) => {
       400
     );
   }
-
-  const { filters, sortBy, airing, hideWatched, includeWatched, pagesize, offset } = parsed.data;
   const user = c.get('user');
-  const canUseD1Search = hideWatched.length === 0 && includeWatched.length === 0;
-
-  const simpleSearchPage = canUseD1Search
-    ? await trace(
-        'db:search:simple',
-        () => getSimpleAnimeSearchPage({ filters, sortBy, airing, pagesize, offset }),
-        { project: 'mal-api' }
-      )
-    : null;
-
-  if (simpleSearchPage) {
-    const response = c.json({
-      totalFiltered: simpleSearchPage.totalFiltered,
-      filteredList: simpleSearchPage.page.map(toSearchAnime),
-    });
-    response.headers.set('X-Search-Cache', 'BYPASS');
-    response.headers.set('X-Search-Path', 'd1');
-    return response;
-  }
-
-  let filtered = await trace('db:search', () => filterAnimeList(filters), { project: 'mal-api' });
-
-  // Airing filter
-  if (airing !== 'any') {
-    filtered = filtered.filter((anime) => {
-      const isAiring = anime.status?.toLowerCase() === 'currently airing';
-      return airing === 'yes' ? isAiring : !isAiring;
-    });
-  }
-
-  // Watchlist filter
-  if (user?.userId && includeWatched.length > 0) {
-    filtered = await includeOnlyWatchedItems(
-      filtered,
-      includeWatched,
-      () => getAnimeWatchlist(user.userId),
-      (list) => list.anime
-    );
-  } else if (user?.userId) {
-    filtered = await hideWatchedItems(
-      filtered,
-      hideWatched,
-      () => getAnimeWatchlist(user.userId),
-      (list) => list.anime
-    );
-  }
-
-  // Only keep `pagesize + offset` results — anything beyond is discarded by
-  // takePage anyway, so we avoid scoring/sorting the remaining tail.
-  const sorted = getScoreSortedList(filtered, filters, sortBy, pagesize + offset);
-
-  const response = c.json({
-    totalFiltered: filtered.length,
-    filteredList: takePage(sorted, pagesize, offset).map(toSearchAnime),
+  const { filters, sortBy, airing, hideWatched, includeWatched, pagesize, offset } = parsed.data;
+  const result = await executeSearch({
+    filters,
+    sortBy,
+    airing,
+    hideWatched,
+    includeWatched,
+    pagesize,
+    offset,
+    userId: user?.userId,
   });
-
+  const response = c.json({
+    totalFiltered: result.totalFiltered,
+    filteredList: result.filteredList,
+  });
   response.headers.set('X-Search-Cache', 'BYPASS');
-  response.headers.set('X-Search-Path', 'memory');
+  response.headers.set('X-Search-Path', result.cachePath);
   return response;
 });
 
 // Stats
 const STATS_CACHE_URL = 'https://mal-cache.local/api/stats?v=1';
+
+async function filterStatsAnimeList(
+  userId: string | undefined,
+  includeWatched: string[],
+  hideWatched: string[]
+): Promise<AnimeItem[]> {
+  let animeList = await animeStore.getAnimeList();
+
+  if (userId && includeWatched.length > 0) {
+    animeList = await includeOnlyWatchedItems(
+      animeList,
+      includeWatched,
+      () => getAnimeWatchlist(userId),
+      (list) => list.anime
+    );
+  } else if (userId && hideWatched.length > 0) {
+    const watchlist = await getAnimeWatchlist(userId);
+    const includeWatchedFromHide = watchlist
+      ? Array.from(
+          new Set(
+            Object.values(watchlist.anime)
+              .map((item) => item.status)
+              .filter((status) => !hideWatched.includes(status))
+          )
+        )
+      : [];
+    animeList = await includeOnlyWatchedItems(
+      animeList,
+      includeWatchedFromHide,
+      () => getAnimeWatchlist(userId),
+      (list) => list.anime
+    );
+  }
+  return animeList;
+}
+
 app.get('/api/stats', optionalAuth, async (c) => {
   const user = c.get('user');
   const includeWatched = parseTagQuery(c.req.query('includeWatched'));
@@ -578,35 +528,7 @@ app.get('/api/stats', optionalAuth, async (c) => {
     }
   }
 
-  let animeList = await animeStore.getAnimeList();
-
-  if (user?.userId && includeWatched.length > 0) {
-    animeList = await includeOnlyWatchedItems(
-      animeList,
-      includeWatched,
-      () => getAnimeWatchlist(user.userId),
-      (list) => list.anime
-    );
-  } else if (user?.userId && hideWatched.length > 0) {
-    const watchlist = await getAnimeWatchlist(user.userId);
-    const includeWatchedFromHide = watchlist
-      ? Array.from(
-          new Set(
-            Object.values(watchlist.anime)
-              .map((item) => item.status)
-              .filter((status) => !hideWatched.includes(status))
-          )
-        )
-      : [];
-
-    animeList = await includeOnlyWatchedItems(
-      animeList,
-      includeWatchedFromHide,
-      () => getAnimeWatchlist(user.userId),
-      (list) => list.anime
-    );
-  }
-
+  const animeList = await filterStatsAnimeList(user?.userId, includeWatched, hideWatched);
   const stats = await getAnimeStats(animeList);
   const response = c.json(stats);
 
@@ -1086,34 +1008,182 @@ app.post('/api/schedule/reorder', requireAuth, async (c) => {
 });
 
 // Discovery Queue
-app.get('/api/discover/queue', requireAuth, async (c) => {
-  const user = c.get('user')!;
-  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10) || 50, 1), 200);
 
-  const now = new Date();
+const STATUS_WEIGHTS: Record<string, number> = {
+  watching: 1.4,
+  completed: 1.3,
+  done: 1.3,
+  brr: 1.15,
+  avoiding: -1.6,
+  deferred: -0.8,
+  dropped: -1.2,
+};
+
+function getSeasonsToInclude(now: Date) {
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
-
-  // Seasons: Winter (Jan-Mar), Spring (Apr-Jun), Summer (Jul-Sep), Fall (Oct-Dec)
   const currentSeason = ['winter', 'spring', 'summer', 'fall'][Math.floor(month / 3)];
-
   let prevYear = year;
   let prevSeason = currentSeason;
   if (month < 3) {
     prevSeason = 'fall';
     prevYear = year - 1;
-  } else if (month < 6) {
-    prevSeason = 'winter';
-  } else if (month < 9) {
-    prevSeason = 'spring';
-  } else {
-    prevSeason = 'summer';
-  }
+  } else if (month < 6) prevSeason = 'winter';
+  else if (month < 9) prevSeason = 'spring';
+  else prevSeason = 'summer';
+  return {
+    year,
+    currentSeason,
+    seasonsToInclude: [
+      { year, season: currentSeason },
+      { year: prevYear, season: prevSeason },
+    ],
+  };
+}
 
-  const seasonsToInclude = [
-    { year, season: currentSeason },
-    { year: prevYear, season: prevSeason },
-  ];
+function buildTasteWeights(
+  watchlist: { anime?: Record<string, { status?: string }> } | null,
+  animeById: Map<string, { genres: Record<string, unknown>; themes: Record<string, unknown> }>
+) {
+  const genreWeights = new Map<string, number>();
+  const themeWeights = new Map<string, number>();
+  for (const [malId, entry] of Object.entries(watchlist?.anime || {})) {
+    const a = animeById.get(malId);
+    if (!a) continue;
+    const w = STATUS_WEIGHTS[entry.status?.toLowerCase() ?? ''] ?? 0.5;
+    for (const g of Object.keys(a.genres)) genreWeights.set(g, (genreWeights.get(g) ?? 0) + w);
+    for (const t of Object.keys(a.themes)) themeWeights.set(t, (themeWeights.get(t) ?? 0) + w);
+  }
+  return { genreWeights, themeWeights, hasTaste: genreWeights.size > 0 };
+}
+
+function scoreAnime(
+  anime: AnimeItem,
+  genreWeights: Map<string, number>,
+  themeWeights: Map<string, number>,
+  hasTaste: boolean,
+  year: number,
+  currentSeason: string
+) {
+  let tasteScore = 0;
+  const reasons: string[] = [];
+  if (hasTaste) {
+    for (const g of Object.keys(anime.genres)) {
+      const w = genreWeights.get(g) ?? 0;
+      if (w > 0) {
+        tasteScore += w * 2;
+        reasons.push(g);
+      } else if (w < 0) tasteScore += w;
+    }
+    for (const t of Object.keys(anime.themes)) {
+      const w = themeWeights.get(t) ?? 0;
+      if (w > 0) tasteScore += w * 1.4;
+      else if (w < 0) tasteScore += w * 0.7;
+    }
+  }
+  const qualityScore = (anime.score ?? 0) + Math.log10(Math.max(1, anime.members ?? 1)) * 0.2;
+  const isCurrent = anime.year === year && anime.season?.toLowerCase() === currentSeason;
+  return { anime, tasteScore, qualityScore, reasons: reasons.slice(0, 3), isCurrent };
+}
+
+function toAnimeQueueItem(anime: AnimeItem, reasons: string[]) {
+  return {
+    mal_id: anime.mal_id,
+    id: anime.mal_id,
+    title: anime.title,
+    title_english: anime.title_english,
+    synopsis: anime.synopsis,
+    image: anime.image,
+    genres: Object.keys(anime.genres),
+    themes: Object.keys(anime.themes),
+    year: anime.year,
+    season: anime.season as string | undefined,
+    score: anime.score,
+    members: anime.members,
+    status: anime.status as string | undefined,
+    reasons,
+    mediaType: 'anime' as const,
+  };
+}
+
+function toMangaQueueItem(m: MangaItem) {
+  return {
+    mal_id: m.mal_id,
+    id: m.mal_id,
+    title: m.title,
+    title_english: m.title_english,
+    synopsis: m.synopsis,
+    image: m.image,
+    genres: Object.keys(m.genres),
+    themes: Object.keys(m.themes),
+    year: m.year,
+    season: undefined as string | undefined,
+    score: m.score,
+    members: m.members,
+    status: m.status as string | undefined,
+    reasons: [] as string[],
+    mediaType: 'manga' as const,
+  };
+}
+
+function interleaveResults(
+  animeResults: typeof toAnimeQueueItem extends () => infer R ? R[] : never,
+  mangaResults: typeof toMangaQueueItem extends () => infer R ? R[] : never,
+  limit: number
+) {
+  const blended: typeof animeResults = [];
+  let ai = 0,
+    mi = 0;
+  const total = Math.min(limit, animeResults.length + mangaResults.length);
+  for (let i = 0; i < total; i++) {
+    if (mi < mangaResults.length && ai > 0 && ai % 5 === 0) blended.push(mangaResults[mi++]);
+    else if (ai < animeResults.length) blended.push(animeResults[ai++]);
+    else if (mi < mangaResults.length) blended.push(mangaResults[mi++]);
+  }
+  return blended;
+}
+
+function isSeasonalCandidate(
+  anime: AnimeItem,
+  seasonsToInclude: { year: number; season: string }[],
+  watchlistIds: Set<string>,
+  dismissedIds: Set<string>
+) {
+  return (
+    seasonsToInclude.some(
+      (s) => anime.year === s.year && anime.season?.toLowerCase() === s.season
+    ) &&
+    !watchlistIds.has(anime.mal_id.toString()) &&
+    !dismissedIds.has(anime.mal_id.toString()) &&
+    (anime.members ?? 0) >= 5000 &&
+    (anime.score ?? 0) >= 6.5
+  );
+}
+
+function sortByTasteAndQuality(
+  a: { isCurrent: boolean; tasteScore: number; qualityScore: number },
+  b: { isCurrent: boolean; tasteScore: number; qualityScore: number },
+  hasTaste: boolean
+) {
+  if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+  const sa = hasTaste ? a.tasteScore * 0.6 + a.qualityScore * 0.4 : a.qualityScore;
+  const sb = hasTaste ? b.tasteScore * 0.6 + b.qualityScore * 0.4 : b.qualityScore;
+  return sb - sa;
+}
+
+function isMangaCandidate(m: MangaItem, mangaWatchlistIds: Set<string>) {
+  return (
+    !mangaWatchlistIds.has(m.mal_id.toString()) &&
+    (m.score ?? 0) >= 7.5 &&
+    (m.members ?? 0) >= 50000
+  );
+}
+
+app.get('/api/discover/queue', requireAuth, async (c) => {
+  const user = c.get('user')!;
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10) || 50, 1), 200);
+
+  const { year, currentSeason, seasonsToInclude } = getSeasonsToInclude(new Date());
 
   const [allAnime, watchlist, dismissed, allManga, mangaWatchlist] = await Promise.all([
     animeStore.getAnimeList(),
@@ -1126,138 +1196,25 @@ app.get('/api/discover/queue', requireAuth, async (c) => {
   const watchlistIds = new Set(Object.keys(watchlist?.anime || {}));
   const dismissedIds = new Set(dismissed);
   const mangaWatchlistIds = new Set(Object.keys(mangaWatchlist?.manga || {}));
-
-  // Build taste weights from the user's anime watchlist
-  const STATUS_WEIGHTS: Record<string, number> = {
-    watching: 1.4,
-    completed: 1.3,
-    done: 1.3,
-    brr: 1.15,
-    avoiding: -1.6,
-    deferred: -0.8,
-    dropped: -1.2,
-  };
-  const genreWeights = new Map<string, number>();
-  const themeWeights = new Map<string, number>();
   const animeById = new Map(allAnime.map((a) => [a.mal_id.toString(), a]));
 
-  for (const [malId, entry] of Object.entries(watchlist?.anime || {})) {
-    const a = animeById.get(malId);
-    if (!a) continue;
-    const w = STATUS_WEIGHTS[entry.status?.toLowerCase() ?? ''] ?? 0.5;
-    for (const g of Object.keys(a.genres)) genreWeights.set(g, (genreWeights.get(g) ?? 0) + w);
-    for (const t of Object.keys(a.themes)) themeWeights.set(t, (themeWeights.get(t) ?? 0) + w);
-  }
+  const { genreWeights, themeWeights, hasTaste } = buildTasteWeights(watchlist, animeById);
 
-  const hasTaste = genreWeights.size > 0;
-
-  // Filter seasonal anime and score by taste + quality
   const animeResults = allAnime
-    .filter((anime) => {
-      if (
-        !seasonsToInclude.some(
-          (s) => anime.year === s.year && anime.season?.toLowerCase() === s.season
-        )
-      )
-        return false;
-      if (watchlistIds.has(anime.mal_id.toString())) return false;
-      if (dismissedIds.has(anime.mal_id.toString())) return false;
-      if ((anime.members ?? 0) < 5000) return false;
-      if ((anime.score ?? 0) < 6.5) return false;
-      return true;
-    })
-    .map((anime) => {
-      let tasteScore = 0;
-      const reasons: string[] = [];
-      if (hasTaste) {
-        for (const g of Object.keys(anime.genres)) {
-          const w = genreWeights.get(g) ?? 0;
-          if (w > 0) {
-            tasteScore += w * 2;
-            reasons.push(g);
-          } else if (w < 0) tasteScore += w;
-        }
-        for (const t of Object.keys(anime.themes)) {
-          const w = themeWeights.get(t) ?? 0;
-          if (w > 0) tasteScore += w * 1.4;
-          else if (w < 0) tasteScore += w * 0.7;
-        }
-      }
-      const qualityScore = (anime.score ?? 0) + Math.log10(Math.max(1, anime.members ?? 1)) * 0.2;
-      const isCurrent = anime.year === year && anime.season?.toLowerCase() === currentSeason;
-      return { anime, tasteScore, qualityScore, reasons: reasons.slice(0, 3), isCurrent };
-    })
-    .sort((a, b) => {
-      if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
-      const sa = hasTaste ? a.tasteScore * 0.6 + a.qualityScore * 0.4 : a.qualityScore;
-      const sb = hasTaste ? b.tasteScore * 0.6 + b.qualityScore * 0.4 : b.qualityScore;
-      return sb - sa;
-    })
-    .map(({ anime, reasons }) => ({
-      mal_id: anime.mal_id,
-      id: anime.mal_id,
-      title: anime.title,
-      title_english: anime.title_english,
-      synopsis: anime.synopsis,
-      image: anime.image,
-      genres: Object.keys(anime.genres),
-      themes: Object.keys(anime.themes),
-      year: anime.year,
-      season: anime.season as string | undefined,
-      score: anime.score,
-      members: anime.members,
-      status: anime.status as string | undefined,
-      reasons,
-      mediaType: 'anime' as const,
-    }));
+    .filter((anime) => isSeasonalCandidate(anime, seasonsToInclude, watchlistIds, dismissedIds))
+    .map((anime) => scoreAnime(anime, genreWeights, themeWeights, hasTaste, year, currentSeason))
+    .sort((a, b) => sortByTasteAndQuality(a, b, hasTaste))
+    .map(({ anime, reasons }) => toAnimeQueueItem(anime, reasons));
 
-  // Top-scoring manga not already in the user's manga watchlist
   const mangaResults = allManga
-    .filter(
-      (m) =>
-        !mangaWatchlistIds.has(m.mal_id.toString()) &&
-        (m.score ?? 0) >= 7.5 &&
-        (m.members ?? 0) >= 50000
-    )
+    .filter((m) => isMangaCandidate(m, mangaWatchlistIds))
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .slice(0, 12)
-    .map((m) => ({
-      mal_id: m.mal_id,
-      id: m.mal_id,
-      title: m.title,
-      title_english: m.title_english,
-      synopsis: m.synopsis,
-      image: m.image,
-      genres: Object.keys(m.genres),
-      themes: Object.keys(m.themes),
-      year: m.year,
-      season: undefined as string | undefined,
-      score: m.score,
-      members: m.members,
-      status: m.status as string | undefined,
-      reasons: [] as string[],
-      mediaType: 'manga' as const,
-    }));
+    .map(toMangaQueueItem);
 
-  // Interleave: insert one manga item every 5 anime items
-  const blended: typeof animeResults = [];
-  let ai = 0,
-    mi = 0;
-  const total = Math.min(limit, animeResults.length + mangaResults.length);
-  for (let i = 0; i < total; i++) {
-    if (mi < mangaResults.length && ai > 0 && ai % 5 === 0) {
-      blended.push(mangaResults[mi++]);
-    } else if (ai < animeResults.length) {
-      blended.push(animeResults[ai++]);
-    } else if (mi < mangaResults.length) {
-      blended.push(mangaResults[mi++]);
-    }
-  }
+  const blended = interleaveResults(animeResults, mangaResults, limit);
 
-  return c.json({
-    meta: { currentSeason, currentYear: year },
-    results: blended,
-  });
+  return c.json({ meta: { currentSeason, currentYear: year }, results: blended });
 });
 
 app.post('/api/discover/dismiss', requireAuth, async (c) => {

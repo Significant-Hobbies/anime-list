@@ -31,7 +31,10 @@ const getNumericValue = (item: AnimeItem, field: AnimeField): number | undefined
   }
 };
 
-const getMapValue = (item: AnimeItem, field: AnimeField): { [key: string]: number } => {
+type FieldValue = number | FieldMap | undefined;
+type FieldMap = { [key: string]: number };
+
+const getMapValue = (item: AnimeItem, field: AnimeField): FieldMap => {
   switch (field) {
     case AnimeField.Genres:
       return item.genres || {};
@@ -44,25 +47,12 @@ const getMapValue = (item: AnimeItem, field: AnimeField): { [key: string]: numbe
   }
 };
 
-const getFieldValue = (
-  item: AnimeItem,
-  field: AnimeField
-): number | { [key: string]: number } | undefined => {
-  if (
-    field === AnimeField.Score ||
-    field === AnimeField.ScoredBy ||
-    field === AnimeField.Rank ||
-    field === AnimeField.Popularity ||
-    field === AnimeField.Members ||
-    field === AnimeField.Favorites ||
-    field === AnimeField.Year ||
-    field === AnimeField.Episodes
-  ) {
+function getFieldValue(item: AnimeItem, field: AnimeField): FieldValue {
+  if (isNumericField(field)) {
     return getNumericValue(item, field);
-  } else {
-    return getMapValue(item, field);
   }
-};
+  return getMapValue(item, field);
+}
 
 export const getDistribution = (
   data: AnimeItem[],
