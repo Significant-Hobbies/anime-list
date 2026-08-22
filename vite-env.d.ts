@@ -11,7 +11,3 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
-
-declare module '@/lib/feedback-widget/index.mjs' {
-  export { FeedbackWidget } from '@/lib/feedback-widget';
-}
