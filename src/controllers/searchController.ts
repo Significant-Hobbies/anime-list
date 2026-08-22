@@ -14,7 +14,7 @@ const truncateSynopsis = (text: string | undefined): string | undefined => {
   return `${text.slice(0, SEARCH_SYNOPSIS_MAX - 1).trimEnd()}...`;
 };
 
-export const toSearchAnime = (anime: {
+const toSearchAnime = (anime: {
   mal_id: number;
   score?: number;
   points?: number;
@@ -48,7 +48,7 @@ export const toSearchAnime = (anime: {
   image: anime.image,
 });
 
-export type SearchAnimeResult = ReturnType<typeof toSearchAnime>;
+type SearchAnimeResult = ReturnType<typeof toSearchAnime>;
 
 export type SearchResult = {
   totalFiltered: number;
