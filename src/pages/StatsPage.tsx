@@ -5,10 +5,15 @@ import { getStats, getWatchlistTags } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
-import { RefreshIndicator, StatsGridSkeleton } from '@/components/ui/loading-state';
+import {
+  LoadingStatus,
+  RefreshIndicator,
+  Skeleton,
+  StatsGridSkeleton,
+} from '@/components/ui/loading-state';
 
 export default function StatsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [includeStatuses, setIncludeStatuses] = useState<string[]>([]);
 
   const { data: tagsData } = useQuery({
@@ -49,7 +54,16 @@ export default function StatsPage() {
         </p>
       </div>
 
-      {user && (
+      {authLoading && (
+        <div aria-busy="true" className="flex flex-wrap items-center gap-2">
+          <LoadingStatus label="Checking sign-in status" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-6 w-20 rounded-full bg-muted/45" />
+          <Skeleton className="h-6 w-16 rounded-full bg-muted/45" />
+        </div>
+      )}
+
+      {!authLoading && user && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Include only from:</span>
           {availableTags.map((tag) => {

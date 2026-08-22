@@ -4,6 +4,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
+import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
 import GoogleSignInButton from './GoogleSignInButton';
 import { Menu } from 'lucide-react';
 
@@ -172,8 +173,10 @@ export default function Navigation() {
 
         <div className="flex min-w-10 items-center justify-end gap-3 sm:min-w-28">
           {loading ? (
-            <div role="status" aria-label="Checking sign-in status">
-              <div aria-hidden="true" className="h-8 w-24 rounded-full bg-muted/70 animate-pulse" />
+            <div aria-busy="true" className="flex items-center gap-2 px-2">
+              <LoadingStatus label="Checking sign-in status" />
+              <Skeleton className="h-7 w-7 rounded-full" />
+              <Skeleton className="hidden h-3 w-14 bg-muted/45 sm:block" />
             </div>
           ) : user ? (
             <details className="relative" onKeyDown={closeDetailsOnEscape}>

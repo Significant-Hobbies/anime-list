@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { getApiUrl } from '@/lib/apiConfig';
 import { listTokens, createToken, revokeToken, type ApiTokenMetadata } from '@/lib/api';
 import { SITE_NAME } from '@/lib/brand';
-import { TableSkeleton } from '@/components/ui/loading-state';
+import { CompactSectionSkeleton, TableSkeleton } from '@/components/ui/loading-state';
 
 const API_URL = getApiUrl();
 const MCP_ENDPOINT = `${API_URL}/api/mcp`;
@@ -228,7 +228,7 @@ function ConfigBlock({ title, config }: { title: string; config: string }) {
 }
 
 export default function McpPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -288,7 +288,11 @@ export default function McpPage() {
         </p>
       </section>
 
-      {user ? (
+      {authLoading ? (
+        <div className="mt-10">
+          <CompactSectionSkeleton label="Loading personal access tokens" />
+        </div>
+      ) : user ? (
         <TokenManager />
       ) : (
         <div className="mt-10 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
