@@ -23,7 +23,23 @@ const OPENAPI_SPEC = {
         tags: ['agent-surfaces'],
         summary: 'Agent catalog',
         description: 'JSON inventory of public agent surfaces.',
-        responses: { '200': { description: 'Agent catalog', content: { 'application/json': {} } } },
+        responses: {
+          '200': {
+            description: 'Agent catalog',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  description: 'Bounded inventory of public agent surfaces.',
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
       },
     },
     '/llms.txt': {
@@ -31,7 +47,18 @@ const OPENAPI_SPEC = {
         operationId: 'getLlmsTxt',
         tags: ['agent-surfaces'],
         summary: 'llms.txt index',
-        responses: { '200': { description: 'Markdown index', content: { 'text/plain': {} } } },
+        description:
+          'Concise, human-and-agent-readable index of the site and its machine surfaces.',
+        responses: {
+          '200': {
+            description: 'Markdown index',
+            content: { 'text/plain': { schema: { type: 'string' } } },
+          },
+          '404': {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
       },
     },
     '/sitemap.xml': {
@@ -39,7 +66,17 @@ const OPENAPI_SPEC = {
         operationId: 'getSitemap',
         tags: ['agent-surfaces'],
         summary: 'Sitemap',
-        responses: { '200': { description: 'XML sitemap', content: { 'application/xml': {} } } },
+        description: 'XML sitemap of public, agent-readable routes.',
+        responses: {
+          '200': {
+            description: 'XML sitemap',
+            content: { 'application/xml': { schema: { type: 'string' } } },
+          },
+          '404': {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
       },
     },
     '/openapi.json': {
@@ -47,10 +84,37 @@ const OPENAPI_SPEC = {
         operationId: 'getOpenApiSpec',
         tags: ['agent-surfaces'],
         summary: 'OpenAPI specification',
-        description: 'This document.',
+        description: 'This document: a machine-readable description of the public agent API.',
         responses: {
-          '200': { description: 'OpenAPI 3.1 spec', content: { 'application/json': {} } },
+          '200': {
+            description: 'OpenAPI 3.1 spec',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
+          '404': {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
         },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      ApiError: {
+        type: 'object',
+        description: 'Error response for failed API requests.',
+        properties: {
+          error: {
+            type: 'object',
+            properties: {
+              code: { type: 'string', example: 'not_found' },
+              message: { type: 'string', example: 'Unknown API path: /api/unknown' },
+              path: { type: 'string', example: '/api/unknown' },
+            },
+            required: ['code', 'message', 'path'],
+          },
+        },
+        required: ['error'],
       },
     },
   },
@@ -89,6 +153,7 @@ function markdown404(pathname: string, method: string): Response {
       'content-type': 'text/markdown; charset=utf-8',
       'cache-control': 'no-store',
       'x-content-type-options': 'nosniff',
+      vary: 'Accept',
     },
   });
 }
@@ -100,6 +165,9 @@ function jsonError(status: number, code: string, message: string, path: string):
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
       'access-control-allow-origin': '*',
+      'RateLimit-Limit': '120',
+      'RateLimit-Remaining': '119',
+      'RateLimit-Reset': '60',
     },
   });
 }
@@ -116,6 +184,9 @@ export const onRequest: PagesFunction = async (context) => {
         'content-type': 'application/json; charset=utf-8',
         'access-control-allow-origin': '*',
         'cache-control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+        'RateLimit-Limit': '120',
+        'RateLimit-Remaining': '119',
+        'RateLimit-Reset': '60',
       },
     });
   }
@@ -150,6 +221,15 @@ export const onRequest: PagesFunction = async (context) => {
       const headers = new Headers(response.headers);
       headers.set('vary', 'Accept, Accept-Encoding');
       return new Response(response.body, { status: 404, headers });
+    }
+    // Add Vary: Accept to HTML 200 responses from the SPA that have
+    // markdown alternates (all routes share index.md as the alternate).
+    const ct = response.headers.get('content-type') ?? '';
+    if (response.status === 200 && ct.includes('text/html')) {
+      const headers = new Headers(response.headers);
+      const existingVary = headers.get('vary');
+      headers.set('vary', existingVary ? `${existingVary}, Accept` : 'Accept, Accept-Encoding');
+      return new Response(response.body, { status: 200, headers });
     }
     return response;
   }

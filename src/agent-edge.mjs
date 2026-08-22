@@ -15,7 +15,7 @@ export const AGENT_SURFACE = {
   "name": "Anime List by Significant Hobbies",
   "url": "https://anime.significanthobbies.com",
   "llmsFullTxt": "# Anime List by Significant Hobbies — full agent brief\n\nAnime and manga discovery with multi-axis filtering and watchlists.\n\n## Index\n\n# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n\n## Product links\n\n- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)\n\n## Machine surfaces\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/llms-full.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n- https://anime.significanthobbies.com/sitemap.xml\n- https://anime.significanthobbies.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
-  "llmsTxt": "# Anime List by Significant Hobbies\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## When to use this\n\n- Best fit: discovering anime and manga by score, year, genre, theme, demographic, and popularity\n- Best fit: browsing catalog statistics, schedules, and random recommendations from MyAnimeList data\n- Not a fit: streaming anime or manga content\n- Not a fit: tracking watch progress on non-MAL catalogs\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [OpenAPI spec](https://anime.significanthobbies.com/openapi.json): OpenAPI 3.1 specification\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
+  "llmsTxt": "# Anime List by Significant Hobbies\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## When to use this\n\n- Best fit: discovering anime and manga by score, year, genre, theme, demographic, and popularity\n- Best fit: browsing catalog statistics, schedules, and random recommendations from MyAnimeList data\n- Not a fit: streaming anime or manga content\n- Not a fit: tracking watch progress on non-MAL catalogs\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [OpenAPI spec](https://anime.significanthobbies.com/openapi.json): OpenAPI 3.1 specification\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Developer docs\n\n- [OpenAPI specification](https://anime.significanthobbies.com/openapi.json): Full API surface description (OpenAPI 3.1)\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public agent surfaces\n\n## CLI\n\n```bash\n# Fetch the agent catalog\ncurl -s https://anime.significanthobbies.com/api/ai | jq .\n\n# Get the OpenAPI spec\ncurl -s https://anime.significanthobbies.com/openapi.json | jq .\n\n# Fetch the homepage as markdown\ncurl -s -H 'Accept: text/markdown' https://anime.significanthobbies.com/\n```\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
   "indexMd": "# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n",
   "catalog": {
     "name": "Anime List by Significant Hobbies",
@@ -72,7 +72,23 @@ const OPENAPI_SPEC = {
         tags: ['agent-surfaces'],
         summary: 'Agent catalog',
         description: 'JSON inventory of public agent surfaces.',
-        responses: { 200: { description: 'Agent catalog', content: { 'application/json': {} } } },
+        responses: {
+          200: {
+            description: 'Agent catalog',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  description: 'Bounded inventory of public agent surfaces.',
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
       },
     },
     '/llms.txt': {
@@ -80,7 +96,18 @@ const OPENAPI_SPEC = {
         operationId: 'getLlmsTxt',
         tags: ['agent-surfaces'],
         summary: 'llms.txt index',
-        responses: { 200: { description: 'Markdown index', content: { 'text/plain': {} } } },
+        description:
+          'Concise, human-and-agent-readable index of the site and its machine surfaces.',
+        responses: {
+          200: {
+            description: 'Markdown index',
+            content: { 'text/plain': { schema: { type: 'string' } } },
+          },
+          404: {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
       },
     },
     '/sitemap.xml': {
@@ -88,7 +115,17 @@ const OPENAPI_SPEC = {
         operationId: 'getSitemap',
         tags: ['agent-surfaces'],
         summary: 'Sitemap',
-        responses: { 200: { description: 'XML sitemap', content: { 'application/xml': {} } } },
+        description: 'XML sitemap of public, agent-readable routes.',
+        responses: {
+          200: {
+            description: 'XML sitemap',
+            content: { 'application/xml': { schema: { type: 'string' } } },
+          },
+          404: {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
       },
     },
     '/openapi.json': {
@@ -96,10 +133,37 @@ const OPENAPI_SPEC = {
         operationId: 'getOpenApiSpec',
         tags: ['agent-surfaces'],
         summary: 'OpenAPI specification',
-        description: 'This document.',
+        description: 'This document: a machine-readable description of the public agent API.',
         responses: {
-          200: { description: 'OpenAPI 3.1 spec', content: { 'application/json': {} } },
+          200: {
+            description: 'OpenAPI 3.1 spec',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
+          404: {
+            description: 'Not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
         },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      ApiError: {
+        type: 'object',
+        description: 'Error response for failed API requests.',
+        properties: {
+          error: {
+            type: 'object',
+            properties: {
+              code: { type: 'string', example: 'not_found' },
+              message: { type: 'string', example: 'Unknown API path: /api/unknown' },
+              path: { type: 'string', example: '/api/unknown' },
+            },
+            required: ['code', 'message', 'path'],
+          },
+        },
+        required: ['error'],
       },
     },
   },
@@ -202,6 +266,7 @@ function markdown404(pathname, method) {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
+      Vary: 'Accept',
     },
   });
 }
@@ -213,6 +278,9 @@ function jsonError(status, code, message, path) {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
+      'RateLimit-Limit': '120',
+      'RateLimit-Remaining': '119',
+      'RateLimit-Reset': '60',
     },
   });
 }
@@ -234,6 +302,9 @@ function json(data) {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=300',
+      'RateLimit-Limit': '120',
+      'RateLimit-Remaining': '119',
+      'RateLimit-Reset': '60',
     },
   });
 }

@@ -2,13 +2,6 @@
 
 > Anime and manga discovery with advanced filtering, statistics, and optional personal tracking.
 
-## When to use this
-
-- Best fit: discovering anime and manga by score, year, genre, theme, demographic, and popularity
-- Best fit: browsing catalog statistics, schedules, and random recommendations from MyAnimeList data
-- Not a fit: streaming anime or manga content
-- Not a fit: tracking watch progress on non-MAL catalogs
-
 ## Public pages
 
 - [Anime List by Significant Hobbies — Discover anime and manga](https://anime.significanthobbies.com/)
@@ -33,6 +26,24 @@
 ## Machine surfaces
 
 - [Agent catalog](https://anime.significanthobbies.com/api/ai)
-- [OpenAPI spec](https://anime.significanthobbies.com/openapi.json)
+- [OpenAPI spec](https://anime.significanthobbies.com/openapi.json): OpenAPI 3.1 specification
 - [Sitemap](https://anime.significanthobbies.com/sitemap.xml)
 - [Homepage Markdown](https://anime.significanthobbies.com/index.md)
+
+## Developer docs
+
+- [OpenAPI specification](https://anime.significanthobbies.com/openapi.json): Full API surface description (OpenAPI 3.1)
+- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public agent surfaces
+
+## CLI
+
+```bash
+# Fetch the agent catalog
+curl -s https://anime.significanthobbies.com/api/ai | jq .
+
+# Get the OpenAPI spec
+curl -s https://anime.significanthobbies.com/openapi.json | jq .
+
+# Fetch the homepage as markdown
+curl -s -H 'Accept: text/markdown' https://anime.significanthobbies.com/
+```
