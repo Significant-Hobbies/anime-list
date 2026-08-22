@@ -158,20 +158,6 @@ function markdown404(pathname: string, method: string): Response {
   });
 }
 
-function jsonError(status: number, code: string, message: string, path: string): Response {
-  return new Response(JSON.stringify({ error: { code, message, path } }), {
-    status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
-      'access-control-allow-origin': '*',
-      'RateLimit-Limit': '120',
-      'RateLimit-Remaining': '119',
-      'RateLimit-Reset': '60',
-    },
-  });
-}
-
 export const onRequest: PagesFunction = async (context) => {
   const { request } = context;
   const url = new URL(request.url);
@@ -191,15 +177,8 @@ export const onRequest: PagesFunction = async (context) => {
     });
   }
 
-  // JSON errors for unknown /api/* paths (excluding /api/ai and proxied paths).
-  if (
-    pathname.startsWith('/api/') &&
-    pathname !== '/api/ai' &&
-    !pathname.startsWith('/api/anime') &&
-    !pathname.startsWith('/api/manga')
-  ) {
-    return jsonError(404, 'not_found', `Unknown API path: ${pathname}`, pathname);
-  }
+  // /api/ai is a static Pages surface. Every other /api/* path is proxied to
+  // mal-api by functions/api/[[path]].ts — do not 404 them here.
 
   if (request.method !== 'GET') return context.next();
 
