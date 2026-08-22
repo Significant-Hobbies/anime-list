@@ -15,7 +15,7 @@ export const AGENT_SURFACE = {
   "name": "Anime List by Significant Hobbies",
   "url": "https://anime.significanthobbies.com",
   "llmsFullTxt": "# Anime List by Significant Hobbies — full agent brief\n\nAnime and manga discovery with multi-axis filtering and watchlists.\n\n## Index\n\n# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n\n## Product links\n\n- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)\n\n## Machine surfaces\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/llms-full.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n- https://anime.significanthobbies.com/sitemap.xml\n- https://anime.significanthobbies.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
-  "llmsTxt": "# Anime List by Significant Hobbies\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
+  "llmsTxt": "# Anime List by Significant Hobbies\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## When to use this\n\n- Best fit: discovering anime and manga by score, year, genre, theme, demographic, and popularity\n- Best fit: browsing catalog statistics, schedules, and random recommendations from MyAnimeList data\n- Not a fit: streaming anime or manga content\n- Not a fit: tracking watch progress on non-MAL catalogs\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [OpenAPI spec](https://anime.significanthobbies.com/openapi.json): OpenAPI 3.1 specification\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
   "indexMd": "# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n",
   "catalog": {
     "name": "Anime List by Significant Hobbies",
@@ -29,6 +29,7 @@ export const AGENT_SURFACE = {
       "suffix": ".md",
       "negotiation": true
     },
+    "openapi": "https://anime.significanthobbies.com/openapi.json",
     "surfaces": [
       {
         "id": "home",
@@ -51,6 +52,59 @@ export const AGENT_SURFACE = {
   }
 };
 
+const PRODUCT_ORIGIN = AGENT_SURFACE.url;
+
+const OPENAPI_SPEC = {
+  openapi: '3.1.0',
+  info: {
+    title: 'Anime List by Significant Hobbies — public API',
+    version: '1.0.0',
+    description:
+      'Anime and manga discovery platform with multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList via Jikan API. The public web API exposes read-only agent surfaces: the agent catalog, sitemap, llms.txt, and per-page markdown alternates.',
+    contact: { name: 'Anime List', url: PRODUCT_ORIGIN },
+  },
+  servers: [{ url: PRODUCT_ORIGIN }],
+  tags: [{ name: 'agent-surfaces', description: 'Machine-readable public surfaces' }],
+  paths: {
+    '/api/ai': {
+      get: {
+        operationId: 'getAgentCatalog',
+        tags: ['agent-surfaces'],
+        summary: 'Agent catalog',
+        description: 'JSON inventory of public agent surfaces.',
+        responses: { 200: { description: 'Agent catalog', content: { 'application/json': {} } } },
+      },
+    },
+    '/llms.txt': {
+      get: {
+        operationId: 'getLlmsTxt',
+        tags: ['agent-surfaces'],
+        summary: 'llms.txt index',
+        responses: { 200: { description: 'Markdown index', content: { 'text/plain': {} } } },
+      },
+    },
+    '/sitemap.xml': {
+      get: {
+        operationId: 'getSitemap',
+        tags: ['agent-surfaces'],
+        summary: 'Sitemap',
+        responses: { 200: { description: 'XML sitemap', content: { 'application/xml': {} } } },
+      },
+    },
+    '/openapi.json': {
+      get: {
+        operationId: 'getOpenApiSpec',
+        tags: ['agent-surfaces'],
+        summary: 'OpenAPI specification',
+        description: 'This document.',
+        responses: {
+          200: { description: 'OpenAPI 3.1 spec', content: { 'application/json': {} } },
+        },
+      },
+    },
+  },
+};
+
 /**
  * @param {Request} request
  * @returns {Response | null}
@@ -59,6 +113,15 @@ export function handleAgentEdge(request) {
   if (request.method !== 'GET' && request.method !== 'HEAD') return null;
   const url = new URL(request.url);
   const path = url.pathname === '' ? '/' : url.pathname;
+
+  if (path === '/openapi.json' || path === '/openapi.yaml') {
+    return json(OPENAPI_SPEC);
+  }
+
+  // JSON errors for unknown /api/* paths (excluding /api/ai which is handled below).
+  if (path.startsWith('/api/') && path !== '/api/ai') {
+    return jsonError(404, 'not_found', `Unknown API path: ${path}`, path);
+  }
 
   if (path === '/llms.txt') {
     return text(AGENT_SURFACE.llmsTxt, 'text/plain; charset=utf-8');
@@ -79,6 +142,7 @@ export function handleAgentEdge(request) {
       sitemap: AGENT_SURFACE.catalog.sitemap
         ? String(AGENT_SURFACE.catalog.sitemap).replace(AGENT_SURFACE.url, url.origin)
         : `${url.origin}/sitemap.xml`,
+      openapi: `${url.origin}/openapi.json`,
       surfaces: (AGENT_SURFACE.catalog.surfaces || []).map((s) => ({
         ...s,
         url: s.url ? String(s.url).replace(AGENT_SURFACE.url, url.origin) : s.url,
@@ -96,6 +160,12 @@ export function handleAgentEdge(request) {
     });
   }
 
+  // Agent-friendly 404: return a markdown recovery body for unknown paths
+  // when the client asks for markdown.
+  if (wantsMarkdown(request) && !path.includes('.') && !path.startsWith('/api/')) {
+    return markdown404(path, request.method);
+  }
+
   return null;
 }
 
@@ -104,6 +174,47 @@ function wantsMarkdown(request) {
   if (!accept.includes('text/markdown')) return false;
   if (!accept.includes('text/html')) return true;
   return accept.indexOf('text/markdown') < accept.indexOf('text/html');
+}
+
+function normalizePath(pathname) {
+  if (!pathname || pathname === '/') return '/';
+  const withSlash = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  return withSlash.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
+}
+
+function markdown404(pathname, method) {
+  const path = normalizePath(pathname);
+  const body = `# 404 — Not Found
+
+\`${path}\` does not exist on anime.significanthobbies.com.
+
+## Where to look next
+
+- [Home](${PRODUCT_ORIGIN}/)
+- [Sitemap](${PRODUCT_ORIGIN}/sitemap.xml)
+- [Agent index](${PRODUCT_ORIGIN}/llms.txt)
+- [Agent catalog (JSON)](${PRODUCT_ORIGIN}/api/ai)
+- [OpenAPI spec](${PRODUCT_ORIGIN}/openapi.json)
+`;
+  return new Response(method === 'HEAD' ? null : body, {
+    status: 404,
+    headers: {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+}
+
+function jsonError(status, code, message, path) {
+  return new Response(JSON.stringify({ error: { code, message, path } }), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
 }
 
 function text(body, type, extra = {}) {

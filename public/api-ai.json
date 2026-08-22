@@ -8,8 +8,9 @@
   "robots": "https://anime.significanthobbies.com/robots.txt",
   "markdown": {
     "suffix": ".md",
-    "negotiation": false
+    "negotiation": true
   },
+  "openapi": "https://anime.significanthobbies.com/openapi.json",
   "surfaces": [
     {
       "id": "home",
