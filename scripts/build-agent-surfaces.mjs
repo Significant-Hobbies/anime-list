@@ -42,7 +42,8 @@ const catalog = {
   llmsFull: `${origin}/llms-full.txt`,
   sitemap: `${origin}/sitemap.xml`,
   robots: `${origin}/robots.txt`,
-  markdown: { suffix: '.md', negotiation: false },
+  markdown: { suffix: '.md', negotiation: true },
+  openapi: `${origin}/openapi.json`,
   surfaces: surfaces.map((surface) => ({
     id: surface.id,
     url: `${origin}${surface.path}`,
@@ -99,8 +100,27 @@ ${surfaces.map((surface) => `- [${surface.title}](${origin}${surface.path})`).jo
 ## Machine surfaces
 
 - [Agent catalog](${origin}/api/ai)
+- [OpenAPI spec](${origin}/openapi.json): OpenAPI 3.1 specification
 - [Sitemap](${origin}/sitemap.xml)
-- [Homepage Markdown](${origin}/index.md)`
+- [Homepage Markdown](${origin}/index.md)
+
+## Developer docs
+
+- [OpenAPI specification](${origin}/openapi.json): Full API surface description (OpenAPI 3.1)
+- [Agent catalog](${origin}/api/ai): JSON inventory of public agent surfaces
+
+## CLI
+
+\`\`\`bash
+# Fetch the agent catalog
+curl -s ${origin}/api/ai | jq .
+
+# Get the OpenAPI spec
+curl -s ${origin}/openapi.json | jq .
+
+# Fetch the homepage as markdown
+curl -s -H 'Accept: text/markdown' ${origin}/
+\`\`\``
 );
 writePublic(
   '/llms-full.txt',
