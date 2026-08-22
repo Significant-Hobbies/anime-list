@@ -182,11 +182,6 @@ export function handleAgentEdge(request) {
     return json(OPENAPI_SPEC);
   }
 
-  // JSON errors for unknown /api/* paths (excluding /api/ai which is handled below).
-  if (path.startsWith('/api/') && path !== '/api/ai') {
-    return jsonError(404, 'not_found', `Unknown API path: ${path}`, path);
-  }
-
   if (path === '/llms.txt') {
     return text(AGENT_SURFACE.llmsTxt, 'text/plain; charset=utf-8');
   }
@@ -267,20 +262,6 @@ function markdown404(pathname, method) {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       Vary: 'Accept',
-    },
-  });
-}
-
-function jsonError(status, code, message, path) {
-  return new Response(JSON.stringify({ error: { code, message, path } }), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'Access-Control-Allow-Origin': '*',
-      'RateLimit-Limit': '120',
-      'RateLimit-Remaining': '119',
-      'RateLimit-Reset': '60',
     },
   });
 }
