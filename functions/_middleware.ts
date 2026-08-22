@@ -205,6 +205,28 @@ export const onRequest: PagesFunction = async (context) => {
 
   const surface = publicSurfaces.get(pathname);
 
+  // Accept: text/markdown negotiation — serve the .md alternate for known surfaces.
+  if (
+    surface &&
+    wantsMarkdown(request) &&
+    (request.method === 'GET' || request.method === 'HEAD')
+  ) {
+    const mdUrl = new URL(surface.markdownPath, url);
+    const mdReq = new Request(mdUrl.toString(), { method: request.method });
+    const mdResp = await context.env.ASSETS.fetch(mdReq);
+    if (mdResp.status === 200) {
+      const headers = new Headers(mdResp.headers);
+      headers.set('content-type', 'text/markdown; charset=utf-8');
+      headers.set('vary', 'Accept, Accept-Encoding');
+      headers.set('x-content-type-options', 'nosniff');
+      headers.set('cache-control', 'no-store');
+      return new Response(request.method === 'HEAD' ? null : mdResp.body, {
+        status: 200,
+        headers,
+      });
+    }
+  }
+
   // Agent-friendly 404 with markdown recovery body for markdown clients.
   if (
     !surface &&
