@@ -26,6 +26,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@4.4.3)
+      '@saas-maker/feedback':
+        specifier: 0.4.0
+        version: 0.4.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-query':
         specifier: 5.101.4
         version: 5.101.4(react@19.2.8)
@@ -2028,6 +2031,12 @@ packages:
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+
+  '@saas-maker/feedback@0.4.0':
+    resolution: {integrity: sha512-skVP2Ku9iFuvhYXvKKLk9jNyxKmYWow9IL5UbTUnkAzzwOIpUVOK4z4wLBpr2hDcuVjHmOG8LqwCXcLGXbcSlg==}
+    peerDependencies:
+      react: '>=18 <20'
+      react-dom: '>=18 <20'
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -6406,6 +6415,11 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
+
+  '@saas-maker/feedback@0.4.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
 
   '@sec-ant/readable-stream@0.4.1': {}
 

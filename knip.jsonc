@@ -10,9 +10,8 @@
   ],
   "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"],
   "ignore": [
-    // Optional documentation presentation config and ambient widget declaration.
-    "blume.config.ts",
-    "lib/feedback-widget/index.d.ts"
+    // Optional documentation presentation config.
+    "blume.config.ts"
   ],
   "ignoreDependencies": [
     // Child-process/CLI/config-only tools and the CSS import are not visible in the module graph.

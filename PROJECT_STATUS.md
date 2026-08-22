@@ -29,7 +29,8 @@ Last updated: 2026-08-14
 
 ### Internal (fleet)
 
-- **SaaS Maker:** `VITE_SAASMAKER_API_KEY` for feedback widget integration.
+- **SaaS Maker:** `@saas-maker/feedback` with `VITE_SAASMAKER_API_KEY` as the
+  hosted project key. Submissions go to api.sassmaker.com.
 
 ### Stack & commands
 
