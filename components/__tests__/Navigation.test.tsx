@@ -56,6 +56,15 @@ describe('Navigation', () => {
     );
   });
 
+  it('shows an accessible account placeholder while auth resolves', () => {
+    auth.loading = true;
+
+    render(<Navigation />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Checking sign-in status');
+    expect(screen.queryByText('Sign in')).not.toBeInTheDocument();
+  });
+
   it('keeps the signed-in account controls available', () => {
     auth.user = {
       id: 'u1',

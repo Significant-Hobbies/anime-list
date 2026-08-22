@@ -26,8 +26,12 @@ export default function RandomPage() {
   }, []);
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-8">
+    <div
+      aria-live="polite"
+      className="flex min-h-screen items-center justify-center p-8"
+      role="status"
+    >
       <p className="font-mono text-sm text-muted-foreground">{msg}</p>
-    </main>
+    </div>
   );
 }

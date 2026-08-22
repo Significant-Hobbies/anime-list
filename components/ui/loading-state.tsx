@@ -133,6 +133,32 @@ export function ListSkeleton({
   );
 }
 
+/**
+ * Compact-section shape for small bordered panels (token lists, side panels)
+ * that resolve after authentication or a short fetch.
+ */
+export function CompactSectionSkeleton({
+  label = 'Loading section',
+  rows = 3,
+}: {
+  label?: string;
+  rows?: number;
+}) {
+  return (
+    <section
+      aria-busy="true"
+      aria-label={label}
+      className="space-y-3 rounded-xl border border-border bg-card/50 p-6"
+    >
+      <LoadingStatus label={label} />
+      <Skeleton className="h-4 w-40" />
+      {Array.from({ length: rows }).map((_, index) => (
+        <Skeleton key={index} className="h-3 w-full bg-muted/45" />
+      ))}
+    </section>
+  );
+}
+
 export function TableSkeleton({ label = 'Loading table' }: { label?: string }) {
   return (
     <div role="status" aria-live="polite" aria-busy="true" aria-label={label} className="space-y-3">
