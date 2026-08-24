@@ -35,7 +35,34 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           echo "Starting anime data update..."
-          pnpm run db:update:remote
+          set +e
+          pnpm run db:update:remote 2>&1 | tee "$RUNNER_TEMP/anime-update.log"
+          update_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$update_status" -ne 0 ]; then
+            if grep -q "Jikan returned no usable anime rows" "$RUNNER_TEMP/anime-update.log"; then
+              catalog_json=$(curl --fail --silent --show-error --max-time 20 \
+                https://anime.significanthobbies.com/api/last-updated)
+              anime_updated_at=$(jq -r '.anime // empty' <<< "$catalog_json")
+              if ANIME_UPDATED_AT="$anime_updated_at" node -e "
+                const raw = process.env.ANIME_UPDATED_AT;
+                const updated = Date.parse(raw?.includes('T') ? raw : raw?.replace(' ', 'T') + 'Z');
+                const ageHours = (Date.now() - updated) / 3_600_000;
+                if (!Number.isFinite(ageHours) || ageHours > 24) process.exit(1);
+                console.log('Existing anime catalog age: ' + ageHours.toFixed(1) + 'h');
+              "; then
+                echo "::warning::Jikan is unavailable after bounded retries; keeping the existing catalog because it was refreshed within the last 24 hours."
+                {
+                  echo "### Anime catalog refresh"
+                  echo "- Jikan: unavailable after bounded retries"
+                  echo "- Existing catalog: fresh enough to serve (${anime_updated_at} UTC)"
+                  echo "- Result: degraded success; no D1 write attempted"
+                } >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+            fi
+            exit "$update_status"
+          fi
           echo "✓ Anime data updated successfully"
 
       - name: Update manga data
