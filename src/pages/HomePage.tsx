@@ -97,8 +97,65 @@ function HeroSection({ quizAboveFold }: { quizAboveFold: boolean }) {
             </Link>
           )}
         </div>
+        <CatalogPreview />
       </div>
     </section>
+  );
+}
+
+function CatalogPreview() {
+  return (
+    <div
+      className="mt-12 overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm"
+      aria-label="Illustrative Anime List search query"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+        <p className="text-xs font-medium text-muted-foreground">Illustrative catalog query</p>
+        <p className="text-xs text-muted-foreground">Filters stay in the URL</p>
+      </div>
+      <div className="grid md:grid-cols-[14rem_minmax(0,1fr)]">
+        <div className="border-b border-border p-4 md:border-b-0 md:border-r sm:p-5">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Stacked filters
+          </p>
+          <ul className="mt-4 flex flex-wrap gap-2 md:grid">
+            {['Score ≥ 8', 'Type is TV', 'Finished airing', 'Sort by score'].map((filter) => (
+              <li
+                key={filter}
+                className="rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground"
+              >
+                {filter}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          {[
+            ['01', 'Monster', '8.89', 'Drama · Mystery · Suspense'],
+            ['02', 'Hajime no Ippo', '8.78', 'Sports'],
+            ['03', 'Cowboy Bebop', '8.75', 'Action · Award Winning · Sci-Fi'],
+          ].map(([rank, title, score, genres], index) => (
+            <div
+              key={rank}
+              className={`grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-border' : ''}`}
+            >
+              <span className="font-mono text-xs text-muted-foreground">{rank}</span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">{title}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{genres}</p>
+              </div>
+              <span className="rounded-md bg-primary/10 px-2 py-1 font-mono text-xs font-semibold text-primary">
+                {score}
+              </span>
+            </div>
+          ))}
+          <p className="border-t border-border px-4 py-3 text-xs leading-5 text-muted-foreground sm:px-5">
+            Sample catalog entries from the checked-in MyAnimeList-derived dataset. Open the query
+            for current results and scores.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
