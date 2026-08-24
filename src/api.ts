@@ -28,7 +28,7 @@ interface ApiResponse<T> {
   };
 }
 
-const MAX_API_ATTEMPTS = 3;
+const MAX_API_ATTEMPTS = 5;
 
 export const fetchFromApi = async <T>(
   url: string,
@@ -52,7 +52,9 @@ export const fetchFromApi = async <T>(
         error instanceof Error ? error.message : String(error)
       );
       if (attempt < maxAttempts) {
-        console.warn(`Retrying ${url}...`);
+        const backoffMs = Math.min(API_CONFIG.rateLimit * 2 ** attempt, 15_000);
+        console.warn(`Retrying ${url} in ${backoffMs}ms...`);
+        await delay(backoffMs);
       }
     }
   }

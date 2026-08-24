@@ -37,7 +37,7 @@ describe('fetchFromApi', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     await expect(fetchFromApi('https://api.jikan.moe/example')).resolves.toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
   });
 });
 
