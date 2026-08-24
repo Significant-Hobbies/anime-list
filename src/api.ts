@@ -78,8 +78,11 @@ export function assertCatalogRefreshComplete(kind: 'anime' | 'manga', failedPage
   }
 }
 
-export function isRequiredSeasonPage(page: number): boolean {
-  return page === 1;
+export function isRequiredSeasonPage(
+  page: number,
+  seasonRole: 'current' | 'previous' = 'current'
+): boolean {
+  return seasonRole === 'current' && page === 1;
 }
 
 const getSeason = (month: number): string => {
@@ -105,23 +108,29 @@ function isCompleteAnime(anime: AnimeItem): boolean {
 async function fetchSeasonAnime(
   season: string,
   year: number,
+  seasonRole: 'current' | 'previous',
   allFetchedAnime: AnimeItem[],
   failedPages: string[]
-): Promise<void> {
+): Promise<number> {
   console.log(`Fetching ${season} ${year}...`);
   const seasonStartCount = allFetchedAnime.length;
   let page = 1;
   while (true) {
-    const url = `${API_CONFIG.baseUrl}/seasons/${year}/${season}?page=${page}&limit=25`;
+    // Jikan's rolling endpoint is materially more reliable for the active
+    // season than the explicit year/season route. Historical refreshes still
+    // use the explicit route and remain best-effort here; the quarterly sync
+    // is the authoritative historical repair path.
+    const seasonPath = seasonRole === 'current' ? '/seasons/now' : `/seasons/${year}/${season}`;
+    const url = `${API_CONFIG.baseUrl}${seasonPath}?page=${page}&limit=25`;
     const data = await fetchFromApi<ApiResponse<RawAnimeItem[]>>(url);
 
     if (!data?.data || !Array.isArray(data.data)) {
       const failedPage = `${season} ${year} page ${page}`;
-      if (isRequiredSeasonPage(page)) {
+      if (isRequiredSeasonPage(page, seasonRole)) {
         failedPages.push(failedPage);
       } else {
         console.warn(
-          `Jikan failed for optional ${failedPage} after retries; keeping ${allFetchedAnime.length - seasonStartCount} fetched rows for this season.`
+          `Jikan failed for optional ${seasonRole} ${failedPage} after retries; keeping ${allFetchedAnime.length - seasonStartCount} fetched rows for this season.`
         );
       }
       break;
@@ -138,6 +147,7 @@ async function fetchSeasonAnime(
     page++;
   }
   console.log(`✓ ${season} ${year} - fetched ${allFetchedAnime.length} anime so far`);
+  return allFetchedAnime.length - seasonStartCount;
 }
 
 function logUpsertSummary(summary: {
@@ -172,19 +182,29 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
   const currentSeason = getSeason(currentMonth);
   const previousSeasonData = getPreviousSeason(currentSeason, currentYear);
 
-  const seasonsToFetch = [
-    { season: currentSeason, year: currentYear },
-    { season: previousSeasonData.season, year: previousSeasonData.year },
+  const seasonsToFetch: Array<{
+    season: string;
+    year: number;
+    role: 'current' | 'previous';
+  }> = [
+    { season: currentSeason, year: currentYear, role: 'current' },
+    { season: previousSeasonData.season, year: previousSeasonData.year, role: 'previous' },
   ];
 
   const allFetchedAnime: AnimeItem[] = [];
   const failedPages: string[] = [];
 
-  for (const { season, year } of seasonsToFetch) {
-    await fetchSeasonAnime(season, year, allFetchedAnime, failedPages);
+  let currentSeasonRows = 0;
+  for (const { season, year, role } of seasonsToFetch) {
+    const fetched = await fetchSeasonAnime(season, year, role, allFetchedAnime, failedPages);
+    if (role === 'current') currentSeasonRows = fetched;
   }
 
-  assertCatalogRowsFetched('anime', allFetchedAnime.length);
+  // A previous-season outage must not turn a successful current-season
+  // refresh red: D1 upserts retain the previously stored historical rows.
+  // The active season is different — publishing success with no current rows
+  // would hide a real catalog outage.
+  assertCatalogRowsFetched('anime', currentSeasonRows);
 
   // Save through the configured D1 boundary.
   console.log(`Saving ${allFetchedAnime.length} anime to database...`);
