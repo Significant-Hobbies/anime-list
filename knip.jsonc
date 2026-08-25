@@ -10,8 +10,6 @@
   ],
   "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"],
   "ignore": [
-    // Optional documentation presentation config.
-    "blume.config.ts"
   ],
   "ignoreDependencies": [
     // Child-process/CLI/config-only tools and the CSS import are not visible in the module graph.
@@ -22,7 +20,6 @@
     "tailwindcss",
     "tw-animate-css"
   ],
-  "ignoreBinaries": ["blume"],
   "ignoreIssues": {
     // Generated agent metadata and UI primitives intentionally expose a public surface.
     "**/agent-edge.*": ["exports", "types"],

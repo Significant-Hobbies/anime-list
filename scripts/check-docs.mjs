@@ -11,8 +11,8 @@
  *   - no markdown file under docs/ is orphaned from the index (warned, not
  *     fatal — archive entries are intentionally not all linked).
  *
- * External http(s) links are NOT checked here — use `blume validate --external`
- * for that. Code references in backticks are ignored.
+ * External http(s) links are NOT checked here. Code references in backticks
+ * are ignored.
  *
  * Usage:
  *   node scripts/check-docs.mjs            # check + fail on broken links
@@ -37,8 +37,6 @@ function walkMd(dir, out = []) {
     const full = join(dir, entry);
     const st = statSync(full);
     if (st.isDirectory()) {
-      // skip generated blume runtimes if present inside docs (defensive)
-      if (entry === '.blume' || entry === '.blume-verify') continue;
       walkMd(full, out);
     } else if (extname(entry) === '.md') {
       out.push(full);

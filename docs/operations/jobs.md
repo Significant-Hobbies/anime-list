@@ -59,7 +59,7 @@ worker cache picks up the fresh D1 data.
 ### Docs — `docs.yml`
 
 - On push/PR: runs `node scripts/check-docs.mjs` to validate internal
-  markdown links. Optional `blume validate` if Blume is installed.
+  markdown links.
 
 ## Manual catalog operations
 

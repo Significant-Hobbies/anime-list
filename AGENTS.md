@@ -102,8 +102,7 @@ or suppression baselines whenever the measured result improves.
 
 The canonical knowledge base is [`docs/`](docs/) — start at
 [`docs/index.md`](docs/index.md). Markdown in this repo is the source of
-truth; Blume ([`blume.config.ts`](blume.config.ts)) is only the presentation
-and search layer.
+truth; the repository validator checks the Markdown structure and links.
 
 - **Current/shipped product truth:** [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
 - **Open work and blockers:** GitHub Issues

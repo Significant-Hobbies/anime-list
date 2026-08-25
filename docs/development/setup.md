@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 18+ (CI uses 22; Blume, if used, needs 22.12+).
+- Node.js 18+ (CI uses 22).
 - pnpm 10.33.2 (pinned via `packageManager` in `package.json`).
 - Google OAuth credentials for full sign-in behavior. Wrangler provides an
   isolated local D1 database; no production database credential is required.
@@ -55,8 +55,6 @@ Authoritative list lives in `package.json`. Common commands:
 | Command | Purpose |
 | --- | --- |
 | `node scripts/check-docs.mjs` | Validate internal markdown links across `docs/`, `AGENTS.md`, `STATUS.md`, `README.md` |
-| `blume dev` | Render `docs/` locally with Blume (presentation only) |
-| `blume validate` | Blume's own link/content validator |
 
 See [`../operations/deploy.md`](../operations/deploy.md) for deploy steps and
 [`conventions.md`](conventions.md) for code conventions.

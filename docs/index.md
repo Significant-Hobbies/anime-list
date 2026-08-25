@@ -29,9 +29,8 @@ implementation details and schedules.
 
 ## Maintenance rules
 
-1. Markdown committed here is the source of truth. Blume (see
-   [`../blume.config.ts`](../blume.config.ts)) is only the presentation and
-   search layer — never edit generated files under `.blume/` or `.blume-verify/`.
+1. Markdown committed here is the source of truth. Keep documentation changes
+   in these Markdown files and validate links with the repository checker.
 2. One fact, one home. Do not duplicate what code, `package.json`,
    `wrangler.cron.toml`, or the GitHub workflow files already state
    authoritatively — link to them instead.
