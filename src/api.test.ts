@@ -72,8 +72,12 @@ describe('assertCatalogRefreshComplete', () => {
 });
 
 describe('isRequiredSeasonPage', () => {
-  it('fails closed when the first page for a season is unavailable', () => {
-    expect(isRequiredSeasonPage(1)).toBe(true);
+  it('fails closed when the first page for the current season is unavailable', () => {
+    expect(isRequiredSeasonPage(1, 'current')).toBe(true);
+  });
+
+  it('keeps the previous season best-effort because D1 retains prior rows', () => {
+    expect(isRequiredSeasonPage(1, 'previous')).toBe(false);
   });
 
   it('allows an incremental refresh to keep rows fetched before a tail-page timeout', () => {
