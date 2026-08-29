@@ -1,4 +1,5 @@
 import { onLCP, onCLS, onINP, onTTFB, onFCP } from 'web-vitals';
+import { trackEvent } from '@/lib/analytics';
 
 interface VitalMetric {
   name: string;
@@ -9,24 +10,13 @@ interface VitalMetric {
 }
 
 function sendToAnalytics(metric: VitalMetric) {
-  // Send to PostHog if available, otherwise beacon to a fleet endpoint
-  const posthog = (window as any).posthog;
-  if (posthog && typeof posthog.capture === 'function') {
-    posthog.capture('web_vital', {
-      name: metric.name,
-      value: Math.round(metric.value),
-      rating: metric.rating,
-      id: metric.id,
-      navigation_type: metric.navigationType,
-    });
-  } else {
-    // Fallback: beacon to fleet analytics endpoint
-    const body = JSON.stringify({
-      project: import.meta.env.VITE_PROJECT_SLUG ?? 'anime-list',
-      ...metric,
-    });
-    navigator.sendBeacon('https://vitals.fleet.workers.dev/collect', body);
-  }
+  trackEvent('web_vital', {
+    name: metric.name,
+    value: Math.round(metric.value),
+    rating: metric.rating,
+    id: metric.id,
+    navigation_type: metric.navigationType,
+  });
 }
 
 export function initVitals() {

@@ -32,12 +32,12 @@
     <meta name="apple-mobile-web-app-title" content="Anime List" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <!-- seo:start -->
-    <title>Anime List by Significant Hobbies — Discover anime &amp; manga</title>
+    <title>Anime List — filter 35,000+ anime &amp; manga</title>
     <meta
       name="description"
       content="Filter and explore 35,000+ anime and manga titles from MyAnimeList. Search, stats, and a personal watchlist in one place."
     />
-    <meta property="og:title" content="Anime List by Significant Hobbies — Discover anime &amp; manga" />
+    <meta property="og:title" content="Anime List — filter 35,000+ anime &amp; manga" />
     <meta
       property="og:description"
       content="Filter and explore 35,000+ anime and manga titles from MyAnimeList. Search, stats, and a personal watchlist in one place."
@@ -47,7 +47,7 @@
     <meta property="og:site_name" content="Anime List by Significant Hobbies" />
     <meta property="og:image" content="/apple-touch-icon.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Anime List by Significant Hobbies — Discover anime &amp; manga" />
+    <meta name="twitter:title" content="Anime List — filter 35,000+ anime &amp; manga" />
     <meta
       name="twitter:description"
       content="Filter and explore 35,000+ anime and manga titles from MyAnimeList. Search, stats, and a personal watchlist in one place."
@@ -83,8 +83,29 @@
       <!-- ssr:start -->
       <!-- ssr:end -->
     </div>
+    <noscript>
+      <main style="max-width:48rem;margin:8rem auto 3rem;padding:0 1rem;line-height:1.7;">
+        <h2>Search the public catalog</h2>
+        <p>
+          Anime List lets you filter more than 35,000 anime and manga titles by score,
+          genre, year, format, popularity, and other MyAnimeList catalog fields.
+        </p>
+        <p><a href="/search" style="color:#a5b4fc;">Search anime</a> · <a href="/manga" style="color:#a5b4fc;">Search manga</a></p>
+        <h2>Compare the catalog</h2>
+        <p>
+          Browse public statistics and catalog coverage without an account. JavaScript
+          is required for interactive filtering and personal watchlists.
+        </p>
+        <p><a href="/stats" style="color:#a5b4fc;">Anime statistics</a> · <a href="/manga/stats" style="color:#a5b4fc;">Manga statistics</a></p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
     <script src="https://sassmaker.com/project-strip.js" data-project="anime-list" defer></script>
-    <script src="https://sassmaker.com/ai-chat-footer.js" data-name="Anime List" defer></script>
+    <script
+      src="https://sassmaker.com/ai-chat-footer.js"
+      data-name="Anime List"
+      data-compose="false"
+      defer
+    ></script>
   </body>
 </html>

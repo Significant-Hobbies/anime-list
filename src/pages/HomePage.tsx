@@ -46,7 +46,7 @@ const FAQ = [
   },
   {
     q: 'How many titles does Anime List cover?',
-    a: 'Roughly 14,800+ anime and ~25,000 top manga titles — the slice of MyAnimeList that meets a quality bar on score, scored-by count, members, and year.',
+    a: 'Roughly 14,800 anime and 20,600 top manga titles — the slice of MyAnimeList that meets a quality bar on score, scored-by count, members, favorites, and year.',
   },
   {
     q: 'Is it free?',

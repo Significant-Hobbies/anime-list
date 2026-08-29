@@ -4,7 +4,7 @@
 
 ## Public pages
 
-- [Anime List by Significant Hobbies — Discover anime and manga](https://anime.significanthobbies.com/)
+- [Anime List — filter 35,000+ anime and manga](https://anime.significanthobbies.com/)
 - [Advanced anime search — Anime List by Significant Hobbies](https://anime.significanthobbies.com/search)
 - [Random anime picker — Anime List by Significant Hobbies](https://anime.significanthobbies.com/random)
 - [Anime catalog statistics — Anime List by Significant Hobbies](https://anime.significanthobbies.com/stats)

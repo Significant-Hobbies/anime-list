@@ -11,45 +11,51 @@
 /** @type {{ name: string, url: string, llmsTxt: string, llmsFullTxt?: string, indexMd: string, catalog: object }} */
 // biome-ignore format: generated payload from apply-agent-surfaces (JSON keys/quotes)
 // TODO: regenerate via fleet agent-surface generator — MCP surface hand-added for expose-mcp-server.
+import publicSurfaces from './data/public-surfaces.json' with { type: 'json' };
+
 export const AGENT_SURFACE = {
-  "name": "Anime List by Significant Hobbies",
-  "url": "https://anime.significanthobbies.com",
-  "llmsFullTxt": "# Anime List by Significant Hobbies — full agent brief\n\nAnime and manga discovery with multi-axis filtering and watchlists.\n\n## Index\n\n# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n\n## Product links\n\n- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)\n\n## Machine surfaces\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/llms-full.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n- https://anime.significanthobbies.com/sitemap.xml\n- https://anime.significanthobbies.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
-  "llmsTxt": "# Anime List by Significant Hobbies\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## When to use this\n\n- Best fit: discovering anime and manga by score, year, genre, theme, demographic, and popularity\n- Best fit: browsing catalog statistics, schedules, and random recommendations from MyAnimeList data\n- Not a fit: streaming anime or manga content\n- Not a fit: tracking watch progress on non-MAL catalogs\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [OpenAPI spec](https://anime.significanthobbies.com/openapi.json): OpenAPI 3.1 specification\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Developer docs\n\n- [OpenAPI specification](https://anime.significanthobbies.com/openapi.json): Full API surface description (OpenAPI 3.1)\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public agent surfaces\n\n## CLI\n\n```bash\n# Fetch the agent catalog\ncurl -s https://anime.significanthobbies.com/api/ai | jq .\n\n# Get the OpenAPI spec\ncurl -s https://anime.significanthobbies.com/openapi.json | jq .\n\n# Fetch the homepage as markdown\ncurl -s -H 'Accept: text/markdown' https://anime.significanthobbies.com/\n```\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
-  "indexMd": "# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n",
-  "catalog": {
-    "name": "Anime List by Significant Hobbies",
-    "version": "1",
-    "url": "https://anime.significanthobbies.com",
-    "llms": "https://anime.significanthobbies.com/llms.txt",
-    "llmsFull": "https://anime.significanthobbies.com/llms-full.txt",
-    "sitemap": "https://anime.significanthobbies.com/sitemap.xml",
-    "robots": "https://anime.significanthobbies.com/robots.txt",
-    "markdown": {
-      "suffix": ".md",
-      "negotiation": true
+  name: 'Anime List by Significant Hobbies',
+  url: 'https://anime.significanthobbies.com',
+  llmsFullTxt:
+    '# Anime List by Significant Hobbies — full agent brief\n\nAnime and manga discovery with multi-axis filtering and watchlists.\n\n## Index\n\n# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n\n## Product links\n\n- Home: https://anime.significanthobbies.com/ — Discovery UI (SPA)\n\n## Machine surfaces\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/llms-full.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n- https://anime.significanthobbies.com/sitemap.xml\n- https://anime.significanthobbies.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n',
+  llmsTxt:
+    "# Anime List by Significant Hobbies\n\n> Anime and manga discovery with multi-axis filtering and watchlists.\n\n## When to use this\n\n- Best fit: discovering anime and manga by score, year, genre, theme, demographic, and popularity\n- Best fit: browsing catalog statistics, schedules, and random recommendations from MyAnimeList data\n- Not a fit: streaming anime or manga content\n- Not a fit: tracking watch progress on non-MAL catalogs\n\n## Product\n\n- [Home](https://anime.significanthobbies.com/): Discovery UI (SPA)\n\n## Machine surfaces\n\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public surfaces\n- [OpenAPI spec](https://anime.significanthobbies.com/openapi.json): OpenAPI 3.1 specification\n- [Homepage markdown](https://anime.significanthobbies.com/index.md): Product brief without JS\n- [This index](https://anime.significanthobbies.com/llms.txt)\n\n## Developer docs\n\n- [OpenAPI specification](https://anime.significanthobbies.com/openapi.json): Full API surface description (OpenAPI 3.1)\n- [Agent catalog](https://anime.significanthobbies.com/api/ai): JSON inventory of public agent surfaces\n\n## CLI\n\n```bash\n# Fetch the agent catalog\ncurl -s https://anime.significanthobbies.com/api/ai | jq .\n\n# Get the OpenAPI spec\ncurl -s https://anime.significanthobbies.com/openapi.json | jq .\n\n# Fetch the homepage as markdown\ncurl -s -H 'Accept: text/markdown' https://anime.significanthobbies.com/\n```\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
+  indexMd:
+    '# Anime List by Significant Hobbies\n\nAnime/manga discovery with multi-axis filtering and watchlists.\n\n## Note for agents\n\nThe UI is a client SPA. Prefer this markdown and `/api/ai` over scraping HTML shells.\n\n## Agent entrypoints\n\n- https://anime.significanthobbies.com/llms.txt\n- https://anime.significanthobbies.com/api/ai\n- https://anime.significanthobbies.com/index.md\n',
+  catalog: {
+    name: 'Anime List by Significant Hobbies',
+    version: '1',
+    url: 'https://anime.significanthobbies.com',
+    llms: 'https://anime.significanthobbies.com/llms.txt',
+    llmsFull: 'https://anime.significanthobbies.com/llms-full.txt',
+    sitemap: 'https://anime.significanthobbies.com/sitemap.xml',
+    robots: 'https://anime.significanthobbies.com/robots.txt',
+    markdown: {
+      suffix: '.md',
+      negotiation: true,
     },
-    "openapi": "https://anime.significanthobbies.com/openapi.json",
-    "surfaces": [
+    openapi: 'https://anime.significanthobbies.com/openapi.json',
+    surfaces: [
       {
-        "id": "home",
-        "url": "https://anime.significanthobbies.com/",
-        "md": "https://anime.significanthobbies.com/index.md",
-        "kind": "spa",
-        "description": "Product home"
+        id: 'home',
+        url: 'https://anime.significanthobbies.com/',
+        md: 'https://anime.significanthobbies.com/index.md',
+        kind: 'spa',
+        description: 'Product home',
       },
       {
-        "id": "mcp",
-        "url": "https://anime.significanthobbies.com/api/mcp",
-        "kind": "mcp",
-        "description": "MCP server — public catalog tools (search, detail, stats) open; watchlist tools require a Personal Access Token (see /mcp)."
-      }
+        id: 'mcp',
+        url: 'https://anime.significanthobbies.com/api/mcp',
+        kind: 'mcp',
+        description:
+          'MCP server — public catalog tools (search, detail, stats) open; watchlist tools require a Personal Access Token (see /mcp).',
+      },
     ],
-    "auth": {
-      "public": true,
-      "notes": "Auth-walled app routes are not agent-indexed unless listed here."
-    }
-  }
+    auth: {
+      public: true,
+      notes: 'Auth-walled app routes are not agent-indexed unless listed here.',
+    },
+  },
 };
 
 const PRODUCT_ORIGIN = AGENT_SURFACE.url;
@@ -202,11 +208,22 @@ export function handleAgentEdge(request) {
         ? String(AGENT_SURFACE.catalog.sitemap).replace(AGENT_SURFACE.url, url.origin)
         : `${url.origin}/sitemap.xml`,
       openapi: `${url.origin}/openapi.json`,
-      surfaces: (AGENT_SURFACE.catalog.surfaces || []).map((s) => ({
-        ...s,
-        url: s.url ? String(s.url).replace(AGENT_SURFACE.url, url.origin) : s.url,
-        md: s.md ? String(s.md).replace(AGENT_SURFACE.url, url.origin) : s.md,
+      surfaces: publicSurfaces.map((surface) => ({
+        id: surface.id,
+        url: `${url.origin}${surface.path}`,
+        md: `${url.origin}${surface.markdownPath}`,
+        kind: 'static',
+        description: surface.description,
       })),
+      dataResources: [
+        {
+          id: 'mcp',
+          kind: 'mcp',
+          url: `${url.origin}/api/mcp`,
+          description:
+            'Public catalog tools are open; watchlist tools require a personal access token.',
+        },
+      ],
     };
     return json(catalog);
   }
