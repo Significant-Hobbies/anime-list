@@ -1,0 +1,40 @@
+{
+  "$schema": "fleet.landing-audit.v1",
+  "project": "anime-list",
+  "priority": "P4",
+  "decision": "Maintain",
+  "auditedAt": "2026-08-29",
+  "candidateUrl": "https://realized-die-juvenile-waiting.trycloudflare.com/",
+  "productionUrl": "https://anime.significanthobbies.com/",
+  "releaseState": "Local candidate qualified; purpose copy, metadata, complete agent catalog, Ask AI composition, analytics repair, and the manga statistics route fix are not deployed by this audit.",
+  "implementationAction": "preserve",
+  "migrationCandidate": false,
+  "gates": {
+    "contentPurpose": {
+      "score": 100,
+      "status": "pass",
+      "evidence": "The first viewport states the exact job: search more than 35,000 anime and manga titles using MyAnimeList catalog fields, without requiring sign-in. It distinguishes public discovery from the optional private watchlist, and the FAQ now truthfully states the 20,600-title manga coverage and available quality fields."
+    },
+    "designQuality": {
+      "score": 94,
+      "status": "pass",
+      "evidence": "The existing dark catalog interface is polished, distinctive, and fit for discovery; no template migration is warranted. Exact 390 and 1440 pixel checks found zero horizontal overflow, and the latest candidate includes one project strip plus one independently composed Ask AI footer."
+    },
+    "seo": {
+      "score": 96,
+      "status": "pass",
+      "evidence": "The latest candidate passes all 14 critical homepage checks: concise 45-character title, description, canonical, social metadata, JSON-LD, direct H1, two useful no-JavaScript H2 sections, and no broken homepage links. The only advisory is a deliberately lean approximately 245-word SPA shell. The candidate serves /manga/stats successfully; production still returns a stale 404 until an authorized release."
+    },
+    "geo": {
+      "score": 96,
+      "status": "pass-with-advisory",
+      "evidence": "Source now builds 13 canonical Markdown surfaces and /api/ai maps all 13 HTML/Markdown pairs while publishing MCP separately as a data resource. The production host remains A-tier 90 because its Worker still exposes the older incomplete catalog; the source catalog and Worker dry-run qualify for the next authorized release."
+    },
+    "performance": {
+      "score": 99,
+      "status": "pass",
+      "evidence": "PSI Swarm completed 4/4 candidate profiles at performance scores 98 to 100. Slow-3G LCP was 1.71 s with 94 ms TBT; mid-mobile LCP was 874 ms, fast mobile 465 ms, desktop 525 ms, and CLS was 0 throughout. Dead fallback vitals requests were removed in favor of the existing analytics path."
+    }
+  },
+  "minimumObserved": 94
+}
