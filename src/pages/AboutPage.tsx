@@ -30,7 +30,7 @@ const STEPS = [
   {
     n: '3',
     title: 'Stay current',
-    body: "Data syncs daily from MyAnimeList via Jikan. Check the schedule for what's airing.",
+    body: "Data syncs daily from MyAnimeList through Tenrai. Check the schedule for what's airing.",
   },
 ];
 

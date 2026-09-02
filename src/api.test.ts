@@ -5,6 +5,7 @@ import {
   fetchFromApi,
   isRequiredSeasonPage,
 } from './api';
+import { API_CONFIG } from './config';
 
 vi.mock('./utils/file', () => ({
   delay: vi.fn().mockResolvedValue(undefined),
@@ -26,7 +27,7 @@ describe('fetchFromApi', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    await expect(fetchFromApi('https://api.jikan.moe/example')).resolves.toEqual(payload);
+    await expect(fetchFromApi(`${API_CONFIG.baseUrl}/example`)).resolves.toEqual(payload);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -36,7 +37,7 @@ describe('fetchFromApi', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    await expect(fetchFromApi('https://api.jikan.moe/example')).resolves.toBeNull();
+    await expect(fetchFromApi(`${API_CONFIG.baseUrl}/example`)).resolves.toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(5);
   });
 });
@@ -44,13 +45,13 @@ describe('fetchFromApi', () => {
 describe('assertCatalogRowsFetched', () => {
   it('rejects an empty anime refresh', () => {
     expect(() => assertCatalogRowsFetched('anime', 0)).toThrow(
-      'Jikan returned no usable anime rows'
+      'Tenrai returned no usable anime rows'
     );
   });
 
   it('rejects an empty manga refresh', () => {
     expect(() => assertCatalogRowsFetched('manga', 0)).toThrow(
-      'Jikan returned no usable manga rows'
+      'Tenrai returned no usable manga rows'
     );
   });
 
@@ -62,12 +63,22 @@ describe('assertCatalogRowsFetched', () => {
 describe('assertCatalogRefreshComplete', () => {
   it('rejects a partial refresh after preserving fetched rows', () => {
     expect(() => assertCatalogRefreshComplete('anime', ['summer 2026 page 3'])).toThrow(
-      'Catalog refresh incomplete: Jikan failed for anime summer 2026 page 3 after retries.'
+      'Catalog refresh incomplete: Tenrai failed for anime summer 2026 page 3 after retries.'
     );
   });
 
   it('accepts a refresh with no failed pages', () => {
     expect(() => assertCatalogRefreshComplete('manga', [])).not.toThrow();
+  });
+});
+
+describe('catalog provider configuration', () => {
+  it('uses the Jikan-compatible Tenrai v1 API without credentials', () => {
+    expect(API_CONFIG).toMatchObject({
+      providerName: 'Tenrai',
+      baseUrl: 'https://api.tenrai.org/v1',
+      rateLimit: 1000,
+    });
   });
 });
 

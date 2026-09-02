@@ -7,7 +7,7 @@ export default function PrivacyPage() {
         ← Home
       </Link>
       <h1 className="mt-3 text-3xl font-bold tracking-tight">Privacy</h1>
-      <p className="mt-4 text-xs text-muted-foreground">Last updated: 2026-05-15.</p>
+      <p className="mt-4 text-xs text-muted-foreground">Last updated: 2026-09-02.</p>
 
       <h2 className="mt-8 text-base font-semibold">What we store</h2>
       <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <ul className="mt-2 list-disc space-y-1 pl-5">
         <li>No third-party analytics, tracking pixels, or remarketing.</li>
         <li>
-          Anime metadata is sourced from public APIs (Jikan, AniList) — we don&apos;t share your
+          Anime metadata is sourced from public APIs (Tenrai, AniList) — we don&apos;t share your
           watchlist back with them.
         </li>
         <li>No selling of subscriber data.</li>

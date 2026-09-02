@@ -18,17 +18,19 @@ export default function RootLayout() {
   return (
     <AnalyticsProvider>
       <AuthProvider>
-        <Navigation />
-        <RouteProgress />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-24 pt-8">
-          <Suspense fallback={<PageShellSkeleton />}>
-            <Outlet />
+        <div className="flex min-h-dvh flex-col">
+          <Navigation />
+          <RouteProgress />
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-8 sm:px-6">
+            <Suspense fallback={<PageShellSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </main>
+          <Footer />
+          <Suspense fallback={null}>
+            <FeedbackWidgetWrapper />
           </Suspense>
-        </main>
-        <Footer />
-        <Suspense fallback={null}>
-          <FeedbackWidgetWrapper />
-        </Suspense>
+        </div>
       </AuthProvider>
     </AnalyticsProvider>
   );

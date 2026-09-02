@@ -65,7 +65,7 @@ export const fetchFromApi = async <T>(
 export function assertCatalogRowsFetched(kind: 'anime' | 'manga', count: number): void {
   if (count === 0) {
     throw new Error(
-      `Catalog refresh failed: Jikan returned no usable ${kind} rows. Refusing to report success.`
+      `Catalog refresh failed: ${API_CONFIG.providerName} returned no usable ${kind} rows. Refusing to report success.`
     );
   }
 }
@@ -73,7 +73,7 @@ export function assertCatalogRowsFetched(kind: 'anime' | 'manga', count: number)
 export function assertCatalogRefreshComplete(kind: 'anime' | 'manga', failedPages: string[]): void {
   if (failedPages.length > 0) {
     throw new Error(
-      `Catalog refresh incomplete: Jikan failed for ${kind} ${failedPages.join(', ')} after retries.`
+      `Catalog refresh incomplete: ${API_CONFIG.providerName} failed for ${kind} ${failedPages.join(', ')} after retries.`
     );
   }
 }
@@ -116,7 +116,7 @@ async function fetchSeasonAnime(
   const seasonStartCount = allFetchedAnime.length;
   let page = 1;
   while (true) {
-    // Jikan's rolling endpoint is materially more reliable for the active
+    // The provider's rolling endpoint is materially more reliable for the active
     // season than the explicit year/season route. Historical refreshes still
     // use the explicit route and remain best-effort here; the quarterly sync
     // is the authoritative historical repair path.
@@ -130,7 +130,7 @@ async function fetchSeasonAnime(
         failedPages.push(failedPage);
       } else {
         console.warn(
-          `Jikan failed for optional ${seasonRole} ${failedPage} after retries; keeping ${allFetchedAnime.length - seasonStartCount} fetched rows for this season.`
+          `${API_CONFIG.providerName} failed for optional ${seasonRole} ${failedPage} after retries; keeping ${allFetchedAnime.length - seasonStartCount} fetched rows for this season.`
         );
       }
       break;
@@ -216,7 +216,7 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
   console.log(`\n✓ Season update completed in ${(performance.now() - p0) / 1000}s`);
 };
 
-/** Refresh popular manga from Jikan top list into D1 (daily incremental sync). */
+/** Refresh popular manga from the catalog provider's top list into D1. */
 export const updateLatestTopMangaData = async (
   maxPages: number = API_CONFIG.mangaDailyUpdatePages
 ): Promise<void> => {

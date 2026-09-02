@@ -23,7 +23,7 @@ function resolveMaxPages(): number {
 }
 
 /**
- * Fetch top-ranked manga from Jikan and upsert them through Wrangler D1.
+ * Fetch top-ranked manga from the catalog provider and upsert them through Wrangler D1.
  */
 async function main() {
   configureOperatorDatabaseFromArgs();

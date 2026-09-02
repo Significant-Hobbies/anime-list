@@ -34,7 +34,7 @@ const FEATURES = [
 const FAQ = [
   {
     q: `Where does the data come from?`,
-    a: 'All catalog data comes from MyAnimeList via the public Jikan API. We are not affiliated with MyAnimeList.net.',
+    a: 'Catalog data comes from MyAnimeList through the public Tenrai API. We are not affiliated with MyAnimeList.net or Tenrai.',
   },
   {
     q: 'How often is it updated?',

@@ -52,7 +52,7 @@ graph TB
     end
 
     subgraph "External Services"
-        Jikan[Jikan API<br/>MyAnimeList Data]
+        Tenrai[Tenrai API<br/>MyAnimeList Data]
         Google[Google OAuth<br/>Authentication]
     end
 
@@ -70,14 +70,14 @@ graph TB
     Routes --> WatchlistDB
     Routes --> Google
     Cron --> Update
-    Update --> Jikan
-    Jikan --> Update
+    Update --> Tenrai
+    Tenrai --> Update
     Update --> AnimeDB
 
     style UI fill:#3b82f6
     style Worker fill:#10b981
     style AnimeDB fill:#8b5cf6
-    style Jikan fill:#f59e0b
+    style Tenrai fill:#f59e0b
     style Memory fill:#ef4444
     style Cron fill:#06b6d4
 ```
@@ -88,8 +88,8 @@ graph TB
 - **Backend (Cloudflare Worker `mal-api`)**: Hono API with stale-while-revalidate in-memory cache for <1ms response times
 - **Database (Cloudflare D1)**: one project-owned database for anime/manga catalogs and user state
 - **Caching Strategy**: 1-hour TTL with background refresh - 100% of requests served instantly from memory
-- **Automation (GitHub Actions)**: Daily cron at midnight UTC fetches latest anime seasons from Jikan API
-- **External APIs**: Jikan API for MyAnimeList data, Google OAuth for authentication
+- **Automation (GitHub Actions)**: Daily cron at midnight UTC fetches the latest anime seasons from Tenrai
+- **External APIs**: Tenrai for MyAnimeList catalog data, Google OAuth for authentication
 
 ## Quick Start
 
@@ -129,7 +129,7 @@ pnpm test          # Vitest unit tests
 pnpm test:coverage # Whole-source coverage with regression floors
 pnpm quality       # Fleet code-health, build, and bundle gate
 pnpm db:seed       # Migrate and seed local D1 from JSON
-pnpm db:update     # Update anime data from Jikan API
+pnpm db:update     # Update anime data from Tenrai
 pnpm db:rehearse   # Isolated D1 catalog + ownership rehearsal
 ```
 
@@ -160,7 +160,7 @@ pnpm db:rehearse   # Isolated D1 catalog + ownership rehearsal
 
 ---
 
-**Note**: This project uses MyAnimeList data via the Jikan API. Not affiliated with MyAnimeList.net.
+**Note**: This project uses MyAnimeList data through the Tenrai API. Not affiliated with MyAnimeList.net or Tenrai.
 
 **For Developers**: See [AGENTS.md](AGENTS.md) for agent operating rules, [PROJECT_STATUS.md](PROJECT_STATUS.md) for current product truth, GitHub Issues for open work, and [docs/index.md](docs/index.md) for the full knowledge base (architecture, decisions, operations runbooks, and learnings).
 

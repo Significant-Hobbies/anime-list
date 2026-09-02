@@ -7,11 +7,11 @@ export default function TermsPage() {
         ← Home
       </Link>
       <h1 className="mt-3 text-3xl font-bold tracking-tight">Terms</h1>
-      <p className="mt-4 text-xs text-muted-foreground">Last updated: 2026-05-15.</p>
+      <p className="mt-4 text-xs text-muted-foreground">Last updated: 2026-09-02.</p>
 
       <h2 className="mt-8 text-base font-semibold">Data sources</h2>
       <p className="mt-2">
-        Anime / manga metadata is sourced from the public Jikan and AniList APIs and refreshed on a
+        Anime / manga metadata is sourced from the public Tenrai and AniList APIs and refreshed on a
         schedule. Each entry traces back to MAL / AniList; we add structure on top, not new claims
         about the works themselves.
       </p>

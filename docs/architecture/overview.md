@@ -14,8 +14,8 @@ mal-api (Cloudflare Worker, Hono)  ── cron 0 3 * * * ──▶ reload catalo
    ▼
 Cloudflare D1 (`DB`)  ──  anime_data, manga_data, watchlists, schedule, tokens, users
    ▲
-   │  GitHub Actions (daily 00:00 UTC, quarterly) — Jikan API fetch + upsert
-Jikan API (MyAnimeList)
+   │  GitHub Actions (daily 00:00 UTC, quarterly) — Tenrai API fetch + upsert
+Tenrai API (MyAnimeList catalog)
 ```
 
 Pages Functions (`functions/anime/[malId].ts`, `functions/manga/[malId].ts`)

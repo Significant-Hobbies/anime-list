@@ -31,7 +31,7 @@ worker cache picks up the fresh D1 data.
 - Schedule: `0 0 1 1,4,7,10 *` (Jan/Apr/Jul/Oct 1, 00:00 UTC) +
   `workflow_dispatch` with `dry_run` and `limit` inputs.
 - Runs the remote Wrangler form of `pnpm db:quarterly-sync`.
-- Quarterly Jikan fallback failures are treated as non-fatal.
+- Quarterly catalog-provider fallback failures are treated as non-fatal.
 - Timeout: 120 min.
 
 ### Quarterly manga sync — `quarterly-manga-sync.yml`

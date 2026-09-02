@@ -30,7 +30,7 @@ pnpm db:quarterly-sync -- --limit=500
 pnpm db:quarterly-sync
 ```
 
-Quarterly Jikan fallback failures are treated as **non-fatal** by design — a
+Quarterly catalog-provider fallback failures are treated as **non-fatal** by design — a
 partial upstream failure should not abort the whole sync.
 
 Remote variants are production operations and are run by the scheduled GitHub

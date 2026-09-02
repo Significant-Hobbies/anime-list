@@ -20,7 +20,7 @@ Last updated: 2026-08-14
 - **Google OAuth + JWT:** `jose`; httpOnly `mal_auth_token` cookie (7d).
 - **Cloudflare D1:** catalog tables + per-user watchlists, schedule, and access tokens; database `anime-list`, Worker binding `DB`. Read-only search batches use the Sessions API and are replica-ready; global replication is currently disabled at the database setting. Retired alert and collection tables remain preserved without runtime routes.
 - **Relational persistence:** Cloudflare D1 is authoritative; the retired Turso database was deleted on 2026-08-02.
-- **Jikan API:** daily GH Action sync + quarterly full refresh.
+- **Tenrai API:** daily GH Action sync + quarterly full refresh.
 - **MAL CDN:** poster images (recurring operational risk).
 - **PostHog:** client analytics.
 - **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (stats 300s, detail 24h anonymous only).
@@ -53,7 +53,7 @@ Last updated: 2026-08-14
 | `pnpm typecheck` / `pnpm lint` | TS (`tsc`) + Biome |
 | `pnpm db:migrate:local` / `db:migrate:remote` | Apply D1 migrations |
 | `pnpm db:seed` / `db:seed:manga` | Seed D1 from scripts |
-| `pnpm db:update` / `db:update:manga` | Refresh from Jikan |
+| `pnpm db:update` / `db:update:manga` | Refresh from Tenrai |
 | `pnpm db:quarterly-sync` | Quarterly anime re-score |
 
 ## Timeline
@@ -103,7 +103,7 @@ Last updated: 2026-08-14
 - **2026-06-20** — De-OpenNext migration: rewritten from Next.js+OpenNext to Vite SPA + TanStack Router; `mal-api` worker unchanged; removed 17MB `cleaned_anime_data.json` from SPA.
 - **2026-06-20** — Shipped PRD batch (2026-06-12): watchlist import/export, saved search alerts (in-app MVP), public collections.
 - **2026-06-12** — PRD batch defined: watchlist import/export, saved search alerts, public collections.
-- **Ongoing** — Daily GH Action Jikan sync (00:00 UTC); quarterly anime/manga full refresh; worker cron `0 3 * * *` cache reload.
+- **Ongoing** — Daily GH Action Tenrai sync (00:00 UTC); quarterly anime/manga full refresh; worker cron `0 3 * * *` cache reload.
 
 ## Products
 
@@ -176,7 +176,7 @@ Last updated: 2026-08-14
 - D1 stores catalog tables + per-user watchlists, schedule, and access tokens through the `DB` Worker binding. Retired alert and collection tables remain dormant.
 - Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
 - Worker cron `0 3 * * *` reloads catalog caches after the GitHub Action refresh.
-- GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, and a manual (`workflow_dispatch`) Pages deploy — no auto-deploy on push.
+- GitHub Actions: daily Tenrai sync (00:00 UTC), quarterly anime/manga full refresh, and a manual (`workflow_dispatch`) Pages deploy — no auto-deploy on push.
 - Edge caches: stats 300s, detail 24h (anonymous only); catalog search is D1-first and uncached.
 - CORS allowlist for Pages, worker, localhost, PR previews.
 - Deploy branch guard on `pnpm deploy` (clean `main` only).
@@ -189,7 +189,7 @@ Last updated: 2026-08-14
 - Common searches use indexed count/page statements in one D1 batch call, with
   no response-cache dependency; weighted or personalized searches retain the
   in-memory fallback.
-- Daily GH Action Jikan sync + quarterly full manga refresh + worker cron 03:00 UTC cache reload.
+- Daily GH Action Tenrai sync + quarterly full manga refresh + worker cron 03:00 UTC cache reload.
 
 ### Personal & discovery
 

@@ -27,7 +27,7 @@ describe('animeDetailService', () => {
     vi.clearAllMocks();
   });
 
-  it('uses fresh cached relations and recommendations without calling Jikan', async () => {
+  it('uses fresh cached relations and recommendations without calling the provider', async () => {
     const now = new Date().toISOString();
     mockedGetRelationsCache.mockResolvedValue({
       malId: 1,
@@ -51,7 +51,7 @@ describe('animeDetailService', () => {
     });
   });
 
-  it('refreshes stale cache from Jikan and persists normalized payloads', async () => {
+  it('refreshes stale cache from the provider and persists normalized payloads', async () => {
     mockedGetRelationsCache.mockResolvedValue({
       malId: 1,
       data: [],
@@ -134,7 +134,7 @@ describe('animeDetailService', () => {
     expect(result.recommendations).toHaveLength(1);
   });
 
-  it('falls back to stale cached data when Jikan refresh fails', async () => {
+  it('falls back to stale cached data when the provider refresh fails', async () => {
     mockedGetRelationsCache.mockResolvedValue({
       malId: 1,
       data: [

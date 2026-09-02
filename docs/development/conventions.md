@@ -9,7 +9,7 @@ Package manager: pnpm (pinned 10.33.2). Lint/format: Biome.
 
 ## Catalog quality gate
 
-Jikan rows must have `score`, `scored_by`, `members`, `favorites`, and
+Catalog-provider rows must have `score`, `scored_by`, `members`, `favorites`, and
 `year`. Missing any one drops the row entirely (enforced in `src/api.ts`
 during fetch). Discover UI defaults to a minimum popularity floor (100k anime
 / 50k manga members). Do not relax this gate without a reason — it is what

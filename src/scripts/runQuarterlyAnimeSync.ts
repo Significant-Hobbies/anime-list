@@ -30,11 +30,11 @@ const QUERY = `
 
 const DEFAULT_BATCH_SIZE = 50;
 const DEFAULT_ANILIST_DELAY_MS = 2200;
-const DEFAULT_JIKAN_DELAY_MS = API_CONFIG.rateLimit;
+const DEFAULT_CATALOG_DELAY_MS = API_CONFIG.rateLimit;
 const DEFAULT_MAX_RETRIES = 5;
 const CURRENTLY_AIRING_STATUS = 'Currently Airing';
 
-interface JikanAnimeResponse {
+interface CatalogAnimeResponse {
   data?: {
     mal_id: number;
     status?: string | null;
@@ -116,19 +116,22 @@ async function fetchAniListBatch(
   return [];
 }
 
-async function fetchJikanAnimeByMalId(
+async function fetchCatalogAnimeByMalId(
   malId: number,
   maxRetries: number,
   baseDelayMs: number
 ): Promise<DirectStatusRecord | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await axios.get<JikanAnimeResponse>(`${API_CONFIG.baseUrl}/anime/${malId}`, {
-        headers: {
-          Accept: 'application/json',
-        },
-        timeout: 30000,
-      });
+      const response = await axios.get<CatalogAnimeResponse>(
+        `${API_CONFIG.baseUrl}/anime/${malId}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+          timeout: 30000,
+        }
+      );
 
       const anime = response.data.data;
       if (!anime) {
@@ -156,7 +159,7 @@ async function fetchJikanAnimeByMalId(
 
       if (!shouldRetry) {
         console.warn(
-          `Jikan lookup for ${malId} failed with ${statusCode ?? 'network error'} after ${attempt}/${maxRetries} attempts. Skipping this fallback candidate.`
+          `${API_CONFIG.providerName} lookup for ${malId} failed with ${statusCode ?? 'network error'} after ${attempt}/${maxRetries} attempts. Skipping this fallback candidate.`
         );
         return null;
       }
@@ -167,14 +170,14 @@ async function fetchJikanAnimeByMalId(
           : Math.min(60000, baseDelayMs * 2 ** attempt);
 
       console.warn(
-        `Jikan lookup for ${malId} failed with ${statusCode ?? 'network error'} on attempt ${attempt}/${maxRetries}. Retrying in ${delayMs}ms...`
+        `${API_CONFIG.providerName} lookup for ${malId} failed with ${statusCode ?? 'network error'} on attempt ${attempt}/${maxRetries}. Retrying in ${delayMs}ms...`
       );
       await delay(delayMs);
     }
   }
 
   console.warn(
-    `Jikan lookup for ${malId} exhausted ${maxRetries} attempts. Skipping this fallback candidate.`
+    `${API_CONFIG.providerName} lookup for ${malId} exhausted ${maxRetries} attempts. Skipping this fallback candidate.`
   );
   return null;
 }
@@ -218,13 +221,18 @@ async function main() {
   const isDryRun = process.argv.includes('--dry-run');
   const batchSize = getNumberArg('--batch-size', DEFAULT_BATCH_SIZE);
   const aniListDelayMs = getNumberArg('--anilist-delay-ms', DEFAULT_ANILIST_DELAY_MS);
-  const jikanDelayMs = getNumberArg('--jikan-delay-ms', DEFAULT_JIKAN_DELAY_MS);
+  const catalogDelayMs = getNumberArg(
+    '--catalog-delay-ms',
+    getNumberArg('--jikan-delay-ms', DEFAULT_CATALOG_DELAY_MS)
+  );
   const limit = getNumberArg('--limit', 0);
-  const skipJikanFallback = process.argv.includes('--skip-jikan-fallback');
+  const skipCatalogFallback =
+    process.argv.includes('--skip-catalog-fallback') ||
+    process.argv.includes('--skip-jikan-fallback');
 
   console.log(`[${new Date().toISOString()}] Starting quarterly anime sync...`);
   console.log(
-    `Mode=${isDryRun ? 'dry-run' : 'write'}, batchSize=${batchSize}, aniListDelayMs=${aniListDelayMs}, jikanDelayMs=${jikanDelayMs}, jikanFallback=${skipJikanFallback ? 'off' : 'on'}${limit ? `, limit=${limit}` : ''}`
+    `Mode=${isDryRun ? 'dry-run' : 'write'}, batchSize=${batchSize}, aniListDelayMs=${aniListDelayMs}, catalogDelayMs=${catalogDelayMs}, catalogFallback=${skipCatalogFallback ? 'off' : 'on'}${limit ? `, limit=${limit}` : ''}`
   );
 
   const animeList = await getAllAnime();
@@ -259,7 +267,7 @@ async function main() {
   }
 
   const aniListMissingSet = new Set(allMissingMalIds);
-  const jikanFallbackCandidates = skipJikanFallback
+  const catalogFallbackCandidates = skipCatalogFallback
     ? []
     : scopedAnimeList.filter((anime) => {
         const currentAnime = changedAnimeMap.get(anime.mal_id) ?? anime;
@@ -267,35 +275,35 @@ async function main() {
           currentAnime.status === CURRENTLY_AIRING_STATUS || aniListMissingSet.has(anime.mal_id)
         );
       });
-  const jikanNotFoundMalIds: number[] = [];
+  const catalogNotFoundMalIds: number[] = [];
 
-  if (jikanFallbackCandidates.length > 0) {
+  if (catalogFallbackCandidates.length > 0) {
     console.log(
-      `\nStarting targeted Jikan fallback for ${jikanFallbackCandidates.length} anime (currently airing or AniList-missing)...`
+      `\nStarting targeted ${API_CONFIG.providerName} fallback for ${catalogFallbackCandidates.length} anime (currently airing or AniList-missing)...`
     );
 
-    for (const [index, candidate] of jikanFallbackCandidates.entries()) {
+    for (const [index, candidate] of catalogFallbackCandidates.entries()) {
       const currentAnime = changedAnimeMap.get(candidate.mal_id) ?? candidate;
-      let jikanUpdate: DirectStatusRecord | null = null;
+      let catalogUpdate: DirectStatusRecord | null = null;
       try {
-        jikanUpdate = await fetchJikanAnimeByMalId(
+        catalogUpdate = await fetchCatalogAnimeByMalId(
           candidate.mal_id,
           DEFAULT_MAX_RETRIES,
-          jikanDelayMs
+          catalogDelayMs
         );
       } catch (error) {
-        // Jikan fallback is best-effort: a transient gateway error (e.g. 504)
+        // The catalog fallback is best-effort: a transient provider error
         // for one candidate must not abort the entire quarterly sync. The
         // AniList pass already captured status changes; skip this candidate.
         console.warn(
-          `Jikan lookup for ${candidate.mal_id} threw unexpectedly: ${error instanceof Error ? error.message : error}. Skipping.`
+          `${API_CONFIG.providerName} lookup for ${candidate.mal_id} threw unexpectedly: ${error instanceof Error ? error.message : error}. Skipping.`
         );
       }
 
-      if (!jikanUpdate) {
-        jikanNotFoundMalIds.push(candidate.mal_id);
+      if (!catalogUpdate) {
+        catalogNotFoundMalIds.push(candidate.mal_id);
       } else {
-        const { changedAnime } = applyDirectStatusUpdates([currentAnime], [jikanUpdate]);
+        const { changedAnime } = applyDirectStatusUpdates([currentAnime], [catalogUpdate]);
         if (changedAnime.length > 0) {
           const nextAnime = changedAnime[0];
           const originalAnime = originalAnimeMap.get(nextAnime.mal_id);
@@ -308,14 +316,14 @@ async function main() {
       }
 
       const processed = index + 1;
-      if (processed % 25 === 0 || processed === jikanFallbackCandidates.length) {
+      if (processed % 25 === 0 || processed === catalogFallbackCandidates.length) {
         console.log(
-          `Jikan verified ${processed}/${jikanFallbackCandidates.length} fallback candidates. Changed=${changedAnimeMap.size}, jikanMissing=${jikanNotFoundMalIds.length}`
+          `${API_CONFIG.providerName} verified ${processed}/${catalogFallbackCandidates.length} fallback candidates. Changed=${changedAnimeMap.size}, providerMissing=${catalogNotFoundMalIds.length}`
         );
       }
 
-      if (processed < jikanFallbackCandidates.length) {
-        await delay(jikanDelayMs);
+      if (processed < catalogFallbackCandidates.length) {
+        await delay(catalogDelayMs);
       }
     }
   }
@@ -332,8 +340,10 @@ async function main() {
   console.log(`- Checked: ${scopedAnimeList.length}`);
   console.log(`- Changed: ${changedAnime.length}`);
   console.log(`- Missing on AniList: ${allMissingMalIds.length}`);
-  console.log(`- Checked with Jikan fallback: ${jikanFallbackCandidates.length}`);
-  console.log(`- Missing on Jikan fallback: ${jikanNotFoundMalIds.length}`);
+  console.log(
+    `- Checked with ${API_CONFIG.providerName} fallback: ${catalogFallbackCandidates.length}`
+  );
+  console.log(`- Missing on ${API_CONFIG.providerName} fallback: ${catalogNotFoundMalIds.length}`);
 
   if (finalChanges.length > 0) {
     console.log(`\nSample changes:`);

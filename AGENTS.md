@@ -8,7 +8,7 @@ production stability, keep changes scoped, verify work with repo-local checks,
 and record durable follow-up in this repository's GitHub Issues.
 
 ## Purpose
-Anime/manga discovery platform with multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList via Jikan API.
+Anime/manga discovery platform with multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList through Tenrai's Jikan-compatible API.
 
 ## Stack
 - Framework: Vite SPA + TanStack Router (React 19) + Cloudflare Worker API (Hono)
@@ -30,9 +30,9 @@ lib/                     # auth, api client, types, brand
 src/
   worker.ts              # Cloudflare Worker API + daily cron @ 3 AM UTC
   worker/mangaRoutes.ts  # Manga API routes
-  config.ts              # Enums, Jikan config, distribution ranges
+  config.ts              # Enums, catalog-provider config, distribution ranges
   filterEngine.ts        # Pure filter logic
-  dataProcessor.ts       # Jikan transforms, manga/anime helpers
+  dataProcessor.ts       # Provider-response transforms, manga/anime helpers
   statistics.ts          # Aggregation/analytics
   db/                    # D1 adapter: anime_data, manga_data, watchlists, users
   store/                 # In-memory cache (stale-while-revalidate)
@@ -70,8 +70,8 @@ or suppression baselines whenever the measured result improves.
 
 ## Architecture notes
 - **Backend**: Worker `mal-api` serves all API traffic; cron reloads anime + manga caches from D1 daily.
-- **Catalog quality gate** (anime + manga): Jikan rows must have `score`, `scored_by`, `members`, `favorites`, and `year`. Discover UI defaults to min popularity (100k anime / 50k manga members).
-- **Manga scope**: ~20.7k top/popular titles from Jikan `/top/manga` (current catalog: 20,656), not the full MAL catalog.
+- **Catalog quality gate** (anime + manga): provider rows must have `score`, `scored_by`, `members`, `favorites`, and `year`. Discover UI defaults to min popularity (100k anime / 50k manga members).
+- **Manga scope**: ~20.7k top/popular titles from Tenrai `/top/manga` (current catalog: 20,656), not the full MAL catalog.
 - **Daily sync**: `update-anime-data.yml` — anime seasons + manga top pages @ midnight UTC.
 - **Quarterly sync**: `quarterly-anime-sync.yml` (anime), `quarterly-manga-sync.yml` (manga full top-list).
 - **Watch statuses**: `Watching`, `Completed`, `Deferred`, `Avoiding`, `BRR`.

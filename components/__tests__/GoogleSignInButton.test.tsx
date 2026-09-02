@@ -34,10 +34,13 @@ describe('GoogleSignInButton', () => {
     expect(renderButton).toHaveBeenCalledWith(
       expect.any(HTMLElement),
       expect.objectContaining({
-        type: 'icon',
-        theme: 'filled_black',
-        shape: 'circle',
-        size: 'small',
+        type: 'standard',
+        theme: 'outline',
+        shape: 'rectangular',
+        size: 'medium',
+        text: 'signin_with',
+        logo_alignment: 'left',
+        width: 160,
       })
     );
   });

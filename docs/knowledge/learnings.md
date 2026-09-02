@@ -4,15 +4,15 @@ Short notes on non-standard techniques used in this repo, with code anchors.
 Code anchors use symbol/path references rather than exact line numbers
 because lines drift; grep the symbol to find the current location.
 
-## Jikan rate limiting with parallel delay
+## Catalog-provider rate limiting with parallel delay
 
 - **What:** Running the API delay concurrently with the fetch instead of
   blocking before it.
-- **Why here:** Jikan enforces rate limits; we still want max throughput
+- **Why here:** The catalog provider enforces rate limits; we still want max throughput
   without serializing the wait behind the request.
-- **Anchor:** `src/api.ts` — `await Promise.all([axios.get(url), delay(API_CONFIG.rateLimit)])`
+- **Anchor:** `src/api.ts` — `Promise.allSettled([fetch(url), delay(API_CONFIG.rateLimit)])`
   runs the 1s delay in parallel with the API call.
-- **Source:** https://docs.jikan.moe/
+- **Source:** https://api.tenrai.org/llms.txt
 
 ## MAL data quality gates
 

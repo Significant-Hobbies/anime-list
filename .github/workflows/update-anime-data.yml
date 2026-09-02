@@ -30,6 +30,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Update anime data
+        id: anime
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -40,7 +42,7 @@ jobs:
           update_status=${PIPESTATUS[0]}
           set -e
           if [ "$update_status" -ne 0 ]; then
-            if grep -q "Jikan returned no usable anime rows" "$RUNNER_TEMP/anime-update.log"; then
+            if grep -q "Tenrai returned no usable anime rows" "$RUNNER_TEMP/anime-update.log"; then
               catalog_json=$(curl --fail --silent --show-error --max-time 20 \
                 https://anime.significanthobbies.com/api/last-updated)
               anime_updated_at=$(jq -r '.anime // empty' <<< "$catalog_json")
@@ -51,10 +53,10 @@ jobs:
                 if (!Number.isFinite(ageHours) || ageHours > 24) process.exit(1);
                 console.log('Existing anime catalog age: ' + ageHours.toFixed(1) + 'h');
               "; then
-                echo "::warning::Jikan is unavailable after bounded retries; keeping the existing catalog because it was refreshed within the last 24 hours."
+                echo "::warning::Tenrai is unavailable after bounded retries; keeping the existing catalog because it was refreshed within the last 24 hours."
                 {
                   echo "### Anime catalog refresh"
-                  echo "- Jikan: unavailable after bounded retries"
+                  echo "- Tenrai: unavailable after bounded retries"
                   echo "- Existing catalog: fresh enough to serve (${anime_updated_at} UTC)"
                   echo "- Result: degraded success; no D1 write attempted"
                 } >> "$GITHUB_STEP_SUMMARY"
@@ -76,12 +78,13 @@ jobs:
           pnpm run db:update:manga:remote
           echo "✓ Manga data updated successfully"
 
-      - name: Notify on failure
-        if: failure()
+      - name: Fail when anime refresh is stale
+        if: always() && steps.anime.outcome == 'failure'
         run: |
           echo "::error::Catalog data update failed. Check workflow logs."
+          exit 1
 
       - name: Notify on manga partial failure
-        if: steps.manga.outcome == 'failure'
+        if: always() && steps.manga.outcome == 'failure'
         run: |
-          echo "::warning::Manga data update failed (likely transient Jikan API issue). Anime data may have succeeded; check workflow logs."
+          echo "::warning::Manga data update failed (likely transient catalog API issue). Anime data may have succeeded; check workflow logs."

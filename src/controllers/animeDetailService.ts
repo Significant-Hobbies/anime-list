@@ -9,23 +9,23 @@ import {
 import type { AnimeRelation, AnimeRecommendation } from '../types/animeDetail';
 import { logger } from '../utils/logger';
 
-// Jikan supplemental data (relations + recommendations) is essentially static
+// Supplemental data (relations + recommendations) is essentially static
 // for a given anime — relations almost never change post-airing. A 7d TTL
 // turns cache misses from a per-day event into a per-week one while still
 // catching the occasional MAL edit.
 const DETAIL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const JIKAN_TIMEOUT_MS = 10_000;
+const CATALOG_API_TIMEOUT_MS = 10_000;
 
-type JikanImageSet = {
+type CatalogImageSet = {
   webp?: { image_url?: string | null };
   jpg?: { image_url?: string | null };
 };
 
-interface JikanListResponse<T> {
+interface CatalogListResponse<T> {
   data: T[];
 }
 
-interface JikanRelationItem {
+interface CatalogRelationItem {
   relation?: string;
   entry?: Array<{
     mal_id?: number;
@@ -35,12 +35,12 @@ interface JikanRelationItem {
   }>;
 }
 
-interface JikanRecommendationItem {
+interface CatalogRecommendationItem {
   entry?: {
     mal_id?: number;
     url?: string;
     title?: string;
-    images?: JikanImageSet;
+    images?: CatalogImageSet;
   };
   url?: string;
   votes?: number;
@@ -53,16 +53,16 @@ const isFresh = (fetchedAt?: string): boolean => {
   return Date.now() - parsed < DETAIL_CACHE_TTL_MS;
 };
 
-const toImageUrl = (images?: JikanImageSet): string | undefined =>
+const toImageUrl = (images?: CatalogImageSet): string | undefined =>
   images?.webp?.image_url || images?.jpg?.image_url || undefined;
 
-const normalizeRelations = (items: JikanRelationItem[]): AnimeRelation[] =>
+const normalizeRelations = (items: CatalogRelationItem[]): AnimeRelation[] =>
   items
     .map((item) => ({
       relation: item.relation?.trim() || 'Other',
       entries: (item.entry || [])
         .filter(
-          (entry): entry is Required<NonNullable<JikanRelationItem['entry']>[number]> =>
+          (entry): entry is Required<NonNullable<CatalogRelationItem['entry']>[number]> =>
             typeof entry.mal_id === 'number' &&
             typeof entry.type === 'string' &&
             typeof entry.name === 'string' &&
@@ -77,13 +77,13 @@ const normalizeRelations = (items: JikanRelationItem[]): AnimeRelation[] =>
     }))
     .filter((item) => item.entries.length > 0);
 
-const normalizeRecommendations = (items: JikanRecommendationItem[]): AnimeRecommendation[] =>
+const normalizeRecommendations = (items: CatalogRecommendationItem[]): AnimeRecommendation[] =>
   items
     .filter(
       (
         item
-      ): item is JikanRecommendationItem & {
-        entry: NonNullable<JikanRecommendationItem['entry']>;
+      ): item is CatalogRecommendationItem & {
+        entry: NonNullable<CatalogRecommendationItem['entry']>;
       } =>
         !!item.entry &&
         typeof item.entry.mal_id === 'number' &&
@@ -101,9 +101,9 @@ const normalizeRecommendations = (items: JikanRecommendationItem[]): AnimeRecomm
       votes: item.votes,
     }));
 
-async function fetchJikanCollection<T>(path: string): Promise<T[]> {
-  const response = await axios.get<JikanListResponse<T>>(`${API_CONFIG.baseUrl}${path}`, {
-    timeout: JIKAN_TIMEOUT_MS,
+async function fetchCatalogCollection<T>(path: string): Promise<T[]> {
+  const response = await axios.get<CatalogListResponse<T>>(`${API_CONFIG.baseUrl}${path}`, {
+    timeout: CATALOG_API_TIMEOUT_MS,
   });
   return Array.isArray(response.data?.data) ? response.data.data : [];
 }
@@ -116,14 +116,14 @@ async function loadRelations(malId: number): Promise<AnimeRelation[]> {
 
   try {
     const remote = normalizeRelations(
-      await fetchJikanCollection<JikanRelationItem>(`/anime/${malId}/relations`)
+      await fetchCatalogCollection<CatalogRelationItem>(`/anime/${malId}/relations`)
     );
     await upsertAnimeRelationsCache(malId, remote);
     return remote;
   } catch (error) {
     logger.warn(
       { err: error, malId },
-      'Failed to refresh anime relations from Jikan; falling back to cache'
+      `Failed to refresh anime relations from ${API_CONFIG.providerName}; falling back to cache`
     );
     return cached?.data || [];
   }
@@ -137,14 +137,14 @@ async function loadRecommendations(malId: number): Promise<AnimeRecommendation[]
 
   try {
     const remote = normalizeRecommendations(
-      await fetchJikanCollection<JikanRecommendationItem>(`/anime/${malId}/recommendations`)
+      await fetchCatalogCollection<CatalogRecommendationItem>(`/anime/${malId}/recommendations`)
     );
     await upsertAnimeRecommendationsCache(malId, remote);
     return remote;
   } catch (error) {
     logger.warn(
       { err: error, malId },
-      'Failed to refresh anime recommendations from Jikan; falling back to cache'
+      `Failed to refresh anime recommendations from ${API_CONFIG.providerName}; falling back to cache`
     );
     return cached?.data || [];
   }

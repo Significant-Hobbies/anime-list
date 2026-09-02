@@ -11,7 +11,7 @@ const OPENAPI_SPEC = {
     title: 'Anime List by Significant Hobbies — public API',
     version: '1.0.0',
     description:
-      'Anime and manga discovery platform with multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList via Jikan API. The public web API exposes read-only agent surfaces.',
+      'Anime and manga discovery platform with multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList through the Tenrai API. The public web API exposes read-only agent surfaces.',
     contact: { name: 'Anime List', url: SITE_URL },
   },
   servers: [{ url: SITE_URL }],

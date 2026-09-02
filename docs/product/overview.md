@@ -5,8 +5,8 @@
 **Anime List by Significant Hobbies** is a production anime/manga discovery app. It gives
 multi-field filtering, shareable URLs, personal watchlists (Google OAuth),
 stats, schedule tracking, and a signed-in seasonal discovery queue over a
-catalog of ~14.8k anime + ~20.7k manga titles synced daily from MyAnimeList via
-the Jikan API.
+catalog of ~14.8k anime + ~20.7k manga titles synced daily from MyAnimeList
+through the Tenrai API.
 
 - **Live site:** https://anime.significanthobbies.com
 - **API worker:** https://mal-api.sarthakagrawal927.workers.dev
@@ -36,7 +36,7 @@ quiz is measured before expanding it. See
 - **Cloudflare D1** — one `DB` binding for catalog tables + per-user watchlists,
   schedules, and access tokens. Retired alert and collection tables remain
   preserved but have no product or API surface.
-- **Jikan API** — daily GitHub Action sync + quarterly full refresh.
+- **Tenrai API** — daily GitHub Action sync + quarterly full refresh.
 - **MAL CDN** — poster images (recurring operational risk; see
   [`../operations/runbooks/mal-cdn-403.md`](../operations/runbooks/mal-cdn-403.md)).
 - **PostHog** — client analytics.
@@ -52,7 +52,7 @@ Local env shape is defined in `.env.example`.
   `scored_by`, `members`, `favorites`, `year`).
 - Discover UI defaults to a minimum popularity floor (100k anime / 50k manga
   members) to surface quality titles.
-- Manga scope is the Jikan `/top/manga` top ~20.7k titles, **not** the full MAL
+- Manga scope is the Tenrai `/top/manga` top ~20.7k titles, **not** the full MAL
   catalog.
 - Smart ranking balances log-scale popularity and MAL score so hidden gems
   get a chance.

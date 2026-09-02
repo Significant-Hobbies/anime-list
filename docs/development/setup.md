@@ -44,7 +44,7 @@ Authoritative list lives in `package.json`. Common commands:
 | `pnpm db:migrate:local` | Apply deterministic migrations to local D1 |
 | `pnpm db:rehearse` | Run isolated catalog, watchlist, collection, and token journeys |
 | `pnpm db:seed` / `db:seed:manga` | Seed local D1 from JSON |
-| `pnpm db:update` / `db:update:manga` | Refresh catalog from Jikan |
+| `pnpm db:update` / `db:update:manga` | Refresh catalog from Tenrai |
 | `pnpm db:update:manga:full` | Full top-list manga refresh (~20.7k) |
 | `pnpm db:quarterly-sync` | Quarterly anime status/score sync |
 | `pnpm deploy` | Clean-`main` guard + build + `wrangler pages deploy` |

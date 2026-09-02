@@ -32,6 +32,7 @@ declare global {
               shape: 'rectangular' | 'pill' | 'circle' | 'square';
               text?: 'signin_with';
               logo_alignment?: 'left' | 'center';
+              width?: number;
             }
           ) => void;
         };
@@ -82,10 +83,13 @@ export default function GoogleSignInButton() {
       const identityApi = window.google.accounts.id;
       initializeGoogleIdentity(identityApi, clientId);
       identityApi.renderButton(buttonRef.current, {
-        type: 'icon',
-        theme: 'filled_black',
-        size: 'small',
-        shape: 'circle',
+        type: 'standard',
+        theme: 'outline',
+        size: 'medium',
+        shape: 'rectangular',
+        text: 'signin_with',
+        logo_alignment: 'left',
+        width: 160,
       });
       setReady(true);
     };
@@ -115,14 +119,14 @@ export default function GoogleSignInButton() {
   }, [login]);
 
   return (
-    <div className="relative h-5 w-5" aria-busy={!ready || undefined}>
+    <div className="relative h-8 w-40" aria-busy={!ready || undefined}>
       {!ready && (
         <>
-          <Skeleton className="absolute inset-0 rounded-full" />
+          <Skeleton className="absolute inset-0 rounded-sm" />
           <LoadingStatus label="Loading Google sign-in" />
         </>
       )}
-      <div ref={buttonRef} className="relative h-5 w-5 overflow-hidden rounded-full" />
+      <div ref={buttonRef} className="relative h-8 w-40 overflow-hidden rounded-sm" />
     </div>
   );
 }

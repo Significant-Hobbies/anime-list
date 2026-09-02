@@ -110,7 +110,8 @@ export enum Theme {
 }
 
 export const API_CONFIG = {
-  baseUrl: 'https://api.jikan.moe/v4',
+  providerName: 'Tenrai',
+  baseUrl: 'https://api.tenrai.org/v1',
   endpoints: {
     topAnime: '/top/anime',
     topManga: '/top/manga',
@@ -118,7 +119,7 @@ export const API_CONFIG = {
     seasons: '/seasons',
     currentSeason: '/seasons/now',
   },
-  rateLimit: 1000, // 1 call per second (safe within 3/sec, 60/min limits)
+  rateLimit: 1000, // 1 call per second (safe within Tenrai's 4/sec, 120/min public limits)
   totalPages: 10000,
   /** Top-manga pages fetched on daily refresh (~20 titles/page). */
   mangaDailyUpdatePages: 100,
