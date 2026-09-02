@@ -242,6 +242,7 @@ async function refreshTopCatalog<TRaw, TItem extends { mal_id: number }>({
   const failedPages: string[] = [];
   const seenMalIds = new Set<number>();
   const FLUSH_EVERY_PAGES = 25;
+  const FETCH_CONCURRENCY = 4;
   const MAX_STALE_PAGES = 5;
 
   console.log(`Fetching top ${kind} (up to ${maxPages} pages)...`);
@@ -255,43 +256,65 @@ async function refreshTopCatalog<TRaw, TItem extends { mal_id: number }>({
     console.log(`  saved ${totalSaved} titles to catalog database`);
   };
 
-  for (let page = 1; page <= maxPages; page++) {
-    const url = `${API_CONFIG.baseUrl}${endpoint}?page=${page}&limit=${pageSize}`;
-    const data = await fetchFromApi<ApiResponse<TRaw[]>>(url);
+  let shouldStop = false;
+  for (let batchStart = 1; batchStart <= maxPages && !shouldStop; batchStart += FETCH_CONCURRENCY) {
+    const pages = Array.from(
+      { length: Math.min(FETCH_CONCURRENCY, maxPages - batchStart + 1) },
+      (_, index) => batchStart + index
+    );
+    const requests: Array<{ page: number; result: Promise<ApiResponse<TRaw[]> | null> }> = [];
 
-    if (!data?.data || !Array.isArray(data.data)) {
-      console.error(`Invalid ${kind} data on page ${page} after retries`);
-      failedPages.push(`page ${page}`);
-      break;
+    for (const page of pages) {
+      const url = `${API_CONFIG.baseUrl}${endpoint}?page=${page}&limit=${pageSize}`;
+      requests.push({ page, result: fetchFromApi<ApiResponse<TRaw[]>>(url) });
+      if (page !== pages.at(-1)) await delay(API_CONFIG.rateLimit);
     }
 
-    let newThisPage = 0;
-    for (const rawItem of data.data) {
-      const item = transform(rawItem);
-      if (isComplete(item) && !seenMalIds.has(item.mal_id)) {
-        seenMalIds.add(item.mal_id);
-        pending.push(item);
-        newThisPage++;
-      }
-    }
-    uniqueCount += newThisPage;
-
-    if (newThisPage === 0) {
-      stalePages++;
-      if (stalePages >= MAX_STALE_PAGES) {
-        console.log(`  stopping after ${MAX_STALE_PAGES} pages with no new titles (page ${page})`);
+    const results = await Promise.all(
+      requests.map(async ({ page, result }) => ({ page, data: await result }))
+    );
+    for (const { page, data } of results) {
+      if (!data?.data || !Array.isArray(data.data)) {
+        console.error(`Invalid ${kind} data on page ${page} after retries`);
+        failedPages.push(`page ${page}`);
+        shouldStop = true;
         break;
       }
-    } else {
-      stalePages = 0;
-    }
 
-    if (page % FLUSH_EVERY_PAGES === 0) {
-      console.log(`  page ${page}/${maxPages} — ${uniqueCount} unique titles fetched`);
-      await flushPending();
-    }
+      let newThisPage = 0;
+      for (const rawItem of data.data) {
+        const item = transform(rawItem);
+        if (isComplete(item) && !seenMalIds.has(item.mal_id)) {
+          seenMalIds.add(item.mal_id);
+          pending.push(item);
+          newThisPage++;
+        }
+      }
+      uniqueCount += newThisPage;
 
-    if (!data.pagination?.has_next_page) break;
+      if (newThisPage === 0) {
+        stalePages++;
+        if (stalePages >= MAX_STALE_PAGES) {
+          console.log(
+            `  stopping after ${MAX_STALE_PAGES} pages with no new titles (page ${page})`
+          );
+          shouldStop = true;
+          break;
+        }
+      } else {
+        stalePages = 0;
+      }
+
+      if (page % FLUSH_EVERY_PAGES === 0) {
+        console.log(`  page ${page}/${maxPages} — ${uniqueCount} unique titles fetched`);
+        await flushPending();
+      }
+
+      if (!data.pagination?.has_next_page) {
+        shouldStop = true;
+        break;
+      }
+    }
   }
 
   await flushPending();
