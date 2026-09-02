@@ -17,6 +17,10 @@ on:
         default: "0"
         type: string
 
+concurrency:
+  group: anime-list-catalog-d1-writes
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
