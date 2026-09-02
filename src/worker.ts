@@ -129,7 +129,7 @@ const STATS_CACHE_TTL_SECONDS = 300;
 // the cron sync. Edge-caching it keeps the only previously-uncached public read
 // endpoint off two full-table MAX(updated_at) scans on every request.
 const LAST_UPDATED_CACHE_TTL_SECONDS = 300;
-const LAST_UPDATED_CACHE_URL = 'https://mal-cache.local/api/last-updated?v=1';
+const LAST_UPDATED_CACHE_URL = 'https://mal-cache.local/api/last-updated?v=2';
 
 // ── JWT helpers (using jose instead of jsonwebtoken) ───────────────────
 

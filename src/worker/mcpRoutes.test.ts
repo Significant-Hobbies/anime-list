@@ -146,6 +146,7 @@ describe('handleMcpRequest', () => {
       mal_id: 1,
       canonicalUrl: 'https://anime.significanthobbies.com/anime/1',
     });
+    expect(body.result.content[0].text).toContain('Cowboy Bebop');
     expect(JSON.stringify(body)).not.toContain('upstream-secret');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -263,6 +264,68 @@ describe('handleMcpRequest', () => {
     const body = await res.json();
     expect(body.result.structuredContent.truncated).toBe(true);
     expect(body.result.structuredContent.data.nextOffset).toBe(1);
+  });
+
+  it('exposes model-readable continuation metadata for catalog searches', async () => {
+    const filteredList = Array.from({ length: 50 }, (_, index) => ({
+      id: index + 1,
+      name: `Anime ${index + 1}`,
+    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json({ totalFiltered: 123, filteredList }))
+    );
+
+    const res = await mcpCall('tools/call', {
+      name: 'search_anime',
+      arguments: { filters: [], pagesize: 50, offset: 0, airing: 'any' },
+    });
+    const body = await res.json();
+    const result = body.result;
+
+    expect(result.structuredContent.truncated).toBe(true);
+    expect(result.structuredContent.data.pageInfo).toEqual({
+      limit: 50,
+      offset: 0,
+      returned: 50,
+      total: 123,
+      page: 1,
+      totalPages: 3,
+      hasMore: true,
+      nextOffset: 50,
+    });
+    const textPayload = JSON.parse(result.content[0].text);
+    expect(textPayload.data.filteredList).toHaveLength(50);
+    expect(textPayload.data.pageInfo.nextOffset).toBe(50);
+  });
+
+  it('marks the final manga catalog page as complete', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          totalFiltered: 123,
+          filteredList: Array.from({ length: 23 }, (_, index) => ({
+            id: 101 + index,
+            name: `Manga ${101 + index}`,
+          })),
+        })
+      )
+    );
+
+    const res = await mcpCall('tools/call', {
+      name: 'search_manga',
+      arguments: { filters: [], pagesize: 50, offset: 100 },
+    });
+    const body = await res.json();
+
+    expect(body.result.structuredContent.truncated).toBe(false);
+    expect(body.result.structuredContent.data.pageInfo).toMatchObject({
+      returned: 23,
+      total: 123,
+      hasMore: false,
+      nextOffset: null,
+    });
   });
 
   it('rejects oversized catalog inputs before any upstream request', async () => {

@@ -35,12 +35,12 @@ describe('GoogleSignInButton', () => {
       expect.any(HTMLElement),
       expect.objectContaining({
         type: 'standard',
-        theme: 'outline',
-        shape: 'rectangular',
+        theme: 'outline_dark',
+        shape: 'pill',
         size: 'medium',
-        text: 'signin_with',
+        text: 'continue_with',
         logo_alignment: 'left',
-        width: 160,
+        width: 172,
       })
     );
   });

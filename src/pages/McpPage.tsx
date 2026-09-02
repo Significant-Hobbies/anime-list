@@ -15,9 +15,12 @@ const MCP_ENDPOINT = `${API_URL}/api/mcp`;
 const PUBLIC_TOOLS = [
   {
     name: 'search_anime',
-    desc: 'Filter the anime catalog (filters, sortBy, airing, pagesize, offset).',
+    desc: 'Page through the anime catalog with filters, totals, and an explicit next offset.',
   },
-  { name: 'search_manga', desc: 'Filter the manga catalog (filters, sortBy, pagesize, offset).' },
+  {
+    name: 'search_manga',
+    desc: 'Page through the manga catalog with filters, totals, and an explicit next offset.',
+  },
   { name: 'get_anime_detail', desc: 'Full detail for one anime by MAL id.' },
   { name: 'get_manga_detail', desc: 'Full detail for one manga by MAL id.' },
   { name: 'get_anime_stats', desc: 'Aggregate stats over the anime catalog.' },
@@ -239,9 +242,10 @@ export default function McpPage() {
       <section className="mt-6">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">MCP Server</h1>
         <p className="mt-4 max-w-prose text-base leading-7 text-muted-foreground">
-          {SITE_NAME} exposes an MCP (Model Context Protocol) server so AI tools like Claude Desktop
-          or Cursor can search the catalog and read your watchlist. Public tools (search, detail,
-          stats) work without auth. Watchlist tools require a Personal Access Token.
+          {SITE_NAME} exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT,
+          Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search
+          results include explicit continuation metadata so clients can retrieve every matching
+          title. Public tools work without auth; watchlist tools require a Personal Access Token.
         </p>
         <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <span className="text-muted-foreground">Endpoint: </span>

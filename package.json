@@ -31,6 +31,8 @@
     "db:seed:manga": "pnpm db:migrate:local && tsx src/scripts/seedMangaData.ts",
     "db:update": "tsx src/scripts/updateAnimeData.ts",
     "db:update:remote": "D1_REMOTE_APPROVED=true tsx src/scripts/updateAnimeData.ts --remote",
+    "db:update:anime:full": "tsx src/scripts/updateAnimeData.ts --full",
+    "db:update:anime:full:remote": "D1_REMOTE_APPROVED=true tsx src/scripts/updateAnimeData.ts --full --remote",
     "db:update:manga": "tsx src/scripts/updateMangaData.ts",
     "db:update:manga:remote": "D1_REMOTE_APPROVED=true tsx src/scripts/updateMangaData.ts --remote",
     "db:update:manga:full": "tsx src/scripts/updateMangaData.ts -- --full",

@@ -55,6 +55,9 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then
             D1_REMOTE_APPROVED=true pnpm run db:quarterly-sync -- --remote --dry-run $LIMIT_ARG
           else
+            if [ -z "$LIMIT" ] || [ "$LIMIT" = "0" ]; then
+              pnpm run db:update:anime:full:remote
+            fi
             D1_REMOTE_APPROVED=true pnpm run db:quarterly-sync -- --remote $LIMIT_ARG
           fi
           echo "✓ Quarterly anime sync finished"

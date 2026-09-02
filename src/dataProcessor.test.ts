@@ -34,6 +34,10 @@ describe('catalog provider response contract', () => {
       scored_by: 1_074_094,
       members: 2_083_215,
       favorites: 90_704,
+      aired: {
+        from: '1998-04-03T00:00:00+00:00',
+        to: '1999-04-24T00:00:00+00:00',
+      },
       year: 1998,
       image: 'https://cdn.myanimelist.net/cowboy-bebop.webp',
       genres: { Action: 1 },
@@ -71,6 +75,10 @@ describe('catalog provider response contract', () => {
       scored_by: 404_332,
       members: 808_113,
       favorites: 139_315,
+      published: {
+        from: '1989-08-25T00:00:00+00:00',
+        to: '',
+      },
       year: 1989,
       image: 'https://cdn.myanimelist.net/berserk.jpg',
       genres: { Action: 1, Fantasy: 1 },

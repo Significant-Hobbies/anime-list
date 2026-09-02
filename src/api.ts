@@ -1,11 +1,10 @@
 import { delay } from './utils/file';
 import { API_CONFIG } from './config';
 import type { BaseAnimeItem, AnimeItem } from './types/anime';
-import type { BaseMangaItem } from './types/manga';
-import { upsertAnimeBatch } from './db/animeData';
+import type { BaseMangaItem, MangaItem } from './types/manga';
+import { upsertAnimeBatch, upsertAnimeBatchNoSummary } from './db/animeData';
 import { upsertMangaBatch } from './db/mangaData';
 import { transformRawAnime, transformRawManga } from './dataProcessor';
-import type { MangaItem } from './types/manga';
 
 type RawAnimeItem = BaseAnimeItem & {
   genres?: Array<{ name: string }>;
@@ -216,12 +215,27 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
   console.log(`\n✓ Season update completed in ${(performance.now() - p0) / 1000}s`);
 };
 
-/** Refresh popular manga from the catalog provider's top list into D1. */
-export const updateLatestTopMangaData = async (
-  maxPages: number = API_CONFIG.mangaDailyUpdatePages
-): Promise<void> => {
+interface TopCatalogRefreshOptions<TRaw, TItem extends { mal_id: number }> {
+  kind: 'anime' | 'manga';
+  maxPages: number;
+  endpoint: string;
+  pageSize: number;
+  transform: (raw: TRaw) => TItem;
+  isComplete: (item: TItem) => boolean;
+  upsert: (items: TItem[]) => Promise<unknown>;
+}
+
+async function refreshTopCatalog<TRaw, TItem extends { mal_id: number }>({
+  kind,
+  maxPages,
+  endpoint,
+  pageSize,
+  transform,
+  isComplete,
+  upsert,
+}: TopCatalogRefreshOptions<TRaw, TItem>): Promise<void> {
   const p0 = performance.now();
-  let pending: MangaItem[] = [];
+  let pending: TItem[] = [];
   let totalSaved = 0;
   let uniqueCount = 0;
   let stalePages = 0;
@@ -230,40 +244,33 @@ export const updateLatestTopMangaData = async (
   const FLUSH_EVERY_PAGES = 25;
   const MAX_STALE_PAGES = 5;
 
-  console.log(`Fetching top manga (up to ${maxPages} pages)...`);
+  console.log(`Fetching top ${kind} (up to ${maxPages} pages)...`);
 
   const flushPending = async (): Promise<void> => {
     if (pending.length === 0) return;
     const batch = pending;
     pending = [];
-    await upsertMangaBatch(batch);
+    await upsert(batch);
     totalSaved += batch.length;
     console.log(`  saved ${totalSaved} titles to catalog database`);
   };
 
   for (let page = 1; page <= maxPages; page++) {
-    const url = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.topManga}?page=${page}&limit=20`;
-    const data = await fetchFromApi<ApiResponse<RawMangaItem[]>>(url);
+    const url = `${API_CONFIG.baseUrl}${endpoint}?page=${page}&limit=${pageSize}`;
+    const data = await fetchFromApi<ApiResponse<TRaw[]>>(url);
 
     if (!data?.data || !Array.isArray(data.data)) {
-      console.error(`Invalid manga data on page ${page} after retries`);
+      console.error(`Invalid ${kind} data on page ${page} after retries`);
       failedPages.push(`page ${page}`);
       break;
     }
 
     let newThisPage = 0;
-    for (const rawManga of data.data) {
-      const manga = transformRawManga(rawManga);
-      if (
-        manga.score &&
-        manga.scored_by &&
-        manga.members &&
-        manga.favorites &&
-        manga.year &&
-        !seenMalIds.has(manga.mal_id)
-      ) {
-        seenMalIds.add(manga.mal_id);
-        pending.push(manga);
+    for (const rawItem of data.data) {
+      const item = transform(rawItem);
+      if (isComplete(item) && !seenMalIds.has(item.mal_id)) {
+        seenMalIds.add(item.mal_id);
+        pending.push(item);
         newThisPage++;
       }
     }
@@ -289,11 +296,38 @@ export const updateLatestTopMangaData = async (
 
   await flushPending();
 
-  assertCatalogRowsFetched('manga', totalSaved);
-  assertCatalogRefreshComplete('manga', failedPages);
-  console.log(`Saved ${totalSaved} manga total.`);
-
+  assertCatalogRowsFetched(kind, totalSaved);
+  assertCatalogRefreshComplete(kind, failedPages);
   console.log(
-    `\n✓ Manga update completed in ${((performance.now() - p0) / 1000).toFixed(1)}s (${uniqueCount} unique titles)`
+    `\n✓ Full ${kind} update completed in ${((performance.now() - p0) / 1000).toFixed(1)}s (${uniqueCount} unique titles)`
   );
-};
+}
+
+/** Refresh the full quality-gated anime catalog from the provider's top list. */
+export const updateLatestTopAnimeData = async (
+  maxPages: number = API_CONFIG.totalPages
+): Promise<void> =>
+  refreshTopCatalog<RawAnimeItem, AnimeItem>({
+    kind: 'anime',
+    maxPages,
+    endpoint: API_CONFIG.endpoints.topAnime,
+    pageSize: 25,
+    transform: transformRawAnime,
+    isComplete: isCompleteAnime,
+    upsert: upsertAnimeBatchNoSummary,
+  });
+
+/** Refresh popular manga from the catalog provider's top list into D1. */
+export const updateLatestTopMangaData = async (
+  maxPages: number = API_CONFIG.mangaDailyUpdatePages
+): Promise<void> =>
+  refreshTopCatalog<RawMangaItem, MangaItem>({
+    kind: 'manga',
+    maxPages,
+    endpoint: API_CONFIG.endpoints.topManga,
+    pageSize: 20,
+    transform: transformRawManga,
+    isComplete: (manga) =>
+      Boolean(manga.score && manga.scored_by && manga.members && manga.favorites && manga.year),
+    upsert: upsertMangaBatch,
+  });

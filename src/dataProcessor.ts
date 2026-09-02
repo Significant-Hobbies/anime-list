@@ -38,6 +38,12 @@ export const transformRawAnime = (rawAnime: RawAnimeData[0]): AnimeItem => {
     members: rawAnime.members,
     favorites: rawAnime.favorites,
     synopsis: rawAnime.synopsis,
+    aired: rawAnime.aired
+      ? {
+          from: rawAnime.aired.from || '',
+          to: rawAnime.aired.to || '',
+        }
+      : undefined,
     year: rawAnime.year || Number(rawAnime.aired?.from?.slice(0, 4)),
     season: rawAnime.season,
     status: rawAnime.status,
@@ -65,6 +71,12 @@ export const transformRawManga = (rawManga: RawMangaData[0]): MangaItem => {
     members: rawManga.members,
     favorites: rawManga.favorites,
     synopsis: rawManga.synopsis,
+    published: rawManga.published
+      ? {
+          from: rawManga.published.from || '',
+          to: rawManga.published.to || '',
+        }
+      : undefined,
     year: rawManga.year || Number(rawManga.published?.from?.slice(0, 4)),
     status: rawManga.status,
     image: extractImageUrl(rawManga.images),

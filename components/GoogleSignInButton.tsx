@@ -27,10 +27,10 @@ declare global {
             parent: HTMLElement,
             options: {
               type: 'standard' | 'icon';
-              theme: 'outline' | 'filled_blue' | 'filled_black';
+              theme: 'outline' | 'outline_dark' | 'filled_blue' | 'filled_black';
               size: 'small' | 'medium';
               shape: 'rectangular' | 'pill' | 'circle' | 'square';
-              text?: 'signin_with';
+              text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
               logo_alignment?: 'left' | 'center';
               width?: number;
             }
@@ -84,12 +84,12 @@ export default function GoogleSignInButton() {
       initializeGoogleIdentity(identityApi, clientId);
       identityApi.renderButton(buttonRef.current, {
         type: 'standard',
-        theme: 'outline',
+        theme: 'outline_dark',
         size: 'medium',
-        shape: 'rectangular',
-        text: 'signin_with',
+        shape: 'pill',
+        text: 'continue_with',
         logo_alignment: 'left',
-        width: 160,
+        width: 172,
       });
       setReady(true);
     };
@@ -119,14 +119,14 @@ export default function GoogleSignInButton() {
   }, [login]);
 
   return (
-    <div className="relative h-8 w-40" aria-busy={!ready || undefined}>
+    <div className="relative h-8 w-[172px]" aria-busy={!ready || undefined}>
       {!ready && (
         <>
           <Skeleton className="absolute inset-0 rounded-sm" />
           <LoadingStatus label="Loading Google sign-in" />
         </>
       )}
-      <div ref={buttonRef} className="relative h-8 w-40 overflow-hidden rounded-sm" />
+      <div ref={buttonRef} className="relative h-8 w-[172px] overflow-hidden rounded-full" />
     </div>
   );
 }

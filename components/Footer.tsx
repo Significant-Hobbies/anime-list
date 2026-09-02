@@ -37,46 +37,48 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="max-w-7xl mx-auto px-4 sm:px-6 py-8 mt-8 border-t border-border">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex flex-col items-start gap-0.5 text-foreground">
-            <span className="font-medium leading-none">{PRODUCT_NAME}</span>
-            <span className="text-[9px] leading-none text-muted-foreground">
-              by {PUBLISHER_NAME}
+    <footer className="mt-4 w-full border-t border-border">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex flex-col items-start gap-0.5 text-foreground">
+              <span className="font-medium leading-none">{PRODUCT_NAME}</span>
+              <span className="text-[9px] leading-none text-muted-foreground">
+                by {PUBLISHER_NAME}
+              </span>
             </span>
-          </span>
-          {lastUpdated && (
-            <>
-              <span className="text-border">·</span>
-              <span>Updated {timeAgo(lastUpdated)}</span>
-            </>
-          )}
+            {lastUpdated && (
+              <>
+                <span className="text-border">·</span>
+                <span>Updated {timeAgo(lastUpdated)}</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            <Link to="/mcp" className="hover:text-foreground transition-colors">
+              MCP
+            </Link>
+            <Link to="/catalog-updates" className="hover:text-foreground transition-colors">
+              Catalog updates
+            </Link>
+            <a
+              href="https://github.com/Significant-Hobbies/anime-list/issues"
+              className="hover:text-foreground transition-colors"
+            >
+              Roadmap
+            </a>
+            <a
+              href="https://github.com/Significant-Hobbies/anime-list"
+              className="hover:text-foreground transition-colors"
+            >
+              Source
+            </a>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Link to="/mcp" className="hover:text-foreground transition-colors">
-            MCP
-          </Link>
-          <Link to="/catalog-updates" className="hover:text-foreground transition-colors">
-            Catalog updates
-          </Link>
-          <a
-            href="https://github.com/Significant-Hobbies/anime-list/issues"
-            className="hover:text-foreground transition-colors"
-          >
-            Roadmap
-          </a>
-          <a
-            href="https://github.com/Significant-Hobbies/anime-list"
-            className="hover:text-foreground transition-colors"
-          >
-            Source
-          </a>
-        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          35,000+ titles. One search bar. No sign-up required.
+        </p>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        35,000+ titles. One search bar. No sign-up required.
-      </p>
     </footer>
   );
 }

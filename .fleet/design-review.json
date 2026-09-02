@@ -2,33 +2,58 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "anime-list",
-  "target": "Responsive navigation and startup performance",
+  "target": "Application shell, footer loading layout, and Google sign-in control",
+  "surfaceMode": "operate",
   "mode": "preserve",
   "register": "product",
   "context": {
     "product": "PROJECT_STATUS.md",
-    "design": "README.md"
+    "design": "components/Footer.tsx"
   },
   "direction": {
     "references": [],
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": "artifacts/design/before.png"
+    "before": "artifacts/design/before.png",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "existing-project-system",
+      "sources": [],
+      "runtime": "existing",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": ""
+      }
+    },
+    "contract": {
+      "purpose": "Keep discovery and planning usable while routes load or contain little content.",
+      "purposeSource": "PROJECT_STATUS.md",
+      "canonicalPurpose": "Anime List helps anime and manga fans find suitable titles and plan what to watch by combining a quality-gated MAL catalog with multi-field filters, schedules, and personal watchlists.",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Anime and manga fans scanning the catalog, schedule, and personal planning surfaces.",
+      "job": "Move through catalog and schedule states without the footer fragmenting the shell, then recognize the optional account action without visual noise.",
+      "thesis": "Preserve the dark product system with a full-width footer boundary, tighter vertical rhythm, and a dark Google-auth treatment integrated into the header.",
+      "system": "Existing Tailwind tokens, four-pixel spacing scale, max-w-7xl content alignment, and responsive wrapping.",
+      "signature": "The compact two-line Anime List and Significant Hobbies lockup paired with live catalog recency.",
+      "risk": "The footer sits next to the studio band and the auth control retains third-party branding; compact spacing and Google's dark outlined pill keep both subordinate to the product."
+    }
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/codevetter-navigation/after-390.png"
+        "path": "artifacts/design/after-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/codevetter-navigation/after-768.png"
+        "path": "artifacts/design/after-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/codevetter-navigation/after-1440.png"
+        "path": "artifacts/design/after-1440.png"
       }
     ],
     "projectCheck": {
@@ -36,7 +61,7 @@
       "status": "pass"
     },
     "critique": {
-      "score": 32,
+      "score": 36,
       "maximum": 40
     },
     "audit": {
@@ -49,17 +74,33 @@
     },
     "detector": {
       "posture": "advisory",
-      "findings": [
-        "The deterministic detector reported zero findings in components/Navigation.tsx.",
-        "At 390 and 768 pixels, the disclosure exposes button semantics, dynamic Open/Close naming, and aria-expanded state.",
-        "All responsive menu destinations measure 44 pixels high; Anime and Manga duplicates are hidden at tablet width.",
-        "No clipping, horizontal overflow, or navigation console errors were observed at 390, 768, or 1440 pixels.",
-        "The critique snapshot records two resolved P1 findings and no remaining P0 or P1 findings."
-      ]
+      "findings": []
+    },
+    "comprehension": {
+      "status": "not-applicable",
+      "reviewer": "",
+      "answers": {
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
+      },
+      "purposeScore": {
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
+      },
+      "mismatches": []
     }
   },
   "ownerFeedback": {
-    "decision": "delegated",
-    "note": "The owner explicitly delegated Fleet-wide preservation, merge, and cleanup judgment in the 2026-08-14 request."
+    "decision": "agent-selected",
+    "note": "The agent selected the direction; no owner approval was required."
   }
 }

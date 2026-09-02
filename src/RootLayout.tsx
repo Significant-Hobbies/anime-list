@@ -21,7 +21,7 @@ export default function RootLayout() {
         <div className="flex min-h-dvh flex-col">
           <Navigation />
           <RouteProgress />
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-8 sm:px-6">
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-12 pt-8 sm:px-6">
             <Suspense fallback={<PageShellSkeleton />}>
               <Outlet />
             </Suspense>

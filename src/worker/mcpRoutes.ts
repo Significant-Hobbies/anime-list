@@ -79,7 +79,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'search_anime',
     description:
-      'Search and filter the anime catalog. Same payload as POST /api/search: { filters: [{field, action, value}], sortBy, airing: "any"|"yes"|"no", pagesize, offset }. Returns { totalFiltered, filteredList }.',
+      'Search and page through the anime catalog. Input: { filters: [{field, action, value}], sortBy, airing: "any"|"yes"|"no", pagesize, offset }. Returns filteredList plus pageInfo { total, returned, hasMore, nextOffset }; keep calling with offset=nextOffset until nextOffset is null.',
     method: 'POST',
     path: '/api/search',
     auth: false,
@@ -99,7 +99,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'search_manga',
     description:
-      'Search and filter the manga catalog. Same payload as POST /api/manga/search: { filters, sortBy, pagesize, offset }. Returns { totalFiltered, filteredList }.',
+      'Search and page through the manga catalog. Input: { filters, sortBy, pagesize, offset }. Returns filteredList plus pageInfo { total, returned, hasMore, nextOffset }; keep calling with offset=nextOffset until nextOffset is null.',
     method: 'POST',
     path: '/api/manga/search',
     auth: false,
@@ -374,12 +374,50 @@ function parseResponseText(tool: ToolDef, text: string | null) {
 }
 
 function hasMoreFlag(parsed: unknown): boolean {
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+  const record = parsed as Record<string, unknown>;
+  if (record.hasMore === true) return true;
+  const pageInfo = record.pageInfo;
   return (
-    parsed !== null &&
-    typeof parsed === 'object' &&
-    !Array.isArray(parsed) &&
-    (parsed as Record<string, unknown>).hasMore === true
+    pageInfo !== null &&
+    typeof pageInfo === 'object' &&
+    !Array.isArray(pageInfo) &&
+    (pageInfo as Record<string, unknown>).hasMore === true
   );
+}
+
+function addCatalogPageInfo(
+  parsed: unknown,
+  tool: ToolDef,
+  args: Record<string, unknown>
+): unknown {
+  if (!['search_anime', 'search_manga'].includes(tool.name)) return parsed;
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return parsed;
+
+  const record = parsed as Record<string, unknown>;
+  const results = Array.isArray(record.filteredList) ? record.filteredList : [];
+  const total = Number(record.totalFiltered);
+  const limit = Number(args.pagesize ?? 20);
+  const offset = Number(args.offset ?? 0);
+  if (!Number.isFinite(total) || !Number.isFinite(limit) || !Number.isFinite(offset)) return parsed;
+
+  const returned = results.length;
+  const nextOffset = offset + returned;
+  const hasMore = returned > 0 && nextOffset < total;
+
+  return {
+    ...record,
+    pageInfo: {
+      limit,
+      offset,
+      returned,
+      total,
+      page: Math.floor(offset / limit) + 1,
+      totalPages: Math.ceil(total / limit),
+      hasMore,
+      nextOffset: hasMore ? nextOffset : null,
+    },
+  };
 }
 
 function buildToolHandler(origin: string, tool: ToolDef, readCredential: string | null) {
@@ -403,18 +441,29 @@ function buildToolHandler(origin: string, tool: ToolDef, readCredential: string 
       return parsed;
     }
 
+    const normalized = addCatalogPageInfo(parsed, tool, args);
+    const safeData = stripSensitive(addCanonicalUrls(normalized, tool.name));
     const data = {
       schemaVersion: '1' as const,
       ok: true,
       tool: tool.name,
       generatedAt: new Date().toISOString(),
       retrievalMode: tool.auth ? ('owner-watchlist' as const) : ('public-catalog' as const),
-      data: stripSensitive(addCanonicalUrls(parsed, tool.name)),
-      truncated: hasMoreFlag(parsed),
+      data: safeData,
+      truncated: hasMoreFlag(normalized),
       sourceUrl: url,
     };
     return {
-      content: [{ type: 'text' as const, text: `Anime List returned ${tool.name} data.` }],
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(
+            { tool: tool.name, data: safeData, truncated: data.truncated },
+            null,
+            2
+          ),
+        },
+      ],
       structuredContent: outputSchema.parse(data),
     };
   };

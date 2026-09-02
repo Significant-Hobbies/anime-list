@@ -24,9 +24,11 @@ describe('Footer', () => {
       manga: '2026-08-14 05:00:00',
     });
 
-    render(<Footer />);
+    const { container } = render(<Footer />);
 
     expect(await screen.findByText(/^Updated /)).toBeInTheDocument();
     expect(getLastUpdated).toHaveBeenCalledOnce();
+    expect(container.querySelector('footer')).toHaveClass('w-full');
+    expect(container.querySelector('footer > div')).toHaveClass('max-w-7xl');
   });
 });

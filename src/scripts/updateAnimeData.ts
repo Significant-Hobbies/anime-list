@@ -1,19 +1,29 @@
 #!/usr/bin/env node
 import 'dotenv/config';
-import { updateLatestTwoSeasonData } from '../api';
+import { updateLatestTopAnimeData, updateLatestTwoSeasonData } from '../api';
+import { API_CONFIG } from '../config';
 import { configureOperatorDatabaseFromArgs } from '../db/operatorClient';
 import { animeStore } from '../store/animeStore';
 
-/**
- * Fetch current and previous season anime and save them through Wrangler D1.
- */
+/** Fetch the seasonal or full anime catalog and save it through Wrangler D1. */
 async function main() {
   configureOperatorDatabaseFromArgs();
-  console.log(`[${new Date().toISOString()}] Starting anime data update...`);
+  const isFull = process.argv.includes('--full');
+  const pagesArg = process.argv.find((arg) => arg.startsWith('--pages='));
+  const parsedPages = pagesArg ? Number(pagesArg.slice('--pages='.length)) : API_CONFIG.totalPages;
+  const maxPages =
+    Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : API_CONFIG.totalPages;
+  console.log(
+    `[${new Date().toISOString()}] Starting ${isFull ? 'full ' : ''}anime data update...`
+  );
 
   try {
-    // Fetch latest two seasons and save through the explicit Wrangler D1 boundary.
-    await updateLatestTwoSeasonData();
+    if (isFull) {
+      await updateLatestTopAnimeData(maxPages);
+    } else {
+      // Fetch latest two seasons and save through the explicit Wrangler D1 boundary.
+      await updateLatestTwoSeasonData();
+    }
 
     // Refresh the in-memory store cache
     await animeStore.setAnimeList();

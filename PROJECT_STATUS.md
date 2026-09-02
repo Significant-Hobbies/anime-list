@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-08-14
+Last updated: 2026-09-02
 
 ## Why / What
 
@@ -54,10 +54,17 @@ Last updated: 2026-08-14
 | `pnpm db:migrate:local` / `db:migrate:remote` | Apply D1 migrations |
 | `pnpm db:seed` / `db:seed:manga` | Seed D1 from scripts |
 | `pnpm db:update` / `db:update:manga` | Refresh from Tenrai |
+| `pnpm db:update:anime:full` / `db:update:manga:full` | Refresh complete quality-gated catalogs |
 | `pnpm db:quarterly-sync` | Quarterly anime re-score |
 
 ## Timeline
 
+- **2026-09-02** — Restored reliable catalog ingestion through Tenrai, preserved
+  anime airing and manga publication date ranges during normalization, added a
+  bounded full-anime refresh path, and made MCP anime/manga searches explicitly
+  pageable and model-readable. The application footer now spans the content
+  shell with tighter spacing while route-loading skeletons keep it below active
+  loading content.
 - **2026-08-14** — Reduced initial client work by deferring query/monitoring
   providers, bounded full recommendation scoring to the requested result set,
   centralized filter serialization, and simplified responsive navigation.
@@ -124,17 +131,19 @@ Last updated: 2026-08-14
   and MCP resources, while static SPA routes receive route-specific canonical
   and social metadata.
 
-### MCP access (implemented, deploy pending)
+### MCP access (shipped)
 
 - `POST /api/mcp` provides Streamable HTTP MCP over the existing catalog and
   watchlist read paths; catalog tools are public and watchlist tools require a
   bearer token.
+- Anime and manga search tools return bounded pages with totals, page number,
+  `hasMore`, and `nextOffset`. The sanitized payload is present in both MCP text
+  content and structured content for clients that support only one response form.
 - New personal access tokens use an `anime_list_` prefix, are SHA-256 hashed at
   rest, shown only once, scoped to their owner, and revocable. Existing
   `shelf_` tokens remain valid for backward compatibility.
 - `/mcp` provides anonymous setup documentation and signed-in token management.
-- The agent-edge catalog advertises the MCP surface. Production activation
-  still requires the existing manual Worker and Pages deploy commands.
+- The agent-edge catalog advertises the live MCP surface.
 
 ### SEO: crawlable detail pages (deployed 2026-07-31)
 
@@ -189,7 +198,7 @@ Last updated: 2026-08-14
 - Common searches use indexed count/page statements in one D1 batch call, with
   no response-cache dependency; weighted or personalized searches retain the
   in-memory fallback.
-- Daily GH Action Tenrai sync + quarterly full manga refresh + worker cron 03:00 UTC cache reload.
+- Daily GH Action Tenrai sync + quarterly full anime/manga metadata refresh + worker cron 03:00 UTC cache reload.
 
 ### Personal & discovery
 
