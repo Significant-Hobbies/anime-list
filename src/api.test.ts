@@ -77,7 +77,7 @@ describe('catalog provider configuration', () => {
     expect(API_CONFIG).toMatchObject({
       providerName: 'Tenrai',
       baseUrl: 'https://api.tenrai.org/v1',
-      rateLimit: 1000,
+      rateLimit: 525,
     });
   });
 });

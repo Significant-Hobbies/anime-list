@@ -325,7 +325,7 @@ export const updateLatestTopMangaData = async (
     kind: 'manga',
     maxPages,
     endpoint: API_CONFIG.endpoints.topManga,
-    pageSize: 20,
+    pageSize: 25,
     transform: transformRawManga,
     isComplete: (manga) =>
       Boolean(manga.score && manga.scored_by && manga.members && manga.favorites && manga.year),

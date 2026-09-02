@@ -119,9 +119,9 @@ export const API_CONFIG = {
     seasons: '/seasons',
     currentSeason: '/seasons/now',
   },
-  rateLimit: 1000, // 1 call per second (safe within Tenrai's 4/sec, 120/min public limits)
+  rateLimit: 525, // ~114 calls/minute, below Tenrai's 120/minute public limit
   totalPages: 10000,
-  /** Top-manga pages fetched on daily refresh (~20 titles/page). */
+  /** Top-manga pages fetched on daily refresh (~25 titles/page). */
   mangaDailyUpdatePages: 100,
 } as const;
 
