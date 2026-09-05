@@ -1,5 +1,6 @@
 import { getDb } from './client';
 import { seedDefaultUserTags } from './watchlist';
+import { ping } from '@/lib/ping';
 
 export interface DbUser {
   id: string;
@@ -85,6 +86,8 @@ export async function findOrCreateUser(profile: {
     args: [id, profile.googleId, profile.email, profile.name, profile.picture ?? null],
   });
   await seedDefaultUserTags(id);
+  // App Health application log; the client is a no-op until APP_HEALTH_INGEST_KEY is set.
+  void ping('signup', { title: profile.email, props: { id, name: profile.name } });
 
   return {
     id,
