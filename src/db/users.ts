@@ -1,6 +1,6 @@
 import { getDb } from './client';
 import { seedDefaultUserTags } from './watchlist';
-import { ping } from '@/lib/ping';
+import { ping } from '../../lib/ping';
 
 export interface DbUser {
   id: string;
