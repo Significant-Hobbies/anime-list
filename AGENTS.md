@@ -1,4 +1,4 @@
-# agents.md — Anime List by Significant Hobbies
+# agents.md — Anime List
 
 ## Repository operating rules
 

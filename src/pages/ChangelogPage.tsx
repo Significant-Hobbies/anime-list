@@ -48,7 +48,7 @@ function formatDate(value: string) {
 export default function ChangelogPage() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Changelog | Anime List by Significant Hobbies';
+    document.title = 'Changelog | Anime List';
 
     return () => {
       document.title = previousTitle;
@@ -58,9 +58,7 @@ export default function ChangelogPage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-12">
       <header className="max-w-2xl">
-        <p className="text-sm font-medium text-primary">
-          Anime List by Significant Hobbies product history
-        </p>
+        <p className="text-sm font-medium text-primary">Anime List product history</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Changelog</h1>
         <p className="mt-4 text-base leading-7 text-muted-foreground">
           Meaningful improvements to discovery, personal lists, and catalog reliability. Catalog

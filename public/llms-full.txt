@@ -1,36 +1,36 @@
-# Anime List by Significant Hobbies — full agent brief
+# Anime List — full agent brief
 
-Anime List by Significant Hobbies indexes 5,306 popular anime and 2,288 popular manga for crawlable public discovery.
+Anime List indexes 5,306 popular anime and 2,288 popular manga for crawlable public discovery.
 
 ## Anime List — filter 35,000+ anime and manga
 
-Anime List by Significant Hobbies is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
+Anime List is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
 
-## Advanced anime search — Anime List by Significant Hobbies
+## Advanced anime search — Anime List
 
 Use multi-field filters to search the anime catalog by score, year, genre, theme, demographic, popularity, airing status, and format. Search state is shareable in the HTML URL.
 
-## Random anime picker — Anime List by Significant Hobbies
+## Random anime picker — Anime List
 
 The HTML route selects a random anime from the public catalog. Use advanced search when you want to constrain the pick by score, year, genre, or other catalog fields.
 
-## Anime catalog statistics — Anime List by Significant Hobbies
+## Anime catalog statistics — Anime List
 
 Explore aggregate anime catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
 
-## Advanced manga search — Anime List by Significant Hobbies
+## Advanced manga search — Anime List
 
 Search the public manga catalog with multi-field filters for score, year, genre, theme, demographic, status, format, popularity, and favorites.
 
-## Manga catalog statistics — Anime List by Significant Hobbies
+## Manga catalog statistics — Anime List
 
 Explore aggregate manga catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
 
-## Anime discovery — Anime List by Significant Hobbies
+## Anime discovery — Anime List
 
 Discovery combines a signed-in weekly queue with a public, privacy-safe taste quiz. Quiz answers are not persisted; analytics retain only the resulting archetype.
 
-## Anime List by Significant Hobbies changelog
+## Anime List changelog
 
 The HTML changelog owns verified product releases. Catalog ingestion history is maintained separately on the catalog updates page.
 
@@ -38,9 +38,9 @@ The HTML changelog owns verified product releases. Catalog ingestion history is 
 
 The HTML page shows catalog ingestion history from the public API, including the latest anime and manga refresh times and recent changes.
 
-## About Anime List by Significant Hobbies
+## About Anime List
 
-Anime List by Significant Hobbies helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in.
+Anime List helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in.
 
 ## Anime List privacy
 
@@ -48,11 +48,11 @@ Public catalog browsing does not require an account. Google sign-in and an httpO
 
 ## Anime List terms
 
-Anime List by Significant Hobbies provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
+Anime List provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
 
 ## Anime List MCP setup
 
-Anime List by Significant Hobbies exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in.
+Anime List exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in.
 
 ## Authentication boundary
 

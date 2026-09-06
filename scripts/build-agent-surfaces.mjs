@@ -30,12 +30,12 @@ ${surface.markdown}
 
 - [HTML page](${origin}${surface.path === '/' ? '/' : surface.path})
 - [Agent catalog](${origin}/api/ai)
-- [Anime List by Significant Hobbies home](${origin}/)`
+- [Anime List home](${origin}/)`
   );
 }
 
 const catalog = {
-  name: 'Anime List by Significant Hobbies',
+  name: 'Anime List',
   version: '2',
   url: origin,
   llms: `${origin}/llms.txt`,
@@ -84,7 +84,7 @@ const catalog = {
 writePublic('/api-ai.json', JSON.stringify(catalog, null, 2));
 writePublic(
   '/llms.txt',
-  `# Anime List by Significant Hobbies
+  `# Anime List
 
 > Anime and manga discovery with advanced filtering, statistics, and optional personal tracking.
 
@@ -124,9 +124,9 @@ curl -s -H 'Accept: text/markdown' ${origin}/
 );
 writePublic(
   '/llms-full.txt',
-  `# Anime List by Significant Hobbies — full agent brief
+  `# Anime List — full agent brief
 
-Anime List by Significant Hobbies indexes ${anime.length.toLocaleString()} popular anime and ${manga.length.toLocaleString()} popular manga for crawlable public discovery.
+Anime List indexes ${anime.length.toLocaleString()} popular anime and ${manga.length.toLocaleString()} popular manga for crawlable public discovery.
 
 ${surfaces.map((surface) => `## ${surface.title}\n\n${surface.markdown}`).join('\n\n')}
 

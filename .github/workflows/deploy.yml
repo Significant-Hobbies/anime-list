@@ -51,5 +51,5 @@ jobs:
             curl --fail --retry 5 --retry-delay 5 --max-time 20 "https://anime.significanthobbies.com${path}" >/dev/null
           done
           curl --fail --retry 5 --retry-delay 5 --max-time 20 "https://anime.significanthobbies.com/?release=${GITHUB_SHA}" \
-            | grep -F "Anime List by Significant Hobbies" >/dev/null
+            | grep -F "Anime List" >/dev/null
           curl --fail --retry 5 --retry-delay 5 --max-time 20 "https://anime.significanthobbies.com/api/last-updated" >/dev/null

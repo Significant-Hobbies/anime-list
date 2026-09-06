@@ -106,9 +106,9 @@ export function buildHeadBlock(entry: SeoEntry, kind: SeoKind, canonicalUrl: str
   const kindLabel = kind === 'anime' ? 'anime' : 'manga';
   const desc =
     entry.synopsis ||
-    `Discover ${entry.title} — ${kindLabel} details, score, genres, and more on Anime List by Significant Hobbies.`;
+    `Discover ${entry.title} — ${kindLabel} details, score, genres, and more on Anime List.`;
   const descEsc = escapeHtml(desc);
-  const titleFull = `${titleEsc} — Anime List by Significant Hobbies`;
+  const titleFull = `${titleEsc} — Anime List`;
 
   const ogImage = entry.image || '/og.png';
 
@@ -123,7 +123,7 @@ export function buildHeadBlock(entry: SeoEntry, kind: SeoKind, canonicalUrl: str
     `<meta property="og:description" content="${descEsc}" />`,
     `<meta property="og:type" content="${kind === 'anime' ? 'video.episode' : 'book'}" />`,
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />`,
-    `<meta property="og:site_name" content="Anime List by Significant Hobbies" />`,
+    `<meta property="og:site_name" content="Anime List" />`,
     `<meta property="og:image" content="${escapeHtml(ogImage)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${titleFull}" />`,
@@ -157,7 +157,7 @@ export function buildSsrSummary(entry: SeoEntry, kind: SeoKind): string {
   return [
     '<article data-ssr aria-label="Title summary">',
     `  <h1>${titleEsc}</h1>`,
-    `  <p><strong>${kindLabel}</strong> — discover, filter, and track on Anime List by Significant Hobbies.</p>`,
+    `  <p><strong>${kindLabel}</strong> — discover, filter, and track on Anime List.</p>`,
     `  <p>${synopsisEsc}</p>`,
     facts.length ? `  <dl>${facts.join('')}</dl>` : '',
     '</article>',

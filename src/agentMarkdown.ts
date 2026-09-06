@@ -31,7 +31,7 @@ ${facts.join('\n')}
 
 - [HTML detail page](${ORIGIN}/${kind}/${entry.id})
 - [${kindLabel} discovery](${ORIGIN}/${kind === 'anime' ? 'search' : 'manga'})
-- [Anime List by Significant Hobbies home](${ORIGIN}/)
+- [Anime List home](${ORIGIN}/)
 `;
 }
 

@@ -2,7 +2,7 @@
 
 ## What it is
 
-**Anime List by Significant Hobbies** is a production anime/manga discovery app. It gives
+**Anime List** is a production anime/manga discovery app. It gives
 multi-field filtering, shareable URLs, personal watchlists (Google OAuth),
 stats, schedule tracking, and a signed-in seasonal discovery queue over a
 catalog of ~14.8k anime + ~20.7k manga titles synced daily from MyAnimeList

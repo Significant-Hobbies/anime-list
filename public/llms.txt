@@ -1,19 +1,19 @@
-# Anime List by Significant Hobbies
+# Anime List
 
 > Anime and manga discovery with advanced filtering, statistics, and optional personal tracking.
 
 ## Public pages
 
 - [Anime List — filter 35,000+ anime and manga](https://anime.significanthobbies.com/)
-- [Advanced anime search — Anime List by Significant Hobbies](https://anime.significanthobbies.com/search)
-- [Random anime picker — Anime List by Significant Hobbies](https://anime.significanthobbies.com/random)
-- [Anime catalog statistics — Anime List by Significant Hobbies](https://anime.significanthobbies.com/stats)
-- [Advanced manga search — Anime List by Significant Hobbies](https://anime.significanthobbies.com/manga)
-- [Manga catalog statistics — Anime List by Significant Hobbies](https://anime.significanthobbies.com/manga/stats)
-- [Anime discovery — Anime List by Significant Hobbies](https://anime.significanthobbies.com/discover)
-- [Anime List by Significant Hobbies changelog](https://anime.significanthobbies.com/changelog)
+- [Advanced anime search — Anime List](https://anime.significanthobbies.com/search)
+- [Random anime picker — Anime List](https://anime.significanthobbies.com/random)
+- [Anime catalog statistics — Anime List](https://anime.significanthobbies.com/stats)
+- [Advanced manga search — Anime List](https://anime.significanthobbies.com/manga)
+- [Manga catalog statistics — Anime List](https://anime.significanthobbies.com/manga/stats)
+- [Anime discovery — Anime List](https://anime.significanthobbies.com/discover)
+- [Anime List changelog](https://anime.significanthobbies.com/changelog)
 - [Anime List catalog updates](https://anime.significanthobbies.com/catalog-updates)
-- [About Anime List by Significant Hobbies](https://anime.significanthobbies.com/about)
+- [About Anime List](https://anime.significanthobbies.com/about)
 - [Anime List privacy](https://anime.significanthobbies.com/privacy)
 - [Anime List terms](https://anime.significanthobbies.com/terms)
 - [Anime List MCP setup](https://anime.significanthobbies.com/mcp)

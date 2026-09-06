@@ -68,7 +68,7 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-3 sm:gap-6">
         <Link
           to={homeHref}
-          aria-label="Anime List by Significant Hobbies"
+          aria-label="Anime List"
           className="flex min-w-0 shrink-0 flex-col items-start justify-center gap-0.5 whitespace-nowrap text-foreground"
         >
           <span className="text-sm font-semibold leading-none tracking-tight sm:text-base">

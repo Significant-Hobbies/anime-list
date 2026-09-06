@@ -1,4 +1,4 @@
-# Anime List by Significant Hobbies
+# Anime List
 
 A modern anime discovery platform that helps you find your next favorite show.
 
