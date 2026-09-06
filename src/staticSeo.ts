@@ -30,7 +30,7 @@ export function rewriteStaticSeo(html: string, surface: StaticSeoSurface, origin
     `<meta property="og:description" content="${description}" />`,
     '<meta property="og:type" content="website" />',
     `<meta property="og:url" content="${canonicalEscaped}" />`,
-    '<meta property="og:site_name" content="Anime List by Significant Hobbies" />',
+    '<meta property="og:site_name" content="Anime List" />',
     `<meta property="og:image" content="${image}" />`,
     '<meta name="twitter:card" content="summary_large_image" />',
     `<meta name="twitter:title" content="${title}" />`,

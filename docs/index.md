@@ -1,7 +1,7 @@
-# Anime List by Significant Hobbies — Knowledge Base
+# Anime List — Knowledge Base
 
 This directory is the canonical, local-first knowledge system for the
-**Anime List by Significant Hobbies** product (`anime_list`). Markdown here is the source of
+**Anime List** product (`anime_list`). Markdown here is the source of
 truth; code and executable configuration remain authoritative for
 implementation details and schedules.
 

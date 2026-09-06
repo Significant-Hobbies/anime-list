@@ -8,7 +8,7 @@ const SITE_URL = 'https://anime.significanthobbies.com';
 const OPENAPI_SPEC = {
   openapi: '3.1.0',
   info: {
-    title: 'Anime List by Significant Hobbies — public API',
+    title: 'Anime List — public API',
     version: '1.0.0',
     description:
       'Anime and manga discovery platform with multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList through the Tenrai API. The public web API exposes read-only agent surfaces.',

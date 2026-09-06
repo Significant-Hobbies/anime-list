@@ -1,5 +1,5 @@
 {
-  "name": "Anime List by Significant Hobbies",
+  "name": "Anime List",
   "version": "2",
   "url": "https://anime.significanthobbies.com",
   "llms": "https://anime.significanthobbies.com/llms.txt",
@@ -66,7 +66,7 @@
       "url": "https://anime.significanthobbies.com/changelog",
       "md": "https://anime.significanthobbies.com/changelog.md",
       "kind": "static",
-      "description": "Verified product releases for Anime List by Significant Hobbies, including anime and manga discovery, watchlists, schedules, and catalog improvements."
+      "description": "Verified product releases for Anime List, including anime and manga discovery, watchlists, schedules, and catalog improvements."
     },
     {
       "id": "catalog-updates",
@@ -80,7 +80,7 @@
       "url": "https://anime.significanthobbies.com/about",
       "md": "https://anime.significanthobbies.com/about.md",
       "kind": "static",
-      "description": "Learn how Anime List by Significant Hobbies combines MyAnimeList catalog data, advanced filtering, smart ranking, statistics, and personal tracking."
+      "description": "Learn how Anime List combines MyAnimeList catalog data, advanced filtering, smart ranking, statistics, and personal tracking."
     },
     {
       "id": "privacy",

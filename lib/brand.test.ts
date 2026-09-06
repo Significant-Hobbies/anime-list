@@ -5,7 +5,7 @@ describe('brand', () => {
   it('exposes a full name and separate parts for typographic hierarchy', () => {
     expect(PRODUCT_NAME).toBe('Anime List');
     expect(PUBLISHER_NAME).toBe('Significant Hobbies');
-    expect(SITE_NAME).toBe('Anime List by Significant Hobbies');
+    expect(SITE_NAME).toBe('Anime List');
     expect(SITE_ATTRIBUTION).toBe('A Significant Hobbies project');
   });
 });

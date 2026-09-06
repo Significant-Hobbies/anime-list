@@ -1,9 +1,9 @@
 # Anime List terms
 
-Anime List by Significant Hobbies provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
+Anime List provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
 
 ## Links
 
 - [HTML page](https://anime.significanthobbies.com/terms)
 - [Agent catalog](https://anime.significanthobbies.com/api/ai)
-- [Anime List by Significant Hobbies home](https://anime.significanthobbies.com/)
+- [Anime List home](https://anime.significanthobbies.com/)

@@ -15,7 +15,7 @@ const SHELL = `<!doctype html>
   <head>
     <meta charset="UTF-8" />
     <!-- seo:start -->
-    <title>Anime List by Significant Hobbies — Discover anime &amp; manga</title>
+    <title>Anime List — Discover anime &amp; manga</title>
     <meta name="description" content="Default desc" />
     <link rel="canonical" href="https://anime.significanthobbies.com" />
     <!-- seo:end -->
@@ -114,9 +114,7 @@ describe('buildHeadBlock', () => {
       'anime',
       'https://anime.significanthobbies.com/anime/5114'
     );
-    expect(block).toContain(
-      '<title>Fullmetal Alchemist: Brotherhood — Anime List by Significant Hobbies</title>'
-    );
+    expect(block).toContain('<title>Fullmetal Alchemist: Brotherhood — Anime List</title>');
     expect(block).toContain('name="description"');
     expect(block).toContain('rel="canonical"');
     expect(block).toContain('property="og:title"');
@@ -160,10 +158,8 @@ describe('rewriteShell', () => {
     });
 
     // Head: title replaced
-    expect(result).toContain(
-      '<title>Fullmetal Alchemist: Brotherhood — Anime List by Significant Hobbies</title>'
-    );
-    expect(result).not.toContain('Anime List by Significant Hobbies — Discover anime');
+    expect(result).toContain('<title>Fullmetal Alchemist: Brotherhood — Anime List</title>');
+    expect(result).not.toContain('Anime List — Discover anime');
 
     // Canonical updated
     expect(result).toContain('href="https://anime.significanthobbies.com/anime/5114"');
