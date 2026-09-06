@@ -10,6 +10,8 @@
   ],
   "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"],
   "ignore": [
+    // Static asset loaded via a raw <script src> tag (index.html), not an import.
+    "public/app-health-log.js"
   ],
   "ignoreDependencies": [
     // Child-process/CLI/config-only tools and the CSS import are not visible in the module graph.
