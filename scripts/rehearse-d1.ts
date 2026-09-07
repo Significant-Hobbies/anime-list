@@ -15,6 +15,7 @@ import { getSchedule, upsertScheduleItems } from '../src/db/schedule';
 import {
   getAnimeWatchlistEntry,
   seedDefaultUserTags,
+  updateAnimeWatchlistNote,
   upsertAnimeWatchlist,
 } from '../src/db/watchlist';
 
@@ -102,6 +103,14 @@ try {
     resolveApiToken(token.token),
   ]);
   const revoked = await revokeApiToken(userId, token.id);
+  await upsertAnimeWatchlist([String(animeId)], 'Completed', userId);
+  await updateAnimeWatchlistNote(String(animeId), 'Synthetic persistence note', userId);
+  const otherAccountEntry = await getAnimeWatchlistEntry(String(animeId), 'other-user');
+  const otherAccountEdit = await updateAnimeWatchlistNote(
+    String(animeId),
+    'wrong owner',
+    'other-user'
+  );
 
   const counts = await db.execute(`
     SELECT
@@ -122,6 +131,7 @@ try {
 
   const invariants = {
     watchlist: watchlist?.status === 'Watching',
+    watchlistIsolation: !otherAccountEntry && !otherAccountEdit,
     schedule: schedule.length === 1,
     collectionOwnership: ownedCollection?.user_id === userId,
     tokenOwnership: resolvedToken?.userId === userId,
@@ -195,6 +205,13 @@ try {
 
   configureOperatorDatabase({ remote: false, persistTo: targetPersistence });
   const targetDb = getDb();
+  const restoredEntry = await getAnimeWatchlistEntry(String(animeId), userId);
+  if (
+    restoredEntry?.status !== 'Completed' ||
+    restoredEntry.note !== 'Synthetic persistence note'
+  ) {
+    throw new Error('Watchlist status and note did not persist through database reload');
+  }
   const targetCounts = await targetDb.execute(`
     SELECT
       (SELECT COUNT(*) FROM users) AS users,
@@ -230,6 +247,8 @@ try {
       foreignKeyViolations: targetForeignKeys.rows.length,
       ownershipOrphans: Number(targetOwnershipOrphans.rows[0]?.count ?? 0),
       journeys: ['catalog', 'watchlist', 'schedule', 'collection', 'api-token'],
+      watchlistPersistence: 'Watching -> Completed with note; reloaded after export/import',
+      watchlistIsolation: 'Other account cannot read or edit the entry',
     })
   );
 } finally {

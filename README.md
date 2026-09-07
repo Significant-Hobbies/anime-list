@@ -169,13 +169,29 @@ pnpm db:rehearse   # Isolated D1 catalog + ownership rehearsal
 ISC - Sarthak Agrawal
 
 <!-- ACTIVE-AI-TASK-LOG:START -->
-## Active AI Task Log
+## Task reconciliation (2026-09-07)
 
-This section is maintained by the SaaS Maker Active-AI product/design loop so future agents do not reopen duplicate UI tasks.
+Open work is tracked in [GitHub Issues](https://github.com/Significant-Hobbies/anime-list/issues).
+The audit began with zero open issues and PRs; no issues were closed. The remaining
+live qualification is [#89](https://github.com/Significant-Hobbies/anime-list/issues/89):
+approved deployment followed by real sign-in, tracking, reload, account switching,
+and failed-write recovery checks. This is not yet a hosted shareability receipt.
+
+Local evidence: real React Query regressions caught private detail/draft reuse
+across accounts; caches and mounted drafts now reset with identity. React DOM
+integration covers detail -> Watching -> remount against a synthetic API, and
+guests see a disabled sign-in-to-track action. `pnpm db:rehearse` separately proves
+actual isolated local D1 status/note persistence after export/import and rejects
+another account's read/edit. Public search/detail had prior browser coverage;
+this pass does not claim a newly verified hosted end-to-end journey.
+
+### Historical Active AI task log
+
+This historical SaaS Maker task log preserves prior product decisions so future agents do not reopen duplicate UI tasks. Its done rows are historical reports, not fresh runtime receipts.
 
 - Business lane: P2 Watch / maintenance
 - Rule: do not create another broad "improve the UI" task unless the acceptance criteria differ materially from the tasks listed here.
-- Source of truth for task status: SaaS Maker task board. README entries are durable context only.
+- Source of truth for current task status: this repository's GitHub Issues. README entries are durable context only.
 
 | Task | Status | Priority | Last known note |
 | --- | --- | --- | --- |

@@ -1,5 +1,14 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-09-02
+Last updated: 2026-09-07
+
+Tracking qualification: account changes now replace the React Query cache and
+mounted drafts, preventing previous-account detail/status/note reuse. Guest anime
+detail explicitly requires sign-in to track. Local React DOM integration covers
+tracking and remount against a synthetic API; the isolated D1 rehearsal covers
+status/note persistence after export/import and other-account read/edit rejection.
+Hosted OAuth/cookies, writes, reload, and account switching remain unqualified by
+this pass; deployment is not authorized here. Remaining work:
+[#89](https://github.com/Significant-Hobbies/anime-list/issues/89).
 
 ## Why / What
 

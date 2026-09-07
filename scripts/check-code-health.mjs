@@ -20,8 +20,8 @@ const baselines = {
     maxParams: 8,
   },
   duplication: {
-    clones: 50,
-    duplicatedLines: 851,
+    clones: 49,
+    duplicatedLines: 821,
   },
   unused: {
     files: 0,

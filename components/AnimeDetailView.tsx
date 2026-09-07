@@ -138,6 +138,11 @@ export default function AnimeDetailView({
   const availableTags = tagsData?.tags?.length ? tagsData.tags : DEFAULT_WATCH_TAGS;
   const persistedStatus = detailQuery.data?.watchlistEntry?.status ?? null;
   const currentStatus = optimisticStatus === undefined ? persistedStatus : optimisticStatus;
+  const trackingLabel = !user
+    ? 'SIGN IN TO TRACK'
+    : currentStatus
+      ? `IN LIST: ${currentStatus}`
+      : 'ADD TO LIST';
   const currentStatusColor = useMemo(() => {
     if (!currentStatus) return null;
     const matchingTag = availableTags.find((tag) => tag.tag === currentStatus);
@@ -341,9 +346,13 @@ export default function AnimeDetailView({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              disabled={watchlistMutation.isPending || removeMutation.isPending}
+              disabled={!user || watchlistMutation.isPending || removeMutation.isPending}
               aria-label={
-                currentStatus ? `Edit watchlist status: ${currentStatus}` : 'Add to watchlist'
+                !user
+                  ? 'Sign in to track this anime'
+                  : currentStatus
+                    ? `Edit watchlist status: ${currentStatus}`
+                    : 'Add to watchlist'
               }
               className="w-full h-12 rounded-sm bg-primary text-primary-foreground flex items-center justify-center hover:scale-[1.02] transition-transform"
               style={
@@ -355,15 +364,15 @@ export default function AnimeDetailView({
                   : undefined
               }
             >
-              {watchlistMutation.isPending ? (
-                <span className="animate-spin text-sm">...</span>
-              ) : currentStatus ? (
-                <span className="text-sm font-black uppercase tracking-widest">
-                  IN LIST: {currentStatus}
-                </span>
-              ) : (
-                <span className="font-black text-sm">ADD TO LIST</span>
-              )}
+              <span
+                className={
+                  watchlistMutation.isPending
+                    ? 'animate-spin text-sm'
+                    : 'text-sm font-black uppercase tracking-widest'
+                }
+              >
+                {watchlistMutation.isPending ? '...' : trackingLabel}
+              </span>
             </button>
             {showMenu && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-surface-container-high border border-outline/20 shadow-2xl rounded-sm py-1 w-full z-20">
