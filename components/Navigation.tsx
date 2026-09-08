@@ -208,7 +208,14 @@ export default function Navigation() {
               </div>
             </details>
           ) : (
-            <GoogleSignInButton />
+            <>
+              <div className="sm:hidden">
+                <GoogleSignInButton compact />
+              </div>
+              <div className="hidden sm:block">
+                <GoogleSignInButton />
+              </div>
+            </>
           )}
         </div>
       </div>

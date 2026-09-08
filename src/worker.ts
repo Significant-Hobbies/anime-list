@@ -75,6 +75,7 @@ import {
 } from './db/schedule';
 import { bindD1Database } from './db/client';
 import { getAnimeDetailSupplementalData } from './controllers/animeDetailService';
+import { enrichAnimeRelations } from './controllers/animeDetailRelations';
 import { executeSearch } from './controllers/searchController';
 import { buildScheduleTimelineResponse, addScheduleItems } from './services/scheduleService';
 import { buildTasteRecommendations } from './recommendations';
@@ -598,7 +599,7 @@ app.get('/api/anime/:malId', optionalAuth, async (c) => {
   // Only cache anonymous responses — authenticated responses embed the
   // signed-in user's watchlistEntry, which is per-user data.
   const edgeCache = (caches as unknown as { default: Cache }).default;
-  const cacheUrl = user ? null : `${ANIME_DETAIL_CACHE_KEY_PREFIX}${malId}:v1`;
+  const cacheUrl = user ? null : `${ANIME_DETAIL_CACHE_KEY_PREFIX}${malId}:v2`;
 
   if (cacheUrl) {
     const cached = await edgeCache.match(cacheUrl);
@@ -624,23 +625,7 @@ app.get('/api/anime/:malId', optionalAuth, async (c) => {
 
   const response: AnimeDetailResponse = {
     anime: toDetailAnime(anime),
-    relations: supplemental.relations.flatMap((group) =>
-      group.entries.map((entry) => {
-        const relatedAnime = animeMap.get(entry.mal_id);
-        return {
-          mal_id: entry.mal_id,
-          relation: group.relation,
-          title: relatedAnime?.title || entry.name,
-          title_english: relatedAnime?.title_english,
-          image: relatedAnime?.image,
-          type: relatedAnime?.type || entry.type,
-          status: relatedAnime?.status,
-          episodes: relatedAnime?.episodes,
-          year: relatedAnime?.year,
-          url: relatedAnime?.url || entry.url,
-        };
-      })
-    ),
+    relations: enrichAnimeRelations(supplemental.relations, animeMap),
     recommendations: supplemental.recommendations.map((recommendation) => {
       const recommendedAnime = animeMap.get(recommendation.entry.mal_id);
       return {

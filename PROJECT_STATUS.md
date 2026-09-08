@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-09-07
+Last updated: 2026-09-08
 
 Tracking qualification: account changes now replace the React Query cache and
 mounted drafts, preventing previous-account detail/status/note reuse. Guest anime
@@ -7,8 +7,21 @@ detail explicitly requires sign-in to track. Local React DOM integration covers
 tracking and remount against a synthetic API; the isolated D1 rehearsal covers
 status/note persistence after export/import and other-account read/edit rejection.
 Hosted OAuth/cookies, writes, reload, and account switching remain unqualified by
-this pass; deployment is not authorized here. Remaining work:
+this pass. The account-isolation repair was deployed by successful workflow run
+[34193799379](https://github.com/Significant-Hobbies/anime-list/actions/runs/34193799379)
+at source `93000b31d28215acf88ec76a70dd99bd431674c0`. Remaining work:
 [#89](https://github.com/Significant-Hobbies/anime-list/issues/89).
+
+Guest qualification found two further regressions: numeric manga IDs were enriched
+from the anime namespace, replacing Cowboy Bebop adaptations with unrelated anime;
+the full Google button also overflowed the 390-pixel header. The related-title
+lookup now respects media type and versions the anonymous cache key. Mobile uses
+Google’s compact icon button; desktop retains the standard button. A regression
+test fails with the original lookup and passes with the fix, and `pnpm quality`
+passes. Production visual and API verification remain pending under
+[#90](https://github.com/Significant-Hobbies/anime-list/issues/90). The local preview
+cannot qualify these hosted journeys because its origin is rejected by the
+production API and Google client allowlists.
 
 ## Why / What
 

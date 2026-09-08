@@ -28,7 +28,7 @@ declare global {
             options: {
               type: 'standard' | 'icon';
               theme: 'outline' | 'outline_dark' | 'filled_blue' | 'filled_black';
-              size: 'small' | 'medium';
+              size: 'small' | 'medium' | 'large';
               shape: 'rectangular' | 'pill' | 'circle' | 'square';
               text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
               logo_alignment?: 'left' | 'center';
@@ -66,7 +66,7 @@ function initializeGoogleIdentity(api: GoogleIdentityApi, clientId: string): voi
   initializedIdentityApi = api;
 }
 
-export default function GoogleSignInButton() {
+export default function GoogleSignInButton({ compact = false }: { compact?: boolean }) {
   const { login } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
@@ -83,13 +83,13 @@ export default function GoogleSignInButton() {
       const identityApi = window.google.accounts.id;
       initializeGoogleIdentity(identityApi, clientId);
       identityApi.renderButton(buttonRef.current, {
-        type: 'standard',
+        type: compact ? 'icon' : 'standard',
         theme: 'outline_dark',
-        size: 'medium',
-        shape: 'pill',
+        size: compact ? 'large' : 'medium',
+        shape: compact ? 'circle' : 'pill',
         text: 'continue_with',
         logo_alignment: 'left',
-        width: 172,
+        ...(compact ? {} : { width: 172 }),
       });
       setReady(true);
     };
@@ -116,17 +116,25 @@ export default function GoogleSignInButton() {
     const onLoad = () => initGoogle();
     script.addEventListener('load', onLoad);
     return () => script.removeEventListener('load', onLoad);
-  }, [login]);
+  }, [login, compact]);
 
   return (
-    <div className="relative h-8 w-[172px]" aria-busy={!ready || undefined}>
+    <div
+      className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[172px]'}
+      aria-busy={!ready || undefined}
+    >
       {!ready && (
         <>
           <Skeleton className="absolute inset-0 rounded-sm" />
           <LoadingStatus label="Loading Google sign-in" />
         </>
       )}
-      <div ref={buttonRef} className="relative h-8 w-[172px] overflow-hidden rounded-full" />
+      <div
+        ref={buttonRef}
+        className={
+          compact ? 'relative h-10 w-10' : 'relative h-8 w-[172px] overflow-hidden rounded-full'
+        }
+      />
     </div>
   );
 }
