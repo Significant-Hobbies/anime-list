@@ -74,7 +74,7 @@ function RelatedTitleLink({
   const isAnimeRoute = item.url?.includes('/anime/') ?? false;
   const href = getAnimeDetailHref(item.mal_id);
   const className =
-    'group flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 transition-colors hover:border-ring hover:bg-muted/50';
+    'group flex min-w-0 items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 transition-colors hover:border-ring hover:bg-muted/50';
   const body = (
     <>
       <div className="min-w-0 space-y-1">

@@ -16,7 +16,8 @@ Guest qualification found two further regressions: numeric manga IDs were enrich
 from the anime namespace, replacing Cowboy Bebop adaptations with unrelated anime;
 the full Google button also overflowed the 390-pixel header. The related-title
 lookup now respects media type and versions the anonymous cache key. Mobile uses
-Google’s compact icon button; desktop retains the standard button. A regression
+Google’s compact icon button; desktop retains the standard button. Related-title
+cards can also shrink within their grid so long titles do not widen the phone page. A regression
 test fails with the original lookup and passes with the fix, and `pnpm quality`
 passes. Production visual and API verification remain pending under
 [#90](https://github.com/Significant-Hobbies/anime-list/issues/90). The local preview
