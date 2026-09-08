@@ -40,7 +40,7 @@ describe('GoogleSignInButton', () => {
         size: 'medium',
         text: 'continue_with',
         logo_alignment: 'left',
-        width: 172,
+        width: 220,
       })
     );
   });

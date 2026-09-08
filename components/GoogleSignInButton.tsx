@@ -89,7 +89,7 @@ export default function GoogleSignInButton({ compact = false }: { compact?: bool
         shape: compact ? 'circle' : 'pill',
         text: 'continue_with',
         logo_alignment: 'left',
-        ...(compact ? {} : { width: 172 }),
+        ...(compact ? {} : { width: 220 }),
       });
       setReady(true);
     };
@@ -120,7 +120,7 @@ export default function GoogleSignInButton({ compact = false }: { compact?: bool
 
   return (
     <div
-      className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[172px]'}
+      className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[220px]'}
       aria-busy={!ready || undefined}
     >
       {!ready && (
@@ -131,9 +131,7 @@ export default function GoogleSignInButton({ compact = false }: { compact?: bool
       )}
       <div
         ref={buttonRef}
-        className={
-          compact ? 'relative h-10 w-10' : 'relative h-8 w-[172px] overflow-hidden rounded-full'
-        }
+        className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[220px] rounded-full'}
       />
     </div>
   );
