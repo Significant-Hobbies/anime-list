@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ExternalLink, Heart, Star } from 'lucide-react';
@@ -61,7 +61,10 @@ export default function MangaDetailView({
   const [showMenu, setShowMenu] = useState(false);
   const [customTag, setCustomTag] = useState('');
   const [customColor, setCustomColor] = useState('#10b981');
-  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null | undefined>(undefined);
+  const statusRequestSeq = useRef(0);
+  const identityKey = `${user?.id ?? 'guest'}:${malId}`;
+  const identityRef = useRef(identityKey);
 
   const detailQuery = useQuery({
     queryKey: ['manga', 'detail', malId],
@@ -76,7 +79,7 @@ export default function MangaDetailView({
 
   const availableTags = tagsData?.tags?.length ? tagsData.tags : DEFAULT_WATCH_TAGS;
   const persistedStatus = detailQuery.data?.watchlistEntry?.status ?? null;
-  const currentStatus = optimisticStatus ?? persistedStatus;
+  const currentStatus = optimisticStatus === undefined ? persistedStatus : optimisticStatus;
   const currentStatusColor = useMemo(() => {
     if (!currentStatus) return null;
     const matchingTag = availableTags.find((tag) => tag.tag === currentStatus);
@@ -87,6 +90,7 @@ export default function MangaDetailView({
     mutationFn: ({ status, tagColor }: { status: string; tagColor?: string }) =>
       addToMangaWatchlist([malId], status, tagColor),
     onSuccess: () => {
+      if (identityKey !== identityRef.current) return;
       setCustomTag('');
       queryClient.invalidateQueries({ queryKey: ['manga', 'watchlist'] });
       queryClient.invalidateQueries({ queryKey: ['manga', 'watchlist', 'enriched'] });
@@ -97,19 +101,46 @@ export default function MangaDetailView({
     },
   });
 
+  useEffect(() => {
+    if (identityRef.current === identityKey) return;
+    identityRef.current = identityKey;
+    statusRequestSeq.current += 1;
+    setOptimisticStatus(undefined);
+    setShowMenu(false);
+    watchlistMutation.reset();
+  }, [identityKey, watchlistMutation]);
+
+  const reconcileFailedStatusSave = (requestId: number, mutationIdentity: string) => {
+    // Only the newest request may drop the optimistic override — a late
+    // failure must not clobber a newer pick. Re-reading the detail then
+    // re-converges the display on the durable record, which also covers a
+    // lost acknowledgement where the write actually landed.
+    if (mutationIdentity !== identityRef.current) return;
+    if (requestId === statusRequestSeq.current) {
+      setOptimisticStatus(undefined);
+    }
+    queryClient.invalidateQueries({ queryKey: ['manga', 'detail', malId] });
+  };
+
   const handleAdd = (status: string, tagColor?: string) => {
-    const previousStatus = currentStatus;
+    const requestId = ++statusRequestSeq.current;
     setShowMenu(false);
     setOptimisticStatus(status);
     watchlistMutation.mutate(
       { status, tagColor },
       {
-        onError: () => {
-          setOptimisticStatus(previousStatus);
-        },
+        onError: () => reconcileFailedStatusSave(requestId, identityKey),
       }
     );
   };
+
+  useEffect(() => {
+    // Once the durable record catches up with the optimistic pick, hand the
+    // display back to the server value so it cannot go stale.
+    if (optimisticStatus !== undefined && optimisticStatus === persistedStatus) {
+      setOptimisticStatus(undefined);
+    }
+  }, [optimisticStatus, persistedStatus]);
 
   if (detailQuery.isLoading) return <LoadingSkeleton isModal={isModal} />;
   if (detailQuery.error || !detailQuery.data) {
@@ -228,9 +259,13 @@ export default function MangaDetailView({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              disabled={watchlistMutation.isPending}
+              disabled={!user || watchlistMutation.isPending}
               aria-label={
-                currentStatus ? `Edit watchlist status: ${currentStatus}` : 'Add to watchlist'
+                !user
+                  ? 'Sign in to track this manga'
+                  : currentStatus
+                    ? `Edit watchlist status: ${currentStatus}`
+                    : 'Add to watchlist'
               }
               className="w-full h-12 rounded-sm bg-primary text-primary-foreground flex items-center justify-center hover:scale-[1.02] transition-transform"
               style={
@@ -244,6 +279,10 @@ export default function MangaDetailView({
             >
               {watchlistMutation.isPending ? (
                 <span className="animate-spin text-sm">...</span>
+              ) : !user ? (
+                <span className="text-sm font-black uppercase tracking-widest">
+                  Sign in to track
+                </span>
               ) : currentStatus ? (
                 <span className="text-sm font-black uppercase tracking-widest">
                   IN LIST: {currentStatus}
@@ -252,6 +291,12 @@ export default function MangaDetailView({
                 <span className="font-black text-sm">ADD TO LIST</span>
               )}
             </button>
+            {watchlistMutation.isError && (
+              <p role="status" className="mt-2 text-xs text-destructive">
+                That change didn&apos;t save — the shown status is the last confirmed one. Please
+                try again.
+              </p>
+            )}
             {showMenu && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-surface-container-high border border-outline/20 shadow-2xl rounded-sm py-1 w-full z-20">
                 {availableTags.map((tag) => {

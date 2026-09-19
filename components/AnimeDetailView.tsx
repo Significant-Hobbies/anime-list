@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowUpRight, ExternalLink, Heart, Star } from 'lucide-react';
@@ -123,6 +123,11 @@ export default function AnimeDetailView({
   const [customTag, setCustomTag] = useState('');
   const [customColor, setCustomColor] = useState('#10b981');
   const [optimisticStatus, setOptimisticStatus] = useState<string | null | undefined>(undefined);
+  const statusRequestSeq = useRef(0);
+  const savedNoteRef = useRef('');
+  const identityKey = `${user?.id ?? 'guest'}:${malId}`;
+  const identityRef = useRef(identityKey);
+  const noteIdentityRef = useRef(identityKey);
 
   const detailQuery = useQuery({
     queryKey: ['anime', 'detail', malId],
@@ -152,6 +157,7 @@ export default function AnimeDetailView({
   const noteMutation = useMutation({
     mutationFn: (note: string) => updateAnimeNote(malId, note),
     onSuccess: () => {
+      if (identityKey !== identityRef.current) return;
       queryClient.invalidateQueries({ queryKey: ['anime', 'detail', malId] });
       queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
@@ -161,6 +167,7 @@ export default function AnimeDetailView({
     mutationFn: ({ status, tagColor }: { status: string; tagColor?: string }) =>
       addToWatchlist([malId], status, tagColor),
     onSuccess: () => {
+      if (identityKey !== identityRef.current) return;
       setCustomTag('');
       queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
@@ -173,6 +180,7 @@ export default function AnimeDetailView({
   const scheduleMutation = useMutation({
     mutationFn: () => addToSchedule([malId]),
     onSuccess: () => {
+      if (identityKey !== identityRef.current) return;
       setScheduled(true);
       setShowMenu(false);
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
@@ -182,19 +190,46 @@ export default function AnimeDetailView({
   const removeMutation = useMutation({
     mutationFn: () => removeFromWatchlist([malId]),
     onSuccess: () => {
+      if (identityKey !== identityRef.current) return;
       queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
       queryClient.invalidateQueries({ queryKey: ['anime', 'detail', malId] });
     },
   });
 
+  useEffect(() => {
+    if (identityRef.current === identityKey) return;
+    identityRef.current = identityKey;
+    statusRequestSeq.current += 1;
+    setOptimisticStatus(undefined);
+    setNoteDraft('');
+    setScheduled(false);
+    setShowMenu(false);
+    noteMutation.reset();
+    watchlistMutation.reset();
+    removeMutation.reset();
+    scheduleMutation.reset();
+  }, [identityKey, noteMutation, removeMutation, scheduleMutation, watchlistMutation]);
+
+  const reconcileFailedStatusSave = (requestId: number, mutationIdentity: string) => {
+    // Only the newest request may drop the optimistic override — a late
+    // failure must not clobber a newer pick. Re-reading the detail then
+    // re-converges the display on the durable record, which also covers a
+    // lost acknowledgement where the write actually landed.
+    if (mutationIdentity !== identityRef.current) return;
+    if (requestId === statusRequestSeq.current) {
+      setOptimisticStatus(undefined);
+    }
+    queryClient.invalidateQueries({ queryKey: ['anime', 'detail', malId] });
+  };
+
   const handleAdd = (status: string, tagColor?: string) => {
-    const previousStatus = currentStatus;
+    const requestId = ++statusRequestSeq.current;
     setShowMenu(false);
     if (currentStatus === status) {
       setOptimisticStatus(null);
       removeMutation.mutate(undefined, {
-        onError: () => setOptimisticStatus(previousStatus),
+        onError: () => reconcileFailedStatusSave(requestId, identityKey),
       });
       return;
     }
@@ -202,9 +237,7 @@ export default function AnimeDetailView({
     watchlistMutation.mutate(
       { status, tagColor },
       {
-        onError: () => {
-          setOptimisticStatus(previousStatus);
-        },
+        onError: () => reconcileFailedStatusSave(requestId, identityKey),
       }
     );
   };
@@ -221,9 +254,29 @@ export default function AnimeDetailView({
     return Array.from(deduped.values()).slice(0, 12);
   }, [detailQuery.data, malId]);
 
+  const savedNote = detailQuery.data?.watchlistEntry?.note ?? '';
+
   useEffect(() => {
-    setNoteDraft(detailQuery.data?.watchlistEntry?.note ?? '');
-  }, [detailQuery.data?.watchlistEntry?.note]);
+    // Once the durable record catches up with the optimistic pick, hand the
+    // display back to the server value so it cannot go stale.
+    if (optimisticStatus !== undefined && optimisticStatus === persistedStatus) {
+      setOptimisticStatus(undefined);
+    }
+  }, [optimisticStatus, persistedStatus]);
+
+  useEffect(() => {
+    // An identity change must never carry a draft across items or accounts.
+    // For the same identity, a late refetch must not erase an unsaved edit.
+    if (noteIdentityRef.current !== identityKey) {
+      noteIdentityRef.current = identityKey;
+      savedNoteRef.current = savedNote;
+      setNoteDraft(savedNote);
+      return;
+    }
+    const lastLoaded = savedNoteRef.current;
+    savedNoteRef.current = savedNote;
+    setNoteDraft((previous) => (previous === lastLoaded ? savedNote : previous));
+  }, [identityKey, savedNote]);
 
   if (detailQuery.isLoading) return <LoadingSkeleton isModal={isModal} />;
   if (detailQuery.error || !detailQuery.data) {
@@ -374,6 +427,12 @@ export default function AnimeDetailView({
                 {watchlistMutation.isPending ? '...' : trackingLabel}
               </span>
             </button>
+            {(watchlistMutation.isError || removeMutation.isError) && (
+              <p role="status" className="mt-2 text-xs text-destructive">
+                That change didn&apos;t save — the shown status is the last confirmed one. Please
+                try again.
+              </p>
+            )}
             {showMenu && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-surface-container-high border border-outline/20 shadow-2xl rounded-sm py-1 w-full z-20">
                 {availableTags.map((tag) => {
@@ -535,6 +594,11 @@ export default function AnimeDetailView({
                     className="w-full bg-transparent px-4 py-4 text-sm font-body text-white outline-none resize-y min-h-[100px]"
                     placeholder="Document your thoughts..."
                   />
+                  {noteMutation.isError && (
+                    <p role="status" className="px-4 py-2 text-xs text-destructive">
+                      Couldn&apos;t save the note — your draft is still here. Please try again.
+                    </p>
+                  )}
                   <div className="flex items-center justify-between px-4 py-3 bg-surface-container-high border-t border-outline/10">
                     <span className="text-xs text-muted-foreground">
                       {noteDraft.trim().length}/2000
