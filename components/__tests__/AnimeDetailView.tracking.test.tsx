@@ -128,24 +128,27 @@ it('shows the durable record when a save acknowledgement is lost', async () => {
   await screen.findByRole('button', { name: 'Edit watchlist status: Watching' });
 });
 
-it('keeps an unsaved note draft when a later detail read arrives', async () => {
-  fixture.status = 'Watching';
-  fixture.note = 'saved note';
-  render(detail());
+it.each(['unsaved draft', ''])(
+  'keeps an unsaved note draft %j when a later detail read arrives',
+  async (draft) => {
+    fixture.status = 'Watching';
+    fixture.note = 'saved note';
+    render(detail());
 
-  const editor = await screen.findByPlaceholderText('Document your thoughts...');
-  await waitFor(() => expect(editor).toHaveValue('saved note'));
-  fireEvent.change(editor, { target: { value: 'unsaved draft' } });
+    const editor = await screen.findByPlaceholderText('Document your thoughts...');
+    await waitFor(() => expect(editor).toHaveValue('saved note'));
+    fireEvent.change(editor, { target: { value: draft } });
 
-  // A different device saved meanwhile; the next status change re-reads the
-  // detail and must not clobber the in-progress draft.
-  fixture.note = 'changed elsewhere';
-  fireEvent.click(screen.getByRole('button', { name: 'Edit watchlist status: Watching' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }));
-  await screen.findByRole('button', { name: 'Edit watchlist status: Done' });
+    // A different device saved meanwhile; the next status change re-reads the
+    // detail and must not clobber the in-progress draft.
+    fixture.note = 'changed elsewhere';
+    fireEvent.click(screen.getByRole('button', { name: 'Edit watchlist status: Watching' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }));
+    await screen.findByRole('button', { name: 'Edit watchlist status: Done' });
 
-  expect(editor).toHaveValue('unsaved draft');
-});
+    expect(editor).toHaveValue(draft);
+  }
+);
 
 it('reports a failed note save, keeps the draft, and persists on retry', async () => {
   fixture.status = 'Watching';
@@ -165,6 +168,30 @@ it('reports a failed note save, keeps the draft, and persists on retry', async (
   await waitFor(() => expect(screen.queryByText(/Couldn't save the note/)).not.toBeInTheDocument());
   expect(fixture.updateNote).toHaveBeenLastCalledWith('first attempt');
   expect(fixture.note).toBe('first attempt');
+});
+
+it('clears an existing note and keeps it empty after saving and remounting', async () => {
+  fixture.status = 'Done';
+  fixture.note = 'Temporary release qualification 2026-09-20.';
+  const view = render(detail());
+  const editor = await screen.findByPlaceholderText('Document your thoughts...');
+  await waitFor(() => expect(editor).toHaveValue(fixture.note));
+
+  fireEvent.change(editor, { target: { value: '' } });
+  expect(editor).toHaveValue('');
+  const save = screen.getByRole('button', { name: 'Save note' });
+  expect(save).toBeEnabled();
+  fireEvent.click(save);
+  await waitFor(() => expect(fixture.updateNote).toHaveBeenCalledWith(''));
+  await waitFor(() => expect(save).toBeDisabled());
+  expect(fixture.note).toBe('');
+  expect(editor).toHaveValue('');
+
+  view.unmount();
+  render(detail());
+  expect(await screen.findByPlaceholderText('Document your thoughts...')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Save note' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Edit watchlist status: Done' })).toBeEnabled();
 });
 
 it('resets a note draft when the detail identity changes, but keeps it for a refetch', async () => {
