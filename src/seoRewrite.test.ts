@@ -180,6 +180,23 @@ describe('rewriteShell', () => {
     expect(result).toContain('<div id="root">');
   });
 
+  it('demotes the LCP shell hero so the entry title is the only h1', () => {
+    const shell = SHELL.replace(
+      '<div id="root">',
+      '<h1 id="lcp-shell-title">Anime List — find your next anime.</h1><div id="root">'
+    );
+    const result = rewriteShell(shell, {
+      origin: 'https://anime.significanthobbies.com',
+      kind: 'anime',
+      entry: animeEntry,
+    });
+
+    const h1s = result.match(/<h1[\s>]/g);
+    expect(h1s).toHaveLength(1);
+    expect(result).toContain('<h1>Fullmetal Alchemist: Brotherhood</h1>');
+    expect(result).toContain('<p id="lcp-shell-title">Anime List — find your next anime.</p>');
+  });
+
   it('handles </script> injection in title', () => {
     const dangerous: SeoEntry = {
       ...animeEntry,

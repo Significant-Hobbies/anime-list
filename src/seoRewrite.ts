@@ -205,7 +205,12 @@ export function rewriteShell(html: string, opts: RewriteOptions): string {
     throw new Error('ssr:start/end markers not found in shell HTML');
   }
 
-  return ssrResult;
+  // Detail pages serve the hidden LCP shell ahead of the SSR summary; demote
+  // its hero so the entry title is the page's single <h1> for crawlers.
+  return ssrResult.replace(
+    /<h1 id="lcp-shell-title"([^>]*)>([\s\S]*?)<\/h1>/,
+    '<p id="lcp-shell-title"$1>$2</p>'
+  );
 }
 
 export function rewriteShellNoindex(html: string): string {

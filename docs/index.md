@@ -26,6 +26,7 @@ implementation details and schedules.
 - **Understanding why a system exists**: [`architecture/decisions/`](architecture/decisions/).
 - **Avoiding a known dead end**: [`knowledge/failed-approaches.md`](knowledge/failed-approaches.md).
 - **Non-obvious implementation tricks**: [`knowledge/learnings.md`](knowledge/learnings.md).
+- **Organic growth**: [`seo-sprint.md`](seo-sprint.md) — satellite traffic roadmap (phases + evidence).
 
 ## Maintenance rules
 
