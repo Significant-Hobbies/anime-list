@@ -30,5 +30,9 @@ describe('Footer', () => {
     expect(getLastUpdated).toHaveBeenCalledOnce();
     expect(container.querySelector('footer')).toHaveClass('w-full');
     expect(container.querySelector('footer > div')).toHaveClass('max-w-7xl');
+    expect(container.querySelector('saas-maker-newsletter-capture')).toHaveAttribute(
+      'catalog-id',
+      'anime-list'
+    );
   });
 });

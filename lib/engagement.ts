@@ -55,6 +55,12 @@ export type HomeSurface = 'search' | 'discover' | 'stats' | 'quiz';
 
 export function trackHomeSurfaceClick(surface: HomeSurface, placement: string): void {
   trackEvent('home_surface_click', { surface, placement, ...variantProps() });
+  if (
+    typeof window !== 'undefined' &&
+    (surface === 'search' || surface === 'discover' || surface === 'stats')
+  ) {
+    window.appHealth?.track(`cta_${surface}`);
+  }
 }
 
 /**

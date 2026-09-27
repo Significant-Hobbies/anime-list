@@ -39,6 +39,13 @@ export default function Footer() {
   return (
     <footer className="mt-4 w-full border-t border-border">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <saas-maker-newsletter-capture
+          catalog-id="anime-list"
+          product-name={PRODUCT_NAME}
+          kind="newsletter"
+          source="footer"
+          privacy-url="https://anime.significanthobbies.com/privacy"
+        />
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="inline-flex flex-col items-start gap-0.5 text-foreground">
