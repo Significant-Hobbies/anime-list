@@ -7,14 +7,50 @@
 
 const INGEST_ENDPOINT = 'https://ingest.sassmaker.com/v1/ingest';
 
-// MAL ids and token ids are numeric; collapse digit-only segments.
+const STATIC_ROUTES = new Set([
+  '/api/auth/google',
+  '/api/auth/logout',
+  '/api/fields',
+  '/api/filters',
+  '/api/last-updated',
+  '/api/changelog',
+  '/api/search',
+  '/api/stats',
+  '/api/anime/random',
+  '/api/watchlist',
+  '/api/watchlist/tags',
+  '/api/watchlist/recommendations',
+  '/api/watchlist/enriched',
+  '/api/watchlist/import/preview',
+  '/api/watchlist/import/apply',
+  '/api/watchlist/export/anilist',
+  '/api/watchlist/export/json',
+  '/api/watchlist/export/csv',
+  '/api/watched/add',
+  '/api/watched/remove',
+  '/api/schedule/timeline',
+  '/api/schedule/add',
+  '/api/schedule/remove',
+  '/api/schedule/reorder',
+  '/api/discover/queue',
+  '/api/discover/dismiss',
+  '/api/mcp',
+  '/api/tokens',
+]);
+
+const PARAMETERIZED_ROUTES: ReadonlyArray<[RegExp, string]> = [
+  [/^\/api\/anime\/[^/]+$/, '/api/anime/:malId'],
+  [/^\/api\/anime\/[^/]+\/note$/, '/api/anime/:malId/note'],
+  [/^\/api\/watchlist\/tags\/[^/]+\/update$/, '/api/watchlist/tags/:tagId/update'],
+  [/^\/api\/watchlist\/tags\/[^/]+\/delete$/, '/api/watchlist/tags/:tagId/delete'],
+  [/^\/api\/schedule\/[^/]+\/update$/, '/api/schedule/:malId/update'],
+  [/^\/api\/tokens\/[^/]+\/revoke$/, '/api/tokens/:id/revoke'],
+];
+
 function routeFor(pathname: string): string | null {
   const p = pathname.replace(/\/+$/, '') || '/';
-  const normalized = p
-    .split('/')
-    .map((seg) => (/^\d+$/.test(seg) ? ':id' : seg))
-    .join('/');
-  return normalized.length <= 64 ? normalized : null;
+  if (STATIC_ROUTES.has(p)) return p;
+  return PARAMETERIZED_ROUTES.find(([pattern]) => pattern.test(p))?.[1] ?? null;
 }
 
 export function observeRequest(
