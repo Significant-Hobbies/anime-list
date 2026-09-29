@@ -8,6 +8,12 @@
 const INGEST_ENDPOINT = 'https://ingest.sassmaker.com/v1/ingest';
 
 const STATIC_ROUTES = new Set([
+  '/',
+  '/openapi.json',
+  '/openapi.yaml',
+  '/llms.txt',
+  '/llms-full.txt',
+  '/index.md',
   '/api/auth/google',
   '/api/auth/logout',
   '/api/fields',
@@ -17,6 +23,16 @@ const STATIC_ROUTES = new Set([
   '/api/search',
   '/api/stats',
   '/api/anime/random',
+  '/api/ai',
+  '/api/manga/fields',
+  '/api/manga/filters',
+  '/api/manga/search',
+  '/api/manga/stats',
+  '/api/manga/random',
+  '/api/manga/watchlist/enriched',
+  '/api/manga/watchlist',
+  '/api/manga/watched/add',
+  '/api/manga/watched/remove',
   '/api/watchlist',
   '/api/watchlist/tags',
   '/api/watchlist/recommendations',
@@ -41,6 +57,7 @@ const STATIC_ROUTES = new Set([
 const PARAMETERIZED_ROUTES: ReadonlyArray<[RegExp, string]> = [
   [/^\/api\/anime\/[^/]+$/, '/api/anime/:malId'],
   [/^\/api\/anime\/[^/]+\/note$/, '/api/anime/:malId/note'],
+  [/^\/api\/manga\/[^/]+$/, '/api/manga/:malId'],
   [/^\/api\/watchlist\/tags\/[^/]+\/update$/, '/api/watchlist/tags/:tagId/update'],
   [/^\/api\/watchlist\/tags\/[^/]+\/delete$/, '/api/watchlist/tags/:tagId/delete'],
   [/^\/api\/schedule\/[^/]+\/update$/, '/api/schedule/:malId/update'],

@@ -28,6 +28,7 @@ describe('App Health route privacy', () => {
   it('uses fixed templates for MAL, tag, and token identifiers', async () => {
     const cases = [
       ['/api/anime/12345', '/api/anime/:malId', '12345'],
+      ['/api/manga/98765', '/api/manga/:malId', '98765'],
       [
         '/api/watchlist/tags/my-private-tag/update',
         '/api/watchlist/tags/:tagId/update',
