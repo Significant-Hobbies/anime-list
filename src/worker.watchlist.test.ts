@@ -1,6 +1,7 @@
 // @vitest-environment node
 /// <reference types="@cloudflare/workers-types" />
 import { SignJWT } from 'jose';
+import axios from 'axios';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { D1Database } from '@cloudflare/workers-types';
 import worker from './worker';
@@ -13,6 +14,7 @@ vi.mock('axios', () => ({
 
 const JWT_SECRET = 'worker-watchlist-test-secret';
 const MAL_ID = 1;
+const mockedAxios = vi.mocked(axios);
 
 type Row = Record<string, unknown>;
 
@@ -22,6 +24,7 @@ type Row = Record<string, unknown>;
 // observe durable per-user records rather than mocked call counts.
 class FakeD1 {
   readonly statements: { sql: string; args: unknown[] }[] = [];
+  detailCacheReadBatches = 0;
   private readonly userTags = new Map<string, Row>();
   private readonly animeWatchlist = new Map<string, Row>();
   private readonly animeData: Row[];
@@ -46,7 +49,21 @@ class FakeD1 {
   }
 
   batch(statements: { all: () => Promise<unknown> }[]) {
-    return Promise.all(statements.map((statement) => statement.all()));
+    const start = this.statements.length;
+    return Promise.all(statements.map((statement) => statement.all())).then((results) => {
+      const queries = this.statements.slice(start).map((statement) => statement.sql);
+      if (
+        queries.some((sql) =>
+          sql.startsWith('SELECT mal_id, payload, fetched_at FROM anime_relations_cache')
+        ) &&
+        queries.some((sql) =>
+          sql.startsWith('SELECT mal_id, payload, fetched_at FROM anime_recommendations_cache')
+        )
+      ) {
+        this.detailCacheReadBatches += 1;
+      }
+      return results;
+    });
   }
 
   withSession() {
@@ -247,6 +264,7 @@ beforeEach(() => {
   db = new FakeD1([ANIME_ROW]);
   edgeCache = new Map();
   pending = [];
+  vi.clearAllMocks();
 });
 
 describe('watchlist handlers', () => {
@@ -385,5 +403,22 @@ describe('watchlist handlers', () => {
     const anonymousThird = await call(`/api/anime/${MAL_ID}`);
     expect(anonymousThird.headers.get('X-Detail-Cache')).toBe('HIT');
     expect((await anonymousThird.json()).watchlistEntry).toBeNull();
+  });
+
+  it('batches detail cache reads and avoids provider work for unknown anime IDs', async () => {
+    const existing = await call(`/api/anime/${MAL_ID}`);
+    expect(existing.status).toBe(200);
+    expect(db.detailCacheReadBatches).toBe(1);
+    expect(
+      db.statements.filter((statement) =>
+        statement.sql.startsWith('SELECT mal_id, payload, fetched_at FROM anime_')
+      )
+    ).toHaveLength(2);
+
+    const providerCallsBeforeMissingId = mockedAxios.get.mock.calls.length;
+    const missing = await call('/api/anime/999999', { token: await tokenFor('missing') });
+    expect(missing.status).toBe(404);
+    expect(db.detailCacheReadBatches).toBe(2);
+    expect(mockedAxios.get).toHaveBeenCalledTimes(providerCallsBeforeMissingId);
   });
 });

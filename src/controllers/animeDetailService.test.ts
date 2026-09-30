@@ -6,6 +6,7 @@ import {
   upsertAnimeRecommendationsCache,
   upsertAnimeRelationsCache,
 } from '../db/animeDetailCache';
+import type { AnimeDetailCacheRecords } from '../db/animeDetailCache';
 import { getAnimeDetailSupplementalData } from './animeDetailService';
 
 vi.mock('axios');
@@ -48,6 +49,34 @@ describe('animeDetailService', () => {
         { relation: 'Sequel', entries: [{ mal_id: 2, type: 'anime', name: 'B', url: 'u' }] },
       ],
       recommendations: [{ entry: { mal_id: 3, title: 'C', url: 'v' }, votes: 42 }],
+    });
+  });
+
+  it('uses batched preloaded cache records with the same response data', async () => {
+    const now = new Date().toISOString();
+    const cached: AnimeDetailCacheRecords = {
+      relations: {
+        malId: 1,
+        data: [
+          { relation: 'Sequel', entries: [{ mal_id: 2, type: 'anime', name: 'B', url: 'u' }] },
+        ],
+        fetchedAt: now,
+      },
+      recommendations: {
+        malId: 1,
+        data: [{ entry: { mal_id: 3, title: 'C', url: 'v' }, votes: 42 }],
+        fetchedAt: now,
+      },
+    };
+
+    const result = await getAnimeDetailSupplementalData(1, cached);
+
+    expect(mockedGetRelationsCache).not.toHaveBeenCalled();
+    expect(mockedGetRecommendationsCache).not.toHaveBeenCalled();
+    expect(mockedAxios.get).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      relations: cached.relations?.data,
+      recommendations: cached.recommendations?.data,
     });
   });
 

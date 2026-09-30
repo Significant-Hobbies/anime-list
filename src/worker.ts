@@ -75,6 +75,7 @@ import {
 } from './db/schedule';
 import { bindD1Database } from './db/client';
 import { getAnimeDetailSupplementalData } from './controllers/animeDetailService';
+import { getAnimeDetailCacheRecords } from './db/animeDetailCache';
 import { enrichAnimeRelations } from './controllers/animeDetailRelations';
 import { executeSearch } from './controllers/searchController';
 import { buildScheduleTimelineResponse, addScheduleItems } from './services/scheduleService';
@@ -610,14 +611,17 @@ app.get('/api/anime/:malId', optionalAuth, async (c) => {
     }
   }
 
-  const anime = await getAnimeByMalId(malId);
+  const [anime, detailCaches] = await Promise.all([
+    getAnimeByMalId(malId),
+    getAnimeDetailCacheRecords(malId),
+  ]);
 
   if (!anime) {
     return c.json({ error: 'Anime not found' }, 404);
   }
 
   const [supplemental, watchlistEntry, animeList] = await Promise.all([
-    getAnimeDetailSupplementalData(malId),
+    getAnimeDetailSupplementalData(malId, detailCaches),
     user ? getAnimeWatchlistEntry(String(malId), user.userId) : Promise.resolve(null),
     animeStore.getAnimeList(),
   ]);

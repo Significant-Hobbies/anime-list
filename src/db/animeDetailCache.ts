@@ -5,6 +5,11 @@ import type {
   AnimeRecommendation,
 } from '../types/animeDetail';
 
+export interface AnimeDetailCacheRecords {
+  relations: AnimeDetailCacheRecord<AnimeRelation> | null;
+  recommendations: AnimeDetailCacheRecord<AnimeRecommendation> | null;
+}
+
 const parseCachedPayload = <T>(value: unknown): T[] => {
   if (typeof value !== 'string') return [];
 
@@ -15,6 +20,16 @@ const parseCachedPayload = <T>(value: unknown): T[] => {
     return [];
   }
 };
+
+function cacheRecordFromRows<T>(rows: Record<string, unknown>[]): AnimeDetailCacheRecord<T> | null {
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    malId: Number(row.mal_id),
+    data: parseCachedPayload<T>(row.payload),
+    fetchedAt: row.fetched_at as string,
+  };
+}
 
 async function getCachedCollection<T>(
   tableName: 'anime_relations_cache' | 'anime_recommendations_cache',
@@ -30,16 +45,29 @@ async function getCachedCollection<T>(
     `,
     args: [malId],
   });
+  return cacheRecordFromRows(result.rows);
+}
 
-  if (result.rows.length === 0) {
-    return null;
-  }
-
-  const row = result.rows[0];
+/** Read both global detail caches in one D1 round trip. */
+export async function getAnimeDetailCacheRecords(malId: number): Promise<AnimeDetailCacheRecords> {
+  const [relations, recommendations] = await getDb().batch(
+    [
+      {
+        sql: `SELECT mal_id, payload, fetched_at
+              FROM anime_relations_cache WHERE mal_id = ? LIMIT 1`,
+        args: [malId],
+      },
+      {
+        sql: `SELECT mal_id, payload, fetched_at
+              FROM anime_recommendations_cache WHERE mal_id = ? LIMIT 1`,
+        args: [malId],
+      },
+    ],
+    'read'
+  );
   return {
-    malId: Number(row.mal_id),
-    data: parseCachedPayload<T>(row.payload),
-    fetchedAt: row.fetched_at as string,
+    relations: cacheRecordFromRows<AnimeRelation>(relations?.rows ?? []),
+    recommendations: cacheRecordFromRows<AnimeRecommendation>(recommendations?.rows ?? []),
   };
 }
 
