@@ -89,7 +89,7 @@ export function observeRequest(
     events: [
       {
         event_id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
+        timestamp: Date.now(),
         method: request.method,
         route,
         status_code: response.status,

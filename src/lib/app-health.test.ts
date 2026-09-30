@@ -41,6 +41,7 @@ describe('App Health route privacy', () => {
       const fetchMock = await telemetryFor(path);
       const batch = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
       expect(batch.events[0].route).toBe(route);
+      expect(Number.isInteger(batch.events[0].timestamp)).toBe(true);
       expect(JSON.stringify(batch)).not.toContain(identifier);
     }
   });
