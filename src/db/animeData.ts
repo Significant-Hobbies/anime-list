@@ -1,9 +1,9 @@
 import { getDb } from './client';
-import type { AnimeItem } from '../types/anime';
+import type { AnimeItem, BaseAnimeItem } from '../types/anime';
 import { AnimeField, FilterAction } from '../config';
 import type { ArrayField, Filter, NumericField, StringField } from '../types/anime';
 
-const mapAnimeRow = (row: Record<string, unknown>): AnimeItem => ({
+const mapBaseAnimeRow = (row: Record<string, unknown>): BaseAnimeItem => ({
   mal_id: row.mal_id as number,
   url: row.url as string,
   title: row.title as string,
@@ -27,6 +27,10 @@ const mapAnimeRow = (row: Record<string, unknown>): AnimeItem => ({
   year: (row.year as number) || undefined,
   season: (row.season as string) || undefined,
   image: (row.image as string) || undefined,
+});
+
+const mapAnimeRow = (row: Record<string, unknown>): AnimeItem => ({
+  ...mapBaseAnimeRow(row),
   genres: JSON.parse((row.genres as string) || '{}'),
   themes: JSON.parse((row.themes as string) || '{}'),
   demographics: JSON.parse((row.demographics as string) || '{}'),
@@ -38,6 +42,18 @@ export interface UpsertSummary {
 }
 
 const UPSERT_BATCH_SIZE = 100;
+const ANIME_ID_READ_BATCH_SIZE = 100;
+const ANIME_ENRICHMENT_COLUMNS = [
+  'mal_id',
+  'url',
+  'title',
+  'title_english',
+  'type',
+  'episodes',
+  'status',
+  'year',
+  'image',
+] as const;
 
 const nullable = (v: unknown) => v || null;
 
@@ -166,6 +182,26 @@ export async function getAllAnime(): Promise<AnimeItem[]> {
   const result = await db.execute('SELECT * FROM anime_data');
 
   return result.rows.map((row) => mapAnimeRow(row as unknown as Record<string, unknown>));
+}
+
+/** Read only anime rows and columns needed to enrich detail relations and recommendations. */
+export async function getAnimeByMalIds(malIds: readonly number[]): Promise<BaseAnimeItem[]> {
+  const uniqueMalIds = [...new Set(malIds)];
+  if (uniqueMalIds.length === 0) return [];
+
+  const db = getDb();
+  const rows: Record<string, unknown>[] = [];
+  for (let offset = 0; offset < uniqueMalIds.length; offset += ANIME_ID_READ_BATCH_SIZE) {
+    const chunk = uniqueMalIds.slice(offset, offset + ANIME_ID_READ_BATCH_SIZE);
+    const placeholders = chunk.map(() => '?').join(',');
+    const result = await db.execute({
+      sql: `SELECT ${ANIME_ENRICHMENT_COLUMNS.join(', ')} FROM anime_data WHERE mal_id IN (${placeholders})`,
+      args: chunk,
+    });
+    rows.push(...result.rows);
+  }
+
+  return rows.map((row) => mapBaseAnimeRow(row));
 }
 
 const NUMERIC_COLUMN_BY_FIELD: Record<NumericField, string> = {
