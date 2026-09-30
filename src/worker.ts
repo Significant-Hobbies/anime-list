@@ -33,6 +33,7 @@ import { animeStore } from './store/animeStore';
 import { mangaStore } from './store/mangaStore';
 import {
   getAnimeByMalId,
+  getAnimeByMalIds,
   getLastDataUpdate,
   getRecentChanges,
   getSimpleAnimeSearchPage,
@@ -620,11 +621,17 @@ app.get('/api/anime/:malId', optionalAuth, async (c) => {
     return c.json({ error: 'Anime not found' }, 404);
   }
 
-  const [supplemental, watchlistEntry, animeList] = await Promise.all([
+  const [supplemental, watchlistEntry] = await Promise.all([
     getAnimeDetailSupplementalData(malId, detailCaches),
     user ? getAnimeWatchlistEntry(String(malId), user.userId) : Promise.resolve(null),
-    animeStore.getAnimeList(),
   ]);
+  const enrichmentIds = [
+    ...supplemental.relations.flatMap((group) =>
+      group.entries.filter((entry) => entry.type === 'anime').map((entry) => entry.mal_id)
+    ),
+    ...supplemental.recommendations.map((recommendation) => recommendation.entry.mal_id),
+  ];
+  const animeList = await getAnimeByMalIds(enrichmentIds);
   const animeMap = new Map(animeList.map((item) => [item.mal_id, item] as const));
 
   const response: AnimeDetailResponse = {

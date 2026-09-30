@@ -15,6 +15,19 @@ vi.mock('axios', () => ({
 const JWT_SECRET = 'worker-watchlist-test-secret';
 const MAL_ID = 1;
 const mockedAxios = vi.mocked(axios);
+const ANIME_ENRICHMENT_QUERY_PREFIX =
+  'SELECT mal_id, url, title, title_english, type, episodes, status, year, image FROM anime_data WHERE mal_id IN (';
+const ANIME_ENRICHMENT_COLUMNS = [
+  'mal_id',
+  'url',
+  'title',
+  'title_english',
+  'type',
+  'episodes',
+  'status',
+  'year',
+  'image',
+] as const;
 
 type Row = Record<string, unknown>;
 
@@ -147,6 +160,16 @@ class FakeD1 {
       return { results: this.animeData.map((row) => ({ ...row })), meta: { changes: 0 } };
     }
 
+    if (normalized.startsWith(ANIME_ENRICHMENT_QUERY_PREFIX)) {
+      const malIds = new Set(args as number[]);
+      const results = this.animeData
+        .filter((anime) => malIds.has(anime.mal_id as number))
+        .map((anime) =>
+          Object.fromEntries(ANIME_ENRICHMENT_COLUMNS.map((column) => [column, anime[column]]))
+        );
+      return { results, meta: { changes: 0 } };
+    }
+
     if (normalized.startsWith('SELECT * FROM anime_data WHERE mal_id = ?')) {
       const [malId] = args as [number];
       const row = this.animeData.find((anime) => anime.mal_id === malId);
@@ -158,6 +181,13 @@ class FakeD1 {
       normalized.startsWith('SELECT mal_id, payload, fetched_at FROM anime_recommendations_cache')
     ) {
       return { results: [], meta: { changes: 0 } };
+    }
+
+    if (
+      normalized.startsWith('INSERT INTO anime_relations_cache') ||
+      normalized.startsWith('INSERT INTO anime_recommendations_cache')
+    ) {
+      return { results: [], meta: { changes: 1 } };
     }
 
     throw new Error(`FakeD1 received an unhandled statement: ${normalized}`);
@@ -190,6 +220,20 @@ const ANIME_ROW: Row = {
   created_at: '2026-01-01',
   updated_at: '2026-01-01',
 };
+
+const animeRow = (malId: number, overrides: Row = {}): Row => ({
+  ...ANIME_ROW,
+  mal_id: malId,
+  url: `https://example.invalid/anime/${malId}`,
+  title: `Anime ${malId}`,
+  title_english: `English ${malId}`,
+  type: 'TV',
+  status: 'Finished Airing',
+  episodes: 12,
+  year: 2024,
+  image: `https://example.invalid/${malId}.jpg`,
+  ...overrides,
+});
 
 let db: FakeD1;
 let edgeCache: Map<string, string>;
@@ -268,6 +312,183 @@ beforeEach(() => {
 });
 
 describe('watchlist handlers', () => {
+  it('enriches detail responses from only deduplicated related anime rows', async () => {
+    db = new FakeD1([
+      animeRow(1),
+      animeRow(2, { title: 'Sequel', title_english: 'Sequel EN' }),
+      animeRow(4, { title: 'Recommended', title_english: 'Recommended EN' }),
+      animeRow(9, { title: 'Unrelated' }),
+    ]);
+    mockedAxios.get.mockImplementation(async (url: string) => ({
+      data: {
+        data: url.endsWith('/relations')
+          ? [
+              {
+                relation: 'Sequel',
+                entry: [
+                  { mal_id: 2, type: 'anime', name: 'Provider sequel', url: 'provider-2' },
+                  { mal_id: 2, type: 'manga', name: 'Manga collision', url: 'manga-2' },
+                  { mal_id: 3, type: 'anime', name: 'Missing anime', url: 'missing-3' },
+                ],
+              },
+              {
+                relation: 'Side story',
+                entry: [{ mal_id: 2, type: 'anime', name: 'Duplicate sequel', url: 'duplicate-2' }],
+              },
+            ]
+          : [
+              {
+                entry: {
+                  mal_id: 4,
+                  title: 'Provider recommendation',
+                  url: 'provider-4',
+                  images: { webp: { image_url: 'provider-image-4' } },
+                },
+                votes: 7,
+              },
+              { entry: { mal_id: 3, title: 'Missing recommendation', url: 'missing-3' }, votes: 2 },
+            ],
+      },
+    }));
+
+    const response = await call('/api/anime/1');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      anime: { mal_id: 1, title: 'Anime 1' },
+      relations: [
+        {
+          mal_id: 2,
+          relation: 'Sequel',
+          title: 'Sequel',
+          title_english: 'Sequel EN',
+          image: 'https://example.invalid/2.jpg',
+          type: 'TV',
+          status: 'Finished Airing',
+          episodes: 12,
+          year: 2024,
+          url: 'https://example.invalid/anime/2',
+        },
+        {
+          mal_id: 2,
+          relation: 'Sequel',
+          title: 'Manga collision',
+          type: 'manga',
+          url: 'manga-2',
+        },
+        {
+          mal_id: 3,
+          relation: 'Sequel',
+          title: 'Missing anime',
+          type: 'anime',
+          url: 'missing-3',
+        },
+        {
+          mal_id: 2,
+          relation: 'Side story',
+          title: 'Sequel',
+          type: 'TV',
+          url: 'https://example.invalid/anime/2',
+        },
+      ],
+      recommendations: [
+        {
+          mal_id: 4,
+          title: 'Recommended',
+          title_english: 'Recommended EN',
+          image: 'https://example.invalid/4.jpg',
+          type: 'TV',
+          status: 'Finished Airing',
+          episodes: 12,
+          year: 2024,
+          url: 'https://example.invalid/anime/4',
+          votes: 7,
+        },
+        {
+          mal_id: 3,
+          title: 'Missing recommendation',
+          url: 'missing-3',
+          votes: 2,
+        },
+      ],
+      watchlistEntry: null,
+    });
+
+    const reads = db.statements.filter((statement) =>
+      statement.sql.startsWith(ANIME_ENRICHMENT_QUERY_PREFIX)
+    );
+    expect(reads).toHaveLength(1);
+    expect(reads[0].args).toEqual([2, 3, 4]);
+    expect(reads[0].sql).toContain(ANIME_ENRICHMENT_COLUMNS.join(', '));
+    expect(db.statements.some((statement) => statement.sql === 'SELECT * FROM anime_data')).toBe(
+      false
+    );
+  });
+
+  it('does not query the anime catalog when detail enrichment has no anime IDs', async () => {
+    mockedAxios.get.mockImplementation(async (url: string) => ({
+      data: {
+        data: url.endsWith('/relations')
+          ? [
+              {
+                relation: 'Adaptation',
+                entry: [{ mal_id: 1, type: 'manga', name: 'Manga', url: 'manga-1' }],
+              },
+            ]
+          : [],
+      },
+    }));
+
+    const response = await call('/api/anime/1');
+    expect(response.status).toBe(200);
+    expect((await response.json()).relations).toEqual([
+      {
+        mal_id: 1,
+        relation: 'Adaptation',
+        title: 'Manga',
+        title_english: undefined,
+        image: undefined,
+        type: 'manga',
+        status: undefined,
+        episodes: undefined,
+        year: undefined,
+        url: 'manga-1',
+      },
+    ]);
+    expect(
+      db.statements.some((statement) => statement.sql.startsWith(ANIME_ENRICHMENT_QUERY_PREFIX))
+    ).toBe(false);
+    expect(db.statements.some((statement) => statement.sql === 'SELECT * FROM anime_data')).toBe(
+      false
+    );
+  });
+
+  it('chunks large detail enrichment reads without dropping related items', async () => {
+    const ids = Array.from({ length: 102 }, (_, index) => index + 10);
+    mockedAxios.get.mockImplementation(async (url: string) => ({
+      data: {
+        data: url.endsWith('/relations')
+          ? []
+          : ids.map((mal_id) => ({
+              entry: { mal_id, title: `Provider ${mal_id}`, url: `provider-${mal_id}` },
+              votes: 1,
+            })),
+      },
+    }));
+
+    const response = await call('/api/anime/1');
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { recommendations: { mal_id: number }[] };
+    expect(body.recommendations.map(({ mal_id }) => mal_id)).toEqual(ids);
+    const reads = db.statements.filter((statement) =>
+      statement.sql.startsWith(ANIME_ENRICHMENT_QUERY_PREFIX)
+    );
+    expect(reads.map((statement) => statement.args.length)).toEqual([100, 2]);
+    expect(reads.flatMap((statement) => statement.args)).toEqual(ids);
+    expect(db.statements.some((statement) => statement.sql === 'SELECT * FROM anime_data')).toBe(
+      false
+    );
+  });
+
   it('persists status and note changes across later reads for the same account', async () => {
     const alice = await tokenFor('alice');
 
