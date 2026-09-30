@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config';
 import {
+  type AnimeDetailCacheRecords,
   getAnimeRecommendationsCache,
   getAnimeRelationsCache,
   upsertAnimeRecommendationsCache,
@@ -108,8 +109,11 @@ async function fetchCatalogCollection<T>(path: string): Promise<T[]> {
   return Array.isArray(response.data?.data) ? response.data.data : [];
 }
 
-async function loadRelations(malId: number): Promise<AnimeRelation[]> {
-  const cached = await getAnimeRelationsCache(malId);
+async function loadRelations(
+  malId: number,
+  preloaded?: AnimeDetailCacheRecords['relations']
+): Promise<AnimeRelation[]> {
+  const cached = preloaded === undefined ? await getAnimeRelationsCache(malId) : preloaded;
   if (cached && isFresh(cached.fetchedAt)) {
     return cached.data;
   }
@@ -129,8 +133,11 @@ async function loadRelations(malId: number): Promise<AnimeRelation[]> {
   }
 }
 
-async function loadRecommendations(malId: number): Promise<AnimeRecommendation[]> {
-  const cached = await getAnimeRecommendationsCache(malId);
+async function loadRecommendations(
+  malId: number,
+  preloaded?: AnimeDetailCacheRecords['recommendations']
+): Promise<AnimeRecommendation[]> {
+  const cached = preloaded === undefined ? await getAnimeRecommendationsCache(malId) : preloaded;
   if (cached && isFresh(cached.fetchedAt)) {
     return cached.data;
   }
@@ -150,13 +157,16 @@ async function loadRecommendations(malId: number): Promise<AnimeRecommendation[]
   }
 }
 
-export async function getAnimeDetailSupplementalData(malId: number): Promise<{
+export async function getAnimeDetailSupplementalData(
+  malId: number,
+  cached?: AnimeDetailCacheRecords
+): Promise<{
   relations: AnimeRelation[];
   recommendations: AnimeRecommendation[];
 }> {
   const [relations, recommendations] = await Promise.all([
-    loadRelations(malId),
-    loadRecommendations(malId),
+    loadRelations(malId, cached?.relations),
+    loadRecommendations(malId, cached?.recommendations),
   ]);
 
   return { relations, recommendations };
