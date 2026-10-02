@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#09090b" />
     <style>
+      /* Match the mounted app shell before JS arrives; keep the about copy
+         below the first viewport instead of shifting the entire body. */
+      #root { min-height: 100dvh; }
       #lcp-shell { display: none; }
       html[data-home] #lcp-shell {
         display: block;
