@@ -1,7 +1,17 @@
 import surfaces from '../src/data/public-surfaces.json';
 import { rewriteStaticSeo } from '../src/staticSeo';
+import { rewriteShellNoindex } from '../src/seoRewrite';
 
 const publicSurfaces = new Map(surfaces.map((surface) => [surface.path, surface]));
+const personalRoutes = new Set(['/quiz', '/schedule', '/watchlist', '/manga/watchlist']);
+
+function isAppRoute(pathname: string): boolean {
+  return (
+    publicSurfaces.has(pathname) ||
+    personalRoutes.has(pathname) ||
+    /^\/(?:anime|manga|genre)\/[^/]+$/.test(pathname)
+  );
+}
 
 const SITE_URL = 'https://anime.significanthobbies.com';
 
@@ -180,7 +190,7 @@ export const onRequest: PagesFunction = async (context) => {
   // /api/ai is a static Pages surface. Every other /api/* path is proxied to
   // mal-api by functions/api/[[path]].ts — do not 404 them here.
 
-  if (request.method !== 'GET') return context.next();
+  if (request.method !== 'GET' && request.method !== 'HEAD') return context.next();
 
   const surface = publicSurfaces.get(pathname);
 
@@ -208,7 +218,7 @@ export const onRequest: PagesFunction = async (context) => {
 
   // Agent-friendly 404 with markdown recovery body for markdown clients.
   if (
-    !surface &&
+    !isAppRoute(pathname) &&
     wantsMarkdown(request) &&
     !pathname.includes('.') &&
     !pathname.startsWith('/api/')
@@ -218,6 +228,29 @@ export const onRequest: PagesFunction = async (context) => {
 
   if (!surface) {
     const response = await context.next();
+    const ct = response.headers.get('content-type') ?? '';
+    // Pages' SPA fallback otherwise turns arbitrary URLs (including /%60)
+    // into indexable 200 homepages. Preserve assets, API and real app routes.
+    if (
+      !isAppRoute(pathname) &&
+      !pathname.startsWith('/api/') &&
+      response.status === 200 &&
+      ct.includes('text/html')
+    ) {
+      const headers = new Headers(response.headers);
+      headers.set('x-robots-tag', 'noindex');
+      headers.set('cache-control', 'no-store');
+      headers.set('vary', 'Accept, Accept-Encoding');
+      headers.delete('content-length');
+      headers.delete('etag');
+      // The bounded SPA shell has SEO markers; remove its homepage canonical.
+      const html = request.method === 'HEAD' ? null : await response.text();
+      const body =
+        html?.includes('<!-- seo:start -->') && html.includes('<!-- seo:end -->')
+          ? rewriteShellNoindex(html)
+          : html;
+      return new Response(body, { status: 404, headers });
+    }
     if (response.status === 404 && !pathname.startsWith('/api/')) {
       const headers = new Headers(response.headers);
       headers.set('vary', 'Accept, Accept-Encoding');
@@ -225,7 +258,6 @@ export const onRequest: PagesFunction = async (context) => {
     }
     // Add Vary: Accept to HTML 200 responses from the SPA that have
     // markdown alternates (all routes share index.md as the alternate).
-    const ct = response.headers.get('content-type') ?? '';
     if (response.status === 200 && ct.includes('text/html')) {
       const headers = new Headers(response.headers);
       const existingVary = headers.get('vary');
@@ -237,7 +269,8 @@ export const onRequest: PagesFunction = async (context) => {
 
   const response = await context.next();
   const contentType = response.headers.get('content-type') ?? '';
-  if (response.status !== 200 || !contentType.includes('text/html')) return response;
+  if (request.method === 'HEAD' || response.status !== 200 || !contentType.includes('text/html'))
+    return response;
 
   const html = rewriteStaticSeo(await response.text(), surface, url.origin);
   const headers = new Headers(response.headers);
