@@ -1,30 +1,37 @@
 # anime_list — PROJECT STATUS
 Last updated: 2026-10-02
 
-Local startup-layout repair: anonymous desktop audits found CLS near 1.0,
+Released startup-layout repair: anonymous desktop audits found CLS near 1.0,
 traced to the empty app root letting the static about section collapse the
 body's top margin before React mounts. The critical HTML now reserves the
 same viewport-height space as RootLayout. An anonymous browser comparison
 reduced observed layout shift from about 1.009 to 0.001 with the candidate
 style; offline desktop/mobile regressions cover the home and search shells.
-This source change is not deployed and does not establish real-user CWV.
+The Pages-only release from `4e6179db784926c6ebadc42765248b1c1f41602d`
+is deployed as `decbbbf5-e62e-40b6-96b4-8ad65d0a1a0e`. Synthetic production
+Chromium at 1280/390 pixels showed CLS 0.000345/0.000688 and no horizontal
+overflow, with analytics intercepted. This does not establish real-user CWV.
 
-Local crawl-status repair: public search surfaced `/%60` as a homepage result,
+Released crawl-status repair: public search surfaced `/%60` as a homepage result,
 and an anonymous GET confirmed HTTP 200 with the homepage canonical. Pages
 middleware now returns 404/noindex for unknown HTML SPA fallbacks (GET and HEAD),
 preserving real app/API/assets and allowing detail Markdown requests through to
 their existing handlers. Seventeen middleware regressions include the previously
 failing backtick, arbitrary path, missing HTML file, HEAD, and detail Markdown
-cases. This candidate is not deployed; recrawl/removal is not verified.
+cases. Custom-domain GET and HEAD checks now return 404/noindex for that path
+and an arbitrary invalid route. Home/search/detail, llms and sitemap remain
+200; detail Markdown remains 200 text/markdown. Search recrawl/removal is
+not verified.
 
 Release qualification on current main: 196 unit tests, typecheck, lint, format,
 coverage, import, unused-code, complexity, duplication, and cycle checks pass.
 Four offline startup-layout browser cases pass across desktop Chromium and mobile
-WebKit. The full quality gate stops at seven high-severity advisories in the
-existing Axios 1.18.1 dependency. All seven are patched by Axios 1.20.0; the
-narrow production-dependency upgrade requires explicit owner approval before
-mutation. Do not bypass this gate or dispatch the full deploy workflow merely
-to ship the Pages fixes: that workflow also migrates D1 and deploys the API.
+WebKit. After explicit owner approval, Axios was narrowly upgraded to 1.20.0;
+the complete quality gate passes with zero high/critical dependency advisories.
+Both exact-main push workflows and all six deploy gates passed before the
+Pages-only production release. No D1 migration or API Worker deployment was
+run. Do not dispatch the full deploy workflow merely to ship Pages fixes:
+that workflow also migrates D1 and deploys the API.
 
 Tracking qualification: account changes now replace the React Query cache and
 mounted drafts, preventing previous-account detail/status/note reuse. Guest anime
