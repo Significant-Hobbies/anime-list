@@ -19,45 +19,8 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export default function Footer() {
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    getLastUpdated()
-      .then((data) => {
-        if (!cancelled) setLastUpdated(data.lastUpdated);
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return createElement(
-    'fleet-footer-extension',
-    {
-      'data-fleet-footer-project': 'anime-list',
-      'product-name': PRODUCT_NAME,
-      theme: 'dark',
-      surface: 'app',
-      'font-base': '/fonts/fleet-footer-precise-v1/',
-      'art-src': '/footer-art/anime-list.webp',
-      'art-alt':
-        'Anime List: An original animation-club room centers a personal watch shelf and one invented illustrated story card. A projector, original abstract story panels and a seasonal moon-cycle window frame the scene.',
-      'art-width': '2168',
-      'art-height': '725',
-      'art-position': '50% 50%',
-      'art-credit': 'Original illustration for Anime List',
-      className: 'block w-full text-foreground',
-      style: {
-        '--fleet-footer-canvas': 'var(--background)',
-        '--fleet-footer-lower': 'var(--background)',
-        '--fleet-footer-max-width': '1280px',
-      } as CSSProperties,
-    },
+function FooterNavigation({ lastUpdated }: { lastUpdated: string | null }) {
+  return (
     <footer slot="navigation" data-fleet-footer-navigation className="w-full">
       <div className="grid gap-6 text-sm sm:grid-cols-2">
         <section>
@@ -118,7 +81,50 @@ export default function Footer() {
         {lastUpdated && <p>Updated {timeAgo(lastUpdated)}</p>}
         <p>35,000+ titles. One search bar. No sign-up required.</p>
       </div>
-    </footer>,
+    </footer>
+  );
+}
+
+export default function Footer() {
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getLastUpdated()
+      .then((data) => {
+        if (!cancelled) setLastUpdated(data.lastUpdated);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return createElement(
+    'fleet-footer-extension',
+    {
+      'data-fleet-footer-project': 'anime-list',
+      'product-name': PRODUCT_NAME,
+      theme: 'dark',
+      surface: 'app',
+      'font-base': '/fonts/fleet-footer-precise-v1/',
+      'art-src': '/footer-art/anime-list.webp',
+      'art-alt':
+        'Anime List: An original animation-club room centers a personal watch shelf and one invented illustrated story card. A projector, original abstract story panels and a seasonal moon-cycle window frame the scene.',
+      'art-width': '2168',
+      'art-height': '725',
+      'art-position': '50% 50%',
+      'art-credit': 'Original illustration for Anime List',
+      className: 'block w-full text-foreground',
+      style: {
+        '--fleet-footer-canvas': 'var(--background)',
+        '--fleet-footer-lower': 'var(--background)',
+        '--fleet-footer-max-width': '1280px',
+      } as CSSProperties,
+    },
+    <FooterNavigation lastUpdated={lastUpdated} />,
     <saas-maker-newsletter-capture
       slot="capture"
       catalog-id="anime-list"
