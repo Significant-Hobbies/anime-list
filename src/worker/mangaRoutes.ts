@@ -43,7 +43,7 @@ function sortMangaList(list: MangaItem[], sortBy: MangaFilterRequestBody['sortBy
   return [...list].sort((a, b) => {
     const aValue = (getMangaFieldValue(a, sortBy) as number) || 0;
     const bValue = (getMangaFieldValue(b, sortBy) as number) || 0;
-    return bValue - aValue;
+    return bValue - aValue || a.mal_id - b.mal_id;
   });
 }
 
