@@ -11,14 +11,15 @@
   "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"],
   "ignore": [
     // Static asset loaded via a raw <script src> tag (index.html), not an import.
-    "public/app-health-log.js"
+    "public/app-health-log.js",
+    // Fleet's checkout-local evidence is excluded from Git and is not project source.
+    ".fleet-local/**"
   ],
   "ignoreDependencies": [
     // Child-process/CLI/config-only tools and the CSS import are not visible in the module graph.
     "jscpd",
     "lightningcss",
     "pino-pretty",
-    "shadcn",
     "tailwindcss",
     "tw-animate-css"
   ],
