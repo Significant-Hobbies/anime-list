@@ -35,6 +35,9 @@ declare module 'react' {
         kind?: 'newsletter' | 'waitlist';
         source?: string;
         'privacy-url'?: string;
+        layout?: 'compact';
+        integrated?: string;
+        theme?: 'light' | 'dark';
       };
     }
   }

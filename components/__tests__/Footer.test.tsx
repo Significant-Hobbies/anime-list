@@ -29,7 +29,22 @@ describe('Footer', () => {
     expect(await screen.findByText(/^Updated /)).toBeInTheDocument();
     expect(getLastUpdated).toHaveBeenCalledOnce();
     expect(container.querySelector('footer')).toHaveClass('w-full');
-    expect(container.querySelector('footer > div')).toHaveClass('max-w-7xl');
+    expect(container.querySelector('fleet-footer-extension')).toHaveAttribute('theme', 'dark');
+    expect(container.querySelector('fleet-footer-extension')).toHaveAttribute(
+      'font-base',
+      '/fonts/fleet-footer-precise-v1/'
+    );
+    expect(container.querySelector('footer')).toHaveAttribute('slot', 'navigation');
+    expect(screen.getByRole('link', { name: 'Search anime' })).toHaveAttribute('href', '/search');
+    expect(screen.getByRole('link', { name: 'Catalog updates' })).toHaveAttribute(
+      'href',
+      '/catalog-updates'
+    );
+    expect(container.querySelector('saas-maker-newsletter-capture')).toHaveAttribute(
+      'layout',
+      'compact'
+    );
+    expect(container.querySelector('saas-maker-newsletter-capture')).toHaveAttribute('integrated');
     expect(container.querySelector('saas-maker-newsletter-capture')).toHaveAttribute(
       'catalog-id',
       'anime-list'
