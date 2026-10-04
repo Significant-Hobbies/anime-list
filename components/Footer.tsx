@@ -1,5 +1,7 @@
 'use client';
 
+import { createElement } from 'react';
+
 import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { getLastUpdated } from '@/lib/api';
@@ -37,15 +39,17 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="mt-4 w-full border-t border-border">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <saas-maker-newsletter-capture
+    <>{createElement('fleet-footer-extension', { 'product-name': 'Anime List', 'art-src': 'https://sassmaker.com/footer-art/anime-list.webp', surface: 'app' }, <>
+<saas-maker-newsletter-capture slot="capture"
           catalog-id="anime-list"
           product-name={PRODUCT_NAME}
           kind="newsletter"
           source="footer"
           privacy-url="https://anime.significanthobbies.com/privacy"
         />
+<footer slot="navigation" data-fleet-footer-navigation className="mt-4 w-full border-t border-border">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="inline-flex flex-col items-start gap-0.5 text-foreground">
@@ -100,5 +104,6 @@ export default function Footer() {
         </p>
       </div>
     </footer>
+</>)}</>
   );
 }

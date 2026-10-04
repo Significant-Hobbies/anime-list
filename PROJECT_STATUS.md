@@ -1,5 +1,21 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-09-08
+Last updated: 2026-10-02
+
+Local startup-layout repair: anonymous desktop audits found CLS near 1.0,
+traced to the empty app root letting the static about section collapse the
+body's top margin before React mounts. The critical HTML now reserves the
+same viewport-height space as RootLayout. An anonymous browser comparison
+reduced observed layout shift from about 1.009 to 0.001 with the candidate
+style; offline desktop/mobile regressions cover the home and search shells.
+This source change is not deployed and does not establish real-user CWV.
+
+Local crawl-status repair: public search surfaced `/%60` as a homepage result,
+and an anonymous GET confirmed HTTP 200 with the homepage canonical. Pages
+middleware now returns 404/noindex for unknown HTML SPA fallbacks (GET and HEAD),
+preserving real app/API/assets and allowing detail Markdown requests through to
+their existing handlers. Seventeen middleware regressions include the previously
+failing backtick, arbitrary path, missing HTML file, HEAD, and detail Markdown
+cases. This change is local and not deployed; recrawl/removal is not verified.
 
 Tracking qualification: account changes now replace the React Query cache and
 mounted drafts, preventing previous-account detail/status/note reuse. Guest anime
