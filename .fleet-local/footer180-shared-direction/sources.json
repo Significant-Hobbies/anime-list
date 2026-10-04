@@ -1,0 +1,40 @@
+{
+  "createdAt": "2026-10-02T22:06:21.969Z",
+  "status": "direction-probes-only",
+  "productionEdits": false,
+  "canonicalOwner": "saas-maker",
+  "productSources": [
+    "/tmp/fleet-finish-wave-20261002/ph-atlas-paired-implementation/candidate/landing/index.html",
+    "/tmp/fleet-finish-wave-20261002/ph-atlas-paired-implementation/candidate/site/index.html",
+    "/Users/sarthak/Desktop/fleet/codevetter/PRODUCT.md",
+    "/Users/sarthak/Desktop/fleet/codevetter/DESIGN.md",
+    "/Users/sarthak/Desktop/fleet/codevetter/apps/landing-page-astro/src/components/Footer.astro"
+  ],
+  "upstreamPattern": "Existing native <details>, <dialog>, links, and current package forms; no imported third-party UI or dependency.",
+  "art": {
+    "atlas": {
+      "original": "/Users/sarthak/.codex/generated_images/01a0facc-c3ef-7a01-a2f0-3d86d9a0bdd6/exec-57eca1d7-8861-44ea-b672-90c460450bbd.png",
+      "size": [
+        2048,
+        683
+      ]
+    },
+    "codevetter": {
+      "original": "/Users/sarthak/.codex/generated_images/01a0facc-c3ef-7a01-a2f0-3d86d9a0bdd6/exec-d6fca857-bd11-467b-9234-240d53877602.png",
+      "size": [
+        2048,
+        683
+      ]
+    }
+  },
+  "productContinuity": {
+    "atlas": "Landing and static local app density use the selected Atlas paper/forest/Georgia system and explicit unknowns. App probe uses actual source field boundary text, opens no private mart.",
+    "codevetter": "Public landing counterpart is a local native desktop evidence viewer. No browser/native app UI invented or footer injected into desktop. This comparison covers landing with dark native identity; illustration is an art metaphor, never execution evidence."
+  },
+  "scope": {
+    "manifestEntries": 54,
+    "visualIdentities": 53,
+    "canonicalOwners": 52,
+    "callerFiles": 64
+  }
+}
