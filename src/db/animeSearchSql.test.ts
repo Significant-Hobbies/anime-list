@@ -55,7 +55,7 @@ describe('buildAnimeSearchWhere', () => {
     ).toBeNull();
   });
 
-  it('gets the page and total count in one D1 batch call', async () => {
+  it('gets a deterministically ordered page and total count in one D1 batch call', async () => {
     const execute = vi.fn();
     const batch = vi.fn(async () => [
       { rows: [{ count: 42 }], rowsAffected: 0 },
@@ -65,7 +65,7 @@ describe('buildAnimeSearchWhere', () => {
             mal_id: 1,
             url: 'https://example.com/anime/1',
             title: 'Cowboy Bebop',
-            score: 8.75,
+            score: null,
             genres: '{}',
             themes: '{}',
             demographics: '{}',
@@ -80,8 +80,8 @@ describe('buildAnimeSearchWhere', () => {
       filters: [],
       sortBy: AnimeField.Score,
       airing: 'any',
-      pagesize: 40,
-      offset: 0,
+      pagesize: 7,
+      offset: 13,
     });
 
     expect(execute).not.toHaveBeenCalled();
@@ -89,13 +89,14 @@ describe('buildAnimeSearchWhere', () => {
     expect(batch).toHaveBeenCalledWith(
       [
         { sql: expect.stringContaining('SELECT COUNT(*) AS count'), args: [] },
-        { sql: expect.stringContaining('ORDER BY score DESC'), args: [40, 0] },
+        { sql: expect.stringContaining('ORDER BY score DESC, mal_id ASC'), args: [7, 13] },
       ],
       'read'
     );
     expect(result).toMatchObject({
       totalFiltered: 42,
-      page: [{ mal_id: 1, title: 'Cowboy Bebop', points: 8.75 }],
+      page: [{ mal_id: 1, title: 'Cowboy Bebop', points: 0 }],
     });
+    expect(result?.page[0]?.score).toBeUndefined();
   });
 });

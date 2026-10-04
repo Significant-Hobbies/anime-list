@@ -256,13 +256,19 @@ const getAnimeScore = (anime: AnimeItem, filters: FiltersWithScoreRange[]): numb
   return baseScore;
 };
 
-type ScoredAnime = AnimeItem & { points: number };
+const MISSING_SORT_VALUE = Symbol('missingSortValue');
+
+type ScoredAnime = AnimeItem & { points: number; [MISSING_SORT_VALUE]?: true };
 
 // Total order: points desc, then mal_id asc — same tiebreak as the D1
 // search path (`ORDER BY ... DESC, mal_id ASC`), so a query returns the
 // same ordering whether it resolves via D1 or in memory.
-const compareScoredAnime = (a: ScoredAnime, b: ScoredAnime): number =>
-  b.points - a.points || a.mal_id - b.mal_id;
+const compareScoredAnime = (a: ScoredAnime, b: ScoredAnime): number => {
+  const aMissing = a[MISSING_SORT_VALUE] === true;
+  const bMissing = b[MISSING_SORT_VALUE] === true;
+  if (aMissing !== bMissing) return aMissing ? 1 : -1;
+  return b.points - a.points || a.mal_id - b.mal_id;
+};
 
 // Top-K selection by partial sort. When `limit` is much smaller than the
 // filtered list (typical pagesize 40 vs 14k anime), this is O(n + k log n)
@@ -333,15 +339,19 @@ export const getScoreSortedList = (
   // keeps allocations down on hot paths over the full 14k catalogue.
   const scored = animeList.map((anime) => {
     const fieldValue = sortBy ? (anime[sortBy] as number | undefined) : undefined;
-    const points =
-      typeof fieldValue === 'number'
-        ? fieldValue
-        : sortBy
-          ? // Missing sort field sorts last, matching NULLs in the D1 path's
-            // `ORDER BY <col> DESC`. -Infinity keeps the total order intact;
-            // the comparator falls through to mal_id when both are -Infinity.
-            Number.NEGATIVE_INFINITY
-          : getAnimeScore(anime, filtersWithScoreRange);
+    const hasSortValue = typeof fieldValue === 'number';
+    const points = hasSortValue
+      ? fieldValue
+      : sortBy
+        ? 0
+        : getAnimeScore(anime, filtersWithScoreRange);
+    if (sortBy && !hasSortValue) {
+      // Keep SQL NULL ordering (last for DESC) without leaking a sentinel into
+      // the public `points` value; the D1 mapper represents missing as zero.
+      (anime as ScoredAnime)[MISSING_SORT_VALUE] = true;
+    } else {
+      delete (anime as ScoredAnime)[MISSING_SORT_VALUE];
+    }
     (anime as ScoredAnime).points = points;
     return anime as ScoredAnime;
   });
