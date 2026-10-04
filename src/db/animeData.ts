@@ -179,7 +179,7 @@ export async function upsertAnimeBatch(animeList: AnimeItem[]): Promise<UpsertSu
  */
 export async function getAllAnime(): Promise<AnimeItem[]> {
   const db = getDb();
-  const result = await db.execute('SELECT * FROM anime_data');
+  const result = await db.execute('SELECT * FROM anime_data ORDER BY mal_id');
 
   return result.rows.map((row) => mapAnimeRow(row as unknown as Record<string, unknown>));
 }

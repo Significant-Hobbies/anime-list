@@ -123,7 +123,7 @@ export async function upsertMangaBatch(mangaList: MangaItem[]): Promise<void> {
 
 export async function getAllManga(): Promise<MangaItem[]> {
   const db = getMangaCatalogDb();
-  const result = await db.execute('SELECT * FROM manga_data');
+  const result = await db.execute('SELECT * FROM manga_data ORDER BY mal_id');
   return result.rows.map((row) => mapMangaRow(row as unknown as Record<string, unknown>));
 }
 

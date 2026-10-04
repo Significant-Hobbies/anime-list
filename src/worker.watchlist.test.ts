@@ -156,8 +156,11 @@ class FakeD1 {
       return { results: rows, meta: { changes: 0 } };
     }
 
-    if (normalized === 'SELECT * FROM anime_data') {
-      return { results: this.animeData.map((row) => ({ ...row })), meta: { changes: 0 } };
+    if (normalized === 'SELECT * FROM anime_data ORDER BY mal_id') {
+      const rows = [...this.animeData]
+        .sort((a, b) => (a.mal_id as number) - (b.mal_id as number))
+        .map((row) => ({ ...row }));
+      return { results: rows, meta: { changes: 0 } };
     }
 
     if (normalized.startsWith(ANIME_ENRICHMENT_QUERY_PREFIX)) {

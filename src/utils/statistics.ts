@@ -258,15 +258,21 @@ const getAnimeScore = (anime: AnimeItem, filters: FiltersWithScoreRange[]): numb
 
 type ScoredAnime = AnimeItem & { points: number };
 
+// Total order: points desc, then mal_id asc — same tiebreak as the D1
+// search path (`ORDER BY ... DESC, mal_id ASC`), so a query returns the
+// same ordering whether it resolves via D1 or in memory.
+const compareScoredAnime = (a: ScoredAnime, b: ScoredAnime): number =>
+  b.points - a.points || a.mal_id - b.mal_id;
+
 // Top-K selection by partial sort. When `limit` is much smaller than the
 // filtered list (typical pagesize 40 vs 14k anime), this is O(n + k log n)
 // — orders of magnitude faster than the prior O(n log n) full sort.
 const partialSortDescending = (items: ScoredAnime[], limit: number): ScoredAnime[] => {
   if (limit <= 0 || items.length === 0) return items;
   if (limit >= items.length) {
-    return items.sort((a, b) => b.points - a.points);
+    return items.sort(compareScoredAnime);
   }
-  // Build a min-heap of size `limit`; smallest element is at root.
+  // Build a min-heap of size `limit`; worst-ranked element is at root.
   const heap: ScoredAnime[] = [];
   const swap = (i: number, j: number) => {
     const tmp = heap[i];
@@ -277,7 +283,7 @@ const partialSortDescending = (items: ScoredAnime[], limit: number): ScoredAnime
     let i = idx;
     while (i > 0) {
       const parent = (i - 1) >> 1;
-      if (heap[parent].points <= heap[i].points) break;
+      if (compareScoredAnime(heap[i], heap[parent]) <= 0) break;
       swap(parent, i);
       i = parent;
     }
@@ -289,8 +295,8 @@ const partialSortDescending = (items: ScoredAnime[], limit: number): ScoredAnime
       const l = i * 2 + 1;
       const r = l + 1;
       let smallest = i;
-      if (l < n && heap[l].points < heap[smallest].points) smallest = l;
-      if (r < n && heap[r].points < heap[smallest].points) smallest = r;
+      if (l < n && compareScoredAnime(heap[l], heap[smallest]) > 0) smallest = l;
+      if (r < n && compareScoredAnime(heap[r], heap[smallest]) > 0) smallest = r;
       if (smallest === i) return;
       swap(i, smallest);
       i = smallest;
@@ -300,12 +306,12 @@ const partialSortDescending = (items: ScoredAnime[], limit: number): ScoredAnime
     if (heap.length < limit) {
       heap.push(item);
       siftUp(heap.length - 1);
-    } else if (item.points > heap[0].points) {
+    } else if (compareScoredAnime(item, heap[0]) < 0) {
       heap[0] = item;
       siftDown(0);
     }
   }
-  return heap.sort((a, b) => b.points - a.points);
+  return heap.sort(compareScoredAnime);
 };
 
 export const getScoreSortedList = (
@@ -326,10 +332,16 @@ export const getScoreSortedList = (
   // Avoid spreading every anime into a new object; mutate-once with type cast
   // keeps allocations down on hot paths over the full 14k catalogue.
   const scored = animeList.map((anime) => {
+    const fieldValue = sortBy ? (anime[sortBy] as number | undefined) : undefined;
     const points =
-      sortBy && typeof anime[sortBy] === 'number'
-        ? (anime[sortBy] as number)
-        : getAnimeScore(anime, filtersWithScoreRange);
+      typeof fieldValue === 'number'
+        ? fieldValue
+        : sortBy
+          ? // Missing sort field sorts last, matching NULLs in the D1 path's
+            // `ORDER BY <col> DESC`. -Infinity keeps the total order intact;
+            // the comparator falls through to mal_id when both are -Infinity.
+            Number.NEGATIVE_INFINITY
+          : getAnimeScore(anime, filtersWithScoreRange);
     (anime as ScoredAnime).points = points;
     return anime as ScoredAnime;
   });
@@ -337,5 +349,5 @@ export const getScoreSortedList = (
   if (limit != null) {
     return partialSortDescending(scored, limit);
   }
-  return scored.sort((a, b) => b.points - a.points);
+  return scored.sort(compareScoredAnime);
 };
