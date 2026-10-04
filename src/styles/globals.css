@@ -201,3 +201,18 @@
     @apply font-display tracking-tight text-foreground;
   }
 }
+
+@media (max-width: 430px) {
+  [data-feedback-widget].smw-root .smw-trigger {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+
+  [data-feedback-widget].smw-root .smw-trigger__text {
+    display: none;
+  }
+}
