@@ -12,6 +12,8 @@ import { getMangaEntry } from '../_seo-dataset';
 export const onRequestGet: PagesFunction = async (context) => {
   const { request, env, params } = context;
   const rawMalId = params.malId as string;
+  // Pages also matches named manga app routes against this ID wildcard.
+  if (rawMalId === 'stats' || rawMalId === 'watchlist') return context.next();
   const wantsMarkdown = rawMalId.endsWith('.md');
   const idText = wantsMarkdown ? rawMalId.slice(0, -3) : rawMalId;
   const malId = /^\d+$/.test(idText) ? Number(idText) : Number.NaN;

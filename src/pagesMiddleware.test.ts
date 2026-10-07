@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { onRequest } from '../functions/_middleware';
+import { onRequestGet as mangaDetail } from '../functions/manga/[malId]';
+
+vi.mock('../functions/_seo-dataset', () => ({ getMangaEntry: vi.fn(() => undefined) }));
 
 const shell = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
 
@@ -65,6 +68,35 @@ describe('Pages SPA routing status', () => {
       expect(ctx.next).toHaveBeenCalledOnce();
     });
   }
+
+  for (const route of ['stats', 'watchlist']) {
+    it(`preserves /manga/${route} through the actual detail wildcard`, async () => {
+      const ctx = context(`/manga/${route}`);
+      const assets = vi.fn(
+        async () => new Response(shell, { headers: { 'content-type': 'text/html' } })
+      );
+      ctx.next.mockImplementation(() =>
+        mangaDetail({ ...ctx, params: { malId: route }, next: assets })
+      );
+      const response = await onRequest(ctx);
+      expect(response.status).toBe(200);
+      expect(assets).toHaveBeenCalledOnce();
+      const html = await response.text();
+      if (route === 'stats') {
+        expect(html).toContain('<h1>Manga catalog statistics — Anime List</h1>');
+        expect(html).toContain('href="https://anime.significanthobbies.com/manga/stats"');
+      }
+    });
+  }
+
+  it('keeps genuine invalid manga IDs at 404 through the same wildcard', async () => {
+    const ctx = context('/manga/invalid-id');
+    ctx.env.ASSETS.fetch.mockImplementation(async () => new Response(shell));
+    ctx.next.mockImplementation(() => mangaDetail({ ...ctx, params: { malId: 'invalid-id' } }));
+    const response = await onRequest(ctx);
+    expect(response.status).toBe(404);
+    expect(await response.text()).toContain('content="noindex"');
+  });
 
   it('does not intercept detail Markdown before the detail function', async () => {
     const ctx = context('/anime/5114', 'GET', 'text/markdown');
