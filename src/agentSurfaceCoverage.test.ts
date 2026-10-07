@@ -55,4 +55,50 @@ describe('public agent surface coverage', () => {
     expect(rewritten).toContain(`content="${search!.description}"`);
     expect(rewritten).not.toContain('content="/og.png"');
   });
+
+  it('serves a route-specific primary heading and readable content before JavaScript', () => {
+    const shell = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+    for (const surface of surfaces.filter((surface) => surface.path !== '/')) {
+      const rewritten = rewriteStaticSeo(shell, surface, 'https://anime.significanthobbies.com');
+      const body = rewritten.split('<body')[1];
+      expect(body.match(/<h1\b/g)).toHaveLength(1);
+      expect(body).toContain(`<h1>${surface.title}</h1>`);
+      expect(body).toContain('<article data-ssr aria-label="Page summary">');
+    }
+    const search = surfaces.find((surface) => surface.path === '/search')!;
+    const body = rewriteStaticSeo(shell, search, 'https://anime.significanthobbies.com').split(
+      '<body'
+    )[1];
+    expect(body).toContain('The default popularity threshold is 100,000 MyAnimeList members');
+  });
+
+  it('preserves the persistent homepage hero and does not add a second primary heading', () => {
+    const shell = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+    const home = surfaces.find((surface) => surface.path === '/')!;
+    const rewritten = rewriteStaticSeo(shell, home, 'https://anime.significanthobbies.com');
+    expect(rewritten.split('<body')[1]).toBe(shell.split('<body')[1]);
+  });
+
+  it('escapes route copy in the body and refuses a shell without summary markers', () => {
+    const shell = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+    const surface = {
+      path: '/search',
+      title: '<img src=x onerror=alert(1)>',
+      description: 'A & B',
+      markdown: '<script>alert(1)</script>\n\nLiteral $& marker',
+    };
+    const body = rewriteStaticSeo(shell, surface, 'https://anime.significanthobbies.com').split(
+      '<body'
+    )[1];
+    expect(body).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(body).not.toContain('<script>alert(1)</script>');
+    expect(body).toContain('<p>Literal $&amp; marker</p>');
+    expect(() =>
+      rewriteStaticSeo(
+        shell.replace('<!-- ssr:end -->', ''),
+        surface,
+        'https://anime.significanthobbies.com'
+      )
+    ).toThrow('ssr:start/end markers');
+  });
 });

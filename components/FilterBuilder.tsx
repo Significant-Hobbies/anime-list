@@ -405,9 +405,9 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
               Find the next anime worth your time.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-              Start from proven crowd signal, then narrow by season, genre, status, and your own
-              watchlist. The default catalog is intentionally biased toward highly watched, highly
-              scored titles.
+              Pick a genre and season, then open More filters to set a minimum score or choose a
+              format. Lower Popularity to include lesser-known titles. Search without an account;
+              share your filters by copying the page URL.
             </p>
           </div>
 

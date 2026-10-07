@@ -2,6 +2,7 @@ export type StaticSeoSurface = {
   path: string;
   title: string;
   description: string;
+  markdown: string;
 };
 
 const SEO_START = '<!-- seo:start -->';
@@ -40,8 +41,30 @@ export function rewriteStaticSeo(html: string, surface: StaticSeoSurface, origin
 
   const rewritten = html.replace(
     new RegExp(`${SEO_START}[\\s\\S]*?${SEO_END}`),
-    `${SEO_START}\n    ${block}\n    ${SEO_END}`
+    () => `${SEO_START}\n    ${block}\n    ${SEO_END}`
   );
   if (rewritten === html) throw new Error('seo:start/end markers not found in shell HTML');
-  return rewritten;
+  // Keep the persistent homepage/LCP copy. Other static routes need their own
+  // initial content; React replaces this bounded summary when the app mounts.
+  if (surface.path === '/') return rewritten;
+
+  const summary = [
+    '<article data-ssr aria-label="Page summary">',
+    `  <h1>${title}</h1>`,
+    `  <p>${description}</p>`,
+    ...surface.markdown.split(/\n\n+/).map((paragraph) => `  <p>${escapeHtml(paragraph)}</p>`),
+    '</article>',
+  ].join('\n      ');
+  const withSummary = rewritten.replace(
+    /<!-- ssr:start -->[\s\S]*?<!-- ssr:end -->/,
+    () => `<!-- ssr:start -->\n      ${summary}\n      <!-- ssr:end -->`
+  );
+  if (withSummary === rewritten) throw new Error('ssr:start/end markers not found in shell HTML');
+
+  // The hidden homepage hero is still in the shared shell. Only the actual
+  // route's summary should be a primary heading before JavaScript loads.
+  return withSummary.replace(
+    /<h1 id="lcp-shell-title"([^>]*)>([\s\S]*?)<\/h1>/,
+    '<p id="lcp-shell-title"$1>$2</p>'
+  );
 }
