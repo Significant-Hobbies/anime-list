@@ -31,3 +31,6 @@ coverage-final.json
 .clawpatch/
 .agent-logs/
 *.agent.log
+
+# Private footer review and release evidence
+.fleet-local/
