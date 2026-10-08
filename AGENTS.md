@@ -83,12 +83,12 @@ or suppression baselines whenever the measured result improves.
 
 ### Adding Tasks
 - Track Anime List work in this repository's GitHub issues or OpenSpec changes.
-- Keep reusable cross-project automation in Workflows and Skills and private
+- Keep reusable cross-project automation in `saas-maker/tooling/` and private
   portfolio metadata in Site Health, not SaaS Maker.
 
 ### Using SaaS Maker
 - Do not use the retired SaaS Maker task queue or API as a system of record.
-- Site Health owns private portfolio metadata; Workflows and Skills owns shared
+- Site Health owns private portfolio metadata; `saas-maker/tooling/` owns shared
   automation. Anime List remains independently versioned and deployed.
 
 ### Free AI First
@@ -128,5 +128,3 @@ full list):
 
 - Recurring operational risks: MAL CDN poster 403s and (historically)
   intermittent Pages 500s. Runbooks: [`docs/operations/runbooks/`](docs/operations/runbooks/).
-- Past session memory (e.g. observations `715`, `716`, `721` from 2026-05-02)
-  is accessible via the `mem-search` skill / `get_observations` when needed.
