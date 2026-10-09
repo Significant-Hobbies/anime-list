@@ -1,6 +1,9 @@
 # anime_list — PROJECT STATUS
 Last updated: 2026-10-02
 
+Source-only speed rollout: manga stats now share the anonymous 300s anime stats edge cache.
+Both stats routes emit sampled App Health stage timings; production speed remains unverified.
+
 Released startup-layout repair: anonymous desktop audits found CLS near 1.0,
 traced to the empty app root letting the static about section collapse the
 body's top margin before React mounts. The critical HTML now reserves the

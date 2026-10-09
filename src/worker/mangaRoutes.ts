@@ -16,6 +16,7 @@ import {
 import type { MangaFilterRequestBody } from '../validators/mangaFilters';
 import type { MangaItem } from '../types/manga';
 import { boundedReadPage, compareWatchlistIds, pageReadItems } from './readPagination';
+import { withStatsCache } from '../lib/stats-cache';
 
 type AuthMiddleware = (
   c: {
@@ -132,22 +133,30 @@ export function registerMangaRoutes(
       .map((s) => s.trim())
       .filter(Boolean);
 
-    let mangaList = await mangaStore.getMangaList();
-    if (user?.userId && hideWatched.length > 0) {
-      mangaList = await hideWatchedItems(
-        mangaList,
-        hideWatched,
-        () => getMangaWatchlist(user.userId),
-        (list) => list.manga
-      );
-    }
+    const isBaseStats = !user?.userId && c.req.query('hideWatched') === undefined;
+    return withStatsCache(c, '/api/manga/stats', isBaseStats, async (stages) => {
+      const storeStart = performance.now();
+      let mangaList = await mangaStore.getMangaList();
+      stages.store_ms = performance.now() - storeStart;
+      if (user?.userId && hideWatched.length > 0) {
+        mangaList = await hideWatchedItems(
+          mangaList,
+          hideWatched,
+          () => getMangaWatchlist(user.userId),
+          (list) => list.manga
+        );
+      }
 
-    if (mangaList.length === 0) {
-      return c.json({ error: 'No manga data found. Run db:seed:manga first.' }, 404);
-    }
+      if (mangaList.length === 0) {
+        return c.json({ error: 'No manga data found. Run db:seed:manga first.' }, 404);
+      }
 
-    const { getMangaStats } = await import('../statistics');
-    return c.json(await getMangaStats(mangaList));
+      const computeStart = performance.now();
+      const { getMangaStats } = await import('../statistics');
+      const stats = await getMangaStats(mangaList);
+      stages.compute_ms = performance.now() - computeStart;
+      return c.json(stats);
+    });
   });
 
   app.get('/api/manga/random', async (c) => {

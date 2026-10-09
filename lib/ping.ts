@@ -103,7 +103,7 @@ function buildBody(event: string, options: PingOptions, environment: string): st
 }
 
 /** Build a ping function bound to explicit config. Missing config is read from the environment at call time. */
-function createPing(config: PingConfig = {}): PingFn {
+export function createPing(config: PingConfig = {}): PingFn {
   const send = async (event: string, options: PingOptions = {}): Promise<boolean> => {
     const { key, url, environment } = resolveConfig(config);
     if (!key) return false;
