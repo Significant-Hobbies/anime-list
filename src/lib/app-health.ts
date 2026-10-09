@@ -5,7 +5,69 @@
 // fail a request. Paths collapse to route templates — raw MAL ids and token
 // ids never leave the worker.
 
+import { createPing } from '../../lib/ping';
+
 const INGEST_ENDPOINT = 'https://ingest.sassmaker.com/v1/ingest';
+
+export interface StatsStages {
+  edge_cache: 'HIT' | 'MISS' | 'BYPASS';
+  store_ms?: number;
+  compute_ms?: number;
+}
+
+// Request-scoped measurements survive Hono response wrapping, never the edge cache.
+export const statsStages = new WeakMap<Request, StatsStages>();
+
+type HealthEnv = {
+  APP_HEALTH_INGEST_KEY?: string;
+  APP_HEALTH_STAGE_SAMPLE_RATE?: string;
+};
+
+function boundedMs(value: number): number {
+  return Number.isFinite(value) ? Math.min(600_000, Math.max(0, Math.round(value))) : 0;
+}
+
+function requestColo(request: Request): string {
+  const colo = request.cf?.colo;
+  return typeof colo === 'string' && /^[A-Za-z0-9]{1,8}$/.test(colo) ? colo : 'unknown';
+}
+
+function observeStats(
+  request: Request,
+  response: Response,
+  durationMs: number,
+  route: string,
+  key: string,
+  env: HealthEnv,
+  ctx?: ExecutionContext
+): void {
+  const stages = statsStages.get(request);
+  if (!stages || (route !== '/api/stats' && route !== '/api/manga/stats') || !ctx) return;
+  const configuredRate = Number(env.APP_HEALTH_STAGE_SAMPLE_RATE ?? 0.1);
+  const rate = Number.isFinite(configuredRate) ? Math.min(1, Math.max(0, configuredRate)) : 0.1;
+  if (rate === 0 || Math.random() >= rate) return;
+
+  try {
+    ctx.waitUntil(
+      createPing({ key })
+        .debug('api.stage_timing', {
+          props: {
+            route,
+            status: response.status,
+            total_ms: boundedMs(durationMs),
+            edge_cache: stages.edge_cache,
+            inner_cache: 'NONE',
+            colo: requestColo(request),
+            store_ms: stages.store_ms === undefined ? undefined : boundedMs(stages.store_ms),
+            compute_ms: stages.compute_ms === undefined ? undefined : boundedMs(stages.compute_ms),
+          },
+        })
+        .catch(() => false)
+    );
+  } catch {
+    // Stage logs must never take down the request path.
+  }
+}
 
 const STATIC_ROUTES = new Set([
   '/',
@@ -74,13 +136,14 @@ export function observeRequest(
   request: Request,
   response: Response,
   durationMs: number,
-  env: { APP_HEALTH_INGEST_KEY?: string },
+  env: HealthEnv,
   ctx?: ExecutionContext
 ): void {
   const key =
     typeof env?.APP_HEALTH_INGEST_KEY === 'string' ? env.APP_HEALTH_INGEST_KEY.trim() : '';
   const route = routeFor(new URL(request.url).pathname);
   if (!key || !route) return;
+  observeStats(request, response, durationMs, route, key, env, ctx);
   const batch = {
     batch_id: crypto.randomUUID(),
     schema_version: 'v1',

@@ -5,7 +5,7 @@
  * `performance.now()`, reports it via the `Server-Timing` response header,
  * and logs requests slower than 200 ms via `console.warn`.
  */
-import { observeRequest } from './app-health';
+import { observeRequest, statsStages } from './app-health';
 
 export function withTiming(
   handler: (request: Request, env: any, ctx: any) => Promise<Response> | Response
@@ -18,7 +18,15 @@ export function withTiming(
 
     // Add Server-Timing header
     const headers = new Headers(response.headers);
-    headers.set('Server-Timing', `app;dur=${Math.round(duration)}`);
+    const timings = [`app;dur=${Math.round(duration)}`];
+    const stages = statsStages.get(request);
+    if (stages) {
+      timings.push(`edge_cache;desc="${stages.edge_cache}"`);
+      if (stages.store_ms !== undefined) timings.push(`store;dur=${Math.round(stages.store_ms)}`);
+      if (stages.compute_ms !== undefined)
+        timings.push(`compute;dur=${Math.round(stages.compute_ms)}`);
+    }
+    headers.set('Server-Timing', timings.join(', '));
     const timedResponse = new Response(response.body, {
       status: response.status,
       statusText: response.statusText,

@@ -103,6 +103,7 @@ import {
 import type { AnimeDetailResponse } from './types/animeDetail';
 import { animeDetailNoteSchema, animeMalIdParamsSchema } from './validators/animeDetail';
 import { z } from 'zod';
+import { withStatsCache } from './lib/stats-cache';
 
 const discoverDismissSchema = z.object({
   mal_ids: z.array(z.string().or(z.number())).min(1),
@@ -125,9 +126,10 @@ type Env = {
   POSTHOG_API_KEY?: string;
   AUTH0_ISSUER?: string;
   AUTH0_MCP_AUDIENCE?: string;
+  APP_HEALTH_INGEST_KEY?: string;
+  APP_HEALTH_STAGE_SAMPLE_RATE?: string;
 };
 
-const STATS_CACHE_TTL_SECONDS = 300;
 // last-updated is a global, public, non-user value that changes once daily via
 // the cron sync. Edge-caching it keeps the only previously-uncached public read
 // endpoint off two full-table MAX(updated_at) scans on every request.
@@ -476,15 +478,12 @@ app.post('/api/search', optionalAuth, async (c) => {
 });
 
 // Stats
-const STATS_CACHE_URL = 'https://mal-cache.local/api/stats?v=1';
-
 async function filterStatsAnimeList(
+  animeList: AnimeItem[],
   userId: string | undefined,
   includeWatched: string[],
   hideWatched: string[]
 ): Promise<AnimeItem[]> {
-  let animeList = await animeStore.getAnimeList();
-
   if (userId && includeWatched.length > 0) {
     animeList = await includeOnlyWatchedItems(
       animeList,
@@ -519,35 +518,21 @@ app.get('/api/stats', optionalAuth, async (c) => {
   const hideWatched = parseTagQuery(c.req.query('hideWatched'));
 
   const isBaseStats = !user?.userId && includeWatched.length === 0 && hideWatched.length === 0;
-  const edgeCache = (caches as unknown as { default: Cache }).default;
-  const baseCacheRequest = isBaseStats ? new Request(STATS_CACHE_URL) : null;
-
-  if (baseCacheRequest) {
-    const cachedResponse = await edgeCache.match(baseCacheRequest);
-    if (cachedResponse) {
-      const response = new Response(cachedResponse.body, cachedResponse);
-      response.headers.set('X-Stats-Cache', 'HIT');
-      return response;
-    }
-  }
-
-  const animeList = await filterStatsAnimeList(user?.userId, includeWatched, hideWatched);
-  const stats = await getAnimeStats(animeList);
-  const response = c.json(stats);
-
-  if (baseCacheRequest) {
-    response.headers.set('X-Stats-Cache', 'MISS');
-    const cacheableResponse = new Response(response.body, response);
-    cacheableResponse.headers.set(
-      'Cache-Control',
-      `public, max-age=0, s-maxage=${STATS_CACHE_TTL_SECONDS}`
+  return withStatsCache(c, '/api/stats', isBaseStats, async (stages) => {
+    const storeStart = performance.now();
+    const catalog = await animeStore.getAnimeList();
+    stages.store_ms = performance.now() - storeStart;
+    const animeList = await filterStatsAnimeList(
+      catalog,
+      user?.userId,
+      includeWatched,
+      hideWatched
     );
-    c.executionCtx.waitUntil(edgeCache.put(baseCacheRequest, cacheableResponse.clone()));
-    return cacheableResponse;
-  }
-
-  response.headers.set('X-Stats-Cache', 'BYPASS');
-  return response;
+    const computeStart = performance.now();
+    const stats = await getAnimeStats(animeList);
+    stages.compute_ms = performance.now() - computeStart;
+    return c.json(stats);
+  });
 });
 
 // NOTE: must be registered before /api/anime/:malId — Hono matches routes in
