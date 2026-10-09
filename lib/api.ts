@@ -84,7 +84,9 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
           : `API error: ${res.status}`;
       throw new ApiError(message, res.status, code);
     }
-    return res.json();
+    // Await the body inside the try so the timeout and abort handling cover
+    // the download, not just the response headers.
+    return (await res.json()) as T;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (!timedOut) throw error;
