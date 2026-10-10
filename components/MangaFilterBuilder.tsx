@@ -196,7 +196,7 @@ export default function MangaFilterBuilder() {
       opts: {
         pagesize,
         offset,
-        sortBy: sortBy || undefined,
+        sortBy: sortBy === 'year' ? 'time' : sortBy || undefined,
         hideWatched,
       },
     };

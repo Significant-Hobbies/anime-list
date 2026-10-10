@@ -256,7 +256,12 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
       opts: {
         pagesize,
         offset,
-        sortBy: sortBy === RELEVANCE_SORT_VALUE ? undefined : sortBy || undefined,
+        sortBy:
+          sortBy === RELEVANCE_SORT_VALUE
+            ? undefined
+            : sortBy === 'year'
+              ? 'time'
+              : sortBy || undefined,
         airing,
         hideWatched: watchlistMode === 'hide' ? hideWatched : [],
         includeWatched: watchlistMode === 'show' ? hideWatched : [],

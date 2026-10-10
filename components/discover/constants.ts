@@ -24,7 +24,7 @@ export const POPULARITY_PRESETS = [
 export const ANIME_SORT_OPTIONS = [
   { value: 'score', label: 'Score' },
   { value: 'members', label: 'Popularity' },
-  { value: 'year', label: 'Year' },
+  { value: 'year', label: 'Time' },
   { value: 'favorites', label: 'Favorites' },
   { value: 'relevance', label: 'Relevance' },
 ] as const;
@@ -32,7 +32,7 @@ export const ANIME_SORT_OPTIONS = [
 export const MANGA_SORT_OPTIONS = [
   { value: 'score', label: 'Score' },
   { value: 'members', label: 'Popularity' },
-  { value: 'year', label: 'Year' },
+  { value: 'year', label: 'Time' },
   { value: 'favorites', label: 'Favorites' },
   { value: 'chapters', label: 'Chapters' },
   { value: 'volumes', label: 'Volumes' },

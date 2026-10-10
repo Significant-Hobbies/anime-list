@@ -56,7 +56,10 @@ export const mangaFilterRequestSchema = z.object({
   hideWatched: z.array(watchTagSchema).default([]),
   pagesize: z.number().int().min(1).default(50),
   offset: z.number().int().min(0).default(0),
-  sortBy: numericFieldSchema.optional(),
+  sortBy: z.preprocess(
+    (value) => (value === 'time' ? 'year' : value),
+    numericFieldSchema.optional()
+  ),
 });
 
 export type MangaFilterRequestBody = z.infer<typeof mangaFilterRequestSchema> & {
