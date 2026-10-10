@@ -12,6 +12,7 @@
   "ignore": [
     // Static asset loaded via a raw <script src> tag (index.html), not an import.
     "public/app-health-log.js",
+    "public/footer.js",
     // Fleet's checkout-local evidence is excluded from Git and is not project source.
     ".fleet-local/**"
   ],

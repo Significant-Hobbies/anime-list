@@ -186,3 +186,11 @@
     display: none;
   }
 }
+
+/* StudioFooter (framework-free build): the email field uses flex-1 inside a
+   column on narrow screens, which collapses its height. */
+@media (max-width: 639px) {
+  studio-footer form[data-subscribe] input[name='email'] {
+    flex: none;
+  }
+}
