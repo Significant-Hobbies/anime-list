@@ -45,9 +45,6 @@ importers:
       axios:
         specifier: 1.20.0
         version: 1.20.0
-      class-variance-authority:
-        specifier: 0.7.1
-        version: 0.7.1
       clsx:
         specifier: 2.1.1
         version: 2.1.1
@@ -72,9 +69,6 @@ importers:
       posthog-js:
         specifier: ^1.407.3
         version: 1.407.3
-      radix-ui:
-        specifier: 1.6.7
-        version: 1.6.7(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: 19.2.8
         version: 19.2.8
