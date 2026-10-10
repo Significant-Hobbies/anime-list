@@ -29,7 +29,11 @@ describe('GoogleSignInButton', () => {
     await waitFor(() => expect(renderButton).toHaveBeenCalledTimes(2));
     expect(initialize).toHaveBeenCalledOnce();
     expect(initialize).toHaveBeenCalledWith(
-      expect.objectContaining({ ux_mode: 'popup', itp_support: true })
+      expect.objectContaining({
+        ux_mode: 'popup',
+        itp_support: true,
+        use_fedcm_for_button: true,
+      })
     );
     expect(renderButton).toHaveBeenCalledWith(
       expect.any(HTMLElement),
