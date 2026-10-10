@@ -1,3 +1,4 @@
+import { Skeleton as LibrarySkeleton } from '@saas-maker/ui/components/skeleton';
 import { useRouterState } from '@tanstack/react-router';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
@@ -6,9 +7,9 @@ type SkeletonProps = ComponentProps<'div'>;
 
 export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
-    <div
+    <LibrarySkeleton
       aria-hidden="true"
-      className={cn('rounded-md bg-muted/70 motion-safe:animate-pulse', className)}
+      className={cn('animate-none bg-muted/70 motion-safe:animate-pulse', className)}
       {...props}
     />
   );
