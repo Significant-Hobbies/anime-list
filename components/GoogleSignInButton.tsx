@@ -22,6 +22,7 @@ declare global {
             auto_select?: boolean;
             ux_mode?: 'popup' | 'redirect';
             itp_support?: boolean;
+            use_fedcm_for_button?: boolean;
           }) => void;
           renderButton: (
             parent: HTMLElement,
@@ -55,6 +56,9 @@ function initializeGoogleIdentity(api: GoogleIdentityApi, clientId: string): voi
     // with Safari's Intelligent Tracking Prevention.
     ux_mode: 'popup',
     itp_support: true,
+    // Let Chrome mediate sign-in instead of the legacy cross-origin
+    // session iframe, whose report-only frame-ancestors policy logs errors.
+    use_fedcm_for_button: true,
     callback: async (response) => {
       try {
         await activeLogin?.(response.credential);
