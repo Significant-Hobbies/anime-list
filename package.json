@@ -63,6 +63,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.31.0",
     "@saas-maker/feedback": "0.4.0",
+    "@saas-maker/ui": "github:sass-maker/ui-library#v0.1.14&path:/packages/ui",
     "@tanstack/react-query": "5.101.4",
     "@tanstack/react-router": "1.170.18",
     "axios": "1.20.0",

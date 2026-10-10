@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
 import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
+import { Button } from '@/components/ui/button';
 import GoogleSignInButton from './GoogleSignInButton';
 import { Menu } from 'lucide-react';
 
@@ -198,13 +199,14 @@ export default function Navigation() {
               </summary>
               <div className="absolute right-0 top-full z-50 mt-2 min-w-48 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md">
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">{user.email}</div>
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={logout}
-                  className="block w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                  className="block h-auto w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
                 >
                   Sign out
-                </button>
+                </Button>
               </div>
             </details>
           ) : (
