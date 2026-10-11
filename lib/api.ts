@@ -100,10 +100,6 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
 
 const jsonHeaders = { 'Content-Type': 'application/json' } as const;
 
-export function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
-}
-
 export function getFields(signal?: AbortSignal): Promise<FieldOptions> {
   return fetchJson(`${BASE}/fields`, { signal });
 }
