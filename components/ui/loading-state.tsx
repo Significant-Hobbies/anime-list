@@ -79,25 +79,31 @@ export function CatalogGridSkeleton({
   );
 }
 
+function StatsChartSkeleton({ distribution }: { distribution: boolean }) {
+  return (
+    <Card className={cn('gap-0 p-4', distribution ? 'h-56' : 'h-96')}>
+      <Skeleton className="h-5 w-28 mb-3" />
+      <div className="space-y-1.5">
+        {Array.from({ length: distribution ? 5 : 11 }).map((_, row) => (
+          <div key={row} className="flex items-center gap-2">
+            <Skeleton className="h-3 w-28 shrink-0" />
+            <Skeleton className="h-5 flex-1 rounded-full bg-muted/45" />
+            <Skeleton className="h-3 w-14 shrink-0" />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export function StatsGridSkeleton({ label = 'Loading statistics' }: { label?: string }) {
   return (
     <section aria-busy="true" aria-label={label} className="space-y-4">
       <LoadingStatus label={label} />
       <Skeleton className="h-5 w-28" />
       <div className="grid gap-4 lg:grid-cols-2">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <Card key={index} className={cn('gap-0 p-4', index < 4 ? 'h-56' : 'h-96')}>
-            <Skeleton className="h-5 w-28 mb-3" />
-            <div className="space-y-1.5">
-              {Array.from({ length: index < 4 ? 5 : 11 }).map((_, row) => (
-                <div key={row} className="flex items-center gap-2">
-                  <Skeleton className="h-3 w-28 shrink-0" />
-                  <Skeleton className="h-5 flex-1 rounded-full bg-muted/45" />
-                  <Skeleton className="h-3 w-14 shrink-0" />
-                </div>
-              ))}
-            </div>
-          </Card>
+        {[true, true, true, true, false, false, false, false].map((distribution, index) => (
+          <StatsChartSkeleton key={index} distribution={distribution} />
         ))}
       </div>
       <Card className="h-64 gap-0 p-4">

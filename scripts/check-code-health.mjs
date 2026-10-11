@@ -16,7 +16,7 @@ const baselines = {
   complexity: {
     violations: 16,
     maxCcn: 55,
-    maxLength: 683,
+    maxLength: 663,
     maxParams: 8,
   },
   duplication: {

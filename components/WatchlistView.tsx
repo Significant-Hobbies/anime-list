@@ -36,6 +36,57 @@ function WatchlistSkeleton() {
   return <ListSkeleton label="Loading anime watchlist" rows={6} />;
 }
 
+type TasteRecommendation = Awaited<
+  ReturnType<typeof getTasteRecommendations>
+>['recommendations'][number];
+
+function TasteRecommendationCard({ item }: { item: TasteRecommendation }) {
+  return (
+    <Link
+      key={item.mal_id}
+      to={getAnimeDetailHref(item.mal_id)}
+      className="group flex gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/50"
+    >
+      {item.image ? (
+        <img
+          src={item.image}
+          alt={item.title_english || item.title}
+          width={56}
+          height={78}
+          className="h-[78px] w-14 rounded-md object-cover"
+        />
+      ) : (
+        <div className="h-[78px] w-14 shrink-0 rounded-md bg-muted" />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+          {item.title_english || item.title}
+        </div>
+        <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted-foreground">
+          {item.score ? <span>{item.score}</span> : null}
+          {item.year ? <span>{item.year}</span> : null}
+          {item.type ? <span>{item.type}</span> : null}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {item.reasons.slice(0, 2).map((reason) => (
+            <Badge key={reason} variant="secondary" className="text-[10px] font-normal">
+              {reason}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        <div className="text-sm font-semibold text-primary">{item.tasteScore}</div>
+        <div className="text-[10px] text-muted-foreground">fit</div>
+      </div>
+    </Link>
+  );
+}
+
+function filterWatchlist(items: EnrichedWatchlistItem[], activeTab: string) {
+  return activeTab ? items.filter((item) => item.watchStatus === activeTab) : items;
+}
+
 export default function WatchlistView() {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('');
@@ -251,7 +302,7 @@ export default function WatchlistView() {
       />
     );
 
-  const filtered = activeTab ? items.filter((item) => item.watchStatus === activeTab) : items;
+  const filtered = filterWatchlist(items, activeTab);
 
   return (
     <ResourceBoundary
@@ -582,48 +633,7 @@ export default function WatchlistView() {
             {recommendations.length > 0 && (
               <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
                 {recommendations.slice(0, 6).map((item) => (
-                  <Link
-                    key={item.mal_id}
-                    to={getAnimeDetailHref(item.mal_id)}
-                    className="group flex gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/50"
-                  >
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.title_english || item.title}
-                        width={56}
-                        height={78}
-                        className="h-[78px] w-14 rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="h-[78px] w-14 shrink-0 rounded-md bg-muted" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
-                        {item.title_english || item.title}
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted-foreground">
-                        {item.score ? <span>{item.score}</span> : null}
-                        {item.year ? <span>{item.year}</span> : null}
-                        {item.type ? <span>{item.type}</span> : null}
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {item.reasons.slice(0, 2).map((reason) => (
-                          <Badge
-                            key={reason}
-                            variant="secondary"
-                            className="text-[10px] font-normal"
-                          >
-                            {reason}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-sm font-semibold text-primary">{item.tasteScore}</div>
-                      <div className="text-[10px] text-muted-foreground">fit</div>
-                    </div>
-                  </Link>
+                  <TasteRecommendationCard key={item.mal_id} item={item} />
                 ))}
               </div>
             )}
