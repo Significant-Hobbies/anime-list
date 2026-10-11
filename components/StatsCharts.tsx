@@ -3,11 +3,19 @@
 import type { AnimeStats, Distribution, FieldCount } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 
-function BarChart({ title, items }: { title: string; items: { label: string; value: number }[] }) {
+function BarChart({
+  title,
+  items,
+  tall = false,
+}: {
+  title: string;
+  items: { label: string; value: number }[];
+  tall?: boolean;
+}) {
   const max = Math.max(...items.map((i) => i.value), 1);
 
   return (
-    <Card className="p-4">
+    <Card className={`gap-0 p-4 overflow-y-auto ${tall ? 'h-96' : 'h-56'}`}>
       <h3 className="text-sm font-semibold text-foreground mb-3">{title}</h3>
       <div className="space-y-1.5">
         {items.map((item) => (
@@ -17,7 +25,7 @@ function BarChart({ title, items }: { title: string; items: { label: string; val
             </span>
             <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                className="h-full bg-primary rounded-full "
                 style={{ width: `${(item.value / max) * 100}%` }}
               />
             </div>
@@ -38,7 +46,7 @@ function PercentileTable({ percentiles }: { percentiles: AnimeStats['percentiles
   const fields = Object.keys(percentiles[keys[0]]);
 
   return (
-    <Card className="p-4 overflow-x-auto">
+    <Card className="h-64 gap-0 p-4 overflow-auto">
       <h3 className="text-sm font-semibold text-foreground mb-3">Percentiles</h3>
       <table className="w-full text-xs">
         <thead>
@@ -103,15 +111,20 @@ export default function StatsCharts({
           items={distributionToItems(stats.favoritesDistribution)}
         />
         <BarChart
+          tall
           title="Type Distribution"
           items={stats.typeDistribution.map((t) => ({
             label: t.type,
             value: t.count,
           }))}
         />
-        <BarChart title="Genre Counts" items={fieldCountToItems(stats.genreCounts)} />
-        <BarChart title="Theme Counts" items={fieldCountToItems(stats.themeCounts)} />
-        <BarChart title="Demographic Counts" items={fieldCountToItems(stats.demographicCounts)} />
+        <BarChart tall title="Genre Counts" items={fieldCountToItems(stats.genreCounts)} />
+        <BarChart tall title="Theme Counts" items={fieldCountToItems(stats.themeCounts)} />
+        <BarChart
+          tall
+          title="Demographic Counts"
+          items={fieldCountToItems(stats.demographicCounts)}
+        />
       </div>
 
       <PercentileTable percentiles={stats.percentiles} />

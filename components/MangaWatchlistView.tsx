@@ -1,8 +1,13 @@
 'use client';
 
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
+
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import type { EnrichedMangaWatchlistItem } from '@/lib/types';
 import {
@@ -27,15 +32,16 @@ export default function MangaWatchlistView() {
   const [activeTab, setActiveTab] = useState('');
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
+  const resource = useQuery({
     queryKey: ['manga', 'watchlist', 'enriched'],
-    queryFn: () => getEnrichedMangaWatchlist(),
+    queryFn: ({ signal }) => getEnrichedMangaWatchlist(signal),
     enabled: !!user,
   });
+  const { data, isLoading, error, refetch, isFetching } = resource;
 
   const { data: tagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: () => getWatchlistTags(),
+    queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
@@ -96,172 +102,173 @@ export default function MangaWatchlistView() {
   }
 
   if (isLoading) return <WatchlistSkeleton />;
-  if (error) {
+  if (error && !data) {
     return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-destructive text-sm">
-          We couldn&apos;t load your manga list. Check your connection and try again.
-        </p>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="px-3 py-1.5 text-sm rounded border hover:opacity-80 disabled:opacity-50"
-        >
-          {isFetching ? 'Retrying…' : 'Try again'}
-        </button>
-      </div>
+      <ErrorState
+        title="could not load your manga list"
+        description="check your connection and try again."
+        onRetry={() => {
+          void refetch();
+        }}
+      />
     );
   }
 
   const filtered = activeTab ? items.filter((item) => item.watchStatus === activeTab) : items;
 
   return (
-    <div className="space-y-5">
-      <RefreshIndicator active={isFetching} label="Updating manga watchlist" />
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Manga Watchlist</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Track what you&apos;re reading across {items.length.toLocaleString()} saved titles
-        </p>
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {tags.map((tag) => {
-          const isActive = activeTab === tag.tag;
-          const color = resolveTagColor(tag.tag, tag.color);
-          return (
-            <button
-              key={tag.id}
-              onClick={() => setActiveTab(tag.tag)}
-              className={cn(
-                'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200',
-                isActive ? '' : 'text-muted-foreground hover:text-foreground'
-              )}
-              style={
-                isActive
-                  ? {
-                      color,
-                      borderColor: toRgba(color, 0.45),
-                      backgroundColor: toRgba(color, 0.15),
-                    }
-                  : {
-                      color,
-                      borderColor: toRgba(color, 0.3),
-                    }
-              }
-            >
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-              {tag.tag}
-            </button>
-          );
-        })}
-        {tags.length === 0 && (
-          <span className="text-sm text-muted-foreground">
-            Add manga from Discover to build your list
-          </span>
-        )}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          {activeTab ? `No manga with tag "${activeTab}"` : 'No manga in your list yet'}
+    <ResourceBoundary
+      resource={{ ...resource, status: resource.status === 'empty' ? 'success' : resource.status }}
+      delay={0}
+      skeleton={<WatchlistSkeleton />}
+    >
+      <div className="space-y-5">
+        <RefreshIndicator active={isFetching} label="Updating manga watchlist" />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Manga Watchlist</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track what you&apos;re reading across {items.length.toLocaleString()} saved titles
+          </p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {filtered.map((item) => (
-            <Card
-              key={item.mal_id}
-              className="overflow-hidden flex flex-row p-0 hover:border-primary/30 transition-colors"
-            >
-              {item.image ? (
-                <Link
-                  to={getMangaDetailHref(item.mal_id)}
-                  className="relative block w-[85px] min-h-[120px] shrink-0"
-                >
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                </Link>
-              ) : (
-                <div className="w-[85px] min-h-[120px] shrink-0 bg-muted" />
-              )}
 
-              <div className="flex-1 p-3 space-y-2 min-w-0">
-                <div className="flex items-start justify-between gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {tags.map((tag) => {
+            const isActive = activeTab === tag.tag;
+            const color = resolveTagColor(tag.tag, tag.color);
+            return (
+              <button
+                key={tag.id}
+                onClick={() => setActiveTab(tag.tag)}
+                className={cn(
+                  'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200',
+                  isActive ? '' : 'text-muted-foreground hover:text-foreground'
+                )}
+                style={
+                  isActive
+                    ? {
+                        color,
+                        borderColor: toRgba(color, 0.45),
+                        backgroundColor: toRgba(color, 0.15),
+                      }
+                    : {
+                        color,
+                        borderColor: toRgba(color, 0.3),
+                      }
+                }
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                {tag.tag}
+              </button>
+            );
+          })}
+          {tags.length === 0 && (
+            <span className="text-sm text-muted-foreground">
+              Add manga from Discover to build your list
+            </span>
+          )}
+        </div>
+
+        {filtered.length === 0 ? (
+          <EmptyState
+            title={activeTab ? `no manga with tag "${activeTab}"` : 'no manga in your list yet'}
+          />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {filtered.map((item) => (
+              <Card
+                key={item.mal_id}
+                className="overflow-hidden flex flex-row p-0 hover:border-primary/30 transition-colors"
+              >
+                {item.image ? (
                   <Link
                     to={getMangaDetailHref(item.mal_id)}
-                    className="font-medium text-foreground hover:text-primary truncate"
+                    className="relative block w-[85px] min-h-[120px] shrink-0"
                   >
-                    {item.title}
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
                   </Link>
-                  {item.url && (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-primary shrink-0"
+                ) : (
+                  <div className="w-[85px] min-h-[120px] shrink-0 bg-muted" />
+                )}
+
+                <div className="flex-1 p-3 space-y-2 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link
+                      to={getMangaDetailHref(item.mal_id)}
+                      className="font-medium text-foreground hover:text-primary truncate"
                     >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
-                </div>
+                      {item.title}
+                    </Link>
+                    {item.url && (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary shrink-0"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
 
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {item.score ? <span>{item.score.toFixed(2)}</span> : null}
-                  {item.year ? <span>{item.year}</span> : null}
-                  {item.type ? <span>{item.type}</span> : null}
-                  {item.chapters ? <span>{item.chapters} ch</span> : null}
-                </div>
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    {item.score ? <span>{item.score.toFixed(2)}</span> : null}
+                    {item.year ? <span>{item.year}</span> : null}
+                    {item.type ? <span>{item.type}</span> : null}
+                    {item.chapters ? <span>{item.chapters} ch</span> : null}
+                  </div>
 
-                <div className="flex flex-wrap gap-1">
-                  {item.genres.slice(0, 3).map((genre) => (
-                    <Badge key={genre} variant="secondary" className="text-[10px] font-normal">
-                      {genre}
+                  <div className="flex flex-wrap gap-1">
+                    {item.genres.slice(0, 3).map((genre) => (
+                      <Badge key={genre} variant="secondary" className="text-[10px] font-normal">
+                        {genre}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Badge
+                      variant="outline"
+                      style={{
+                        borderColor: tagColorMap.get(item.watchStatus),
+                        color: tagColorMap.get(item.watchStatus),
+                      }}
+                    >
+                      {item.watchStatus}
                     </Badge>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <Badge
-                    variant="outline"
-                    style={{
-                      borderColor: tagColorMap.get(item.watchStatus),
-                      color: tagColorMap.get(item.watchStatus),
-                    }}
-                  >
-                    {item.watchStatus}
-                  </Badge>
-                  {tags.map((tag) => (
+                    {tags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        onClick={() =>
+                          statusMutation.mutate({
+                            malId: item.mal_id,
+                            status: tag.tag,
+                            tagColor: tag.color,
+                          })
+                        }
+                        disabled={statusMutation.isPending || item.watchStatus === tag.tag}
+                        className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-primary disabled:opacity-40"
+                      >
+                        {tag.tag}
+                      </button>
+                    ))}
                     <button
-                      key={tag.id}
-                      onClick={() =>
-                        statusMutation.mutate({
-                          malId: item.mal_id,
-                          status: tag.tag,
-                          tagColor: tag.color,
-                        })
-                      }
-                      disabled={statusMutation.isPending || item.watchStatus === tag.tag}
-                      className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-primary disabled:opacity-40"
+                      onClick={() => removeMutation.mutate(item.mal_id)}
+                      disabled={removeMutation.isPending}
+                      className="text-[10px] uppercase tracking-wider text-destructive hover:underline disabled:opacity-40 ml-auto"
                     >
-                      {tag.tag}
+                      Remove
                     </button>
-                  ))}
-                  <button
-                    onClick={() => removeMutation.mutate(item.mal_id)}
-                    disabled={removeMutation.isPending}
-                    className="text-[10px] uppercase tracking-wider text-destructive hover:underline disabled:opacity-40 ml-auto"
-                  >
-                    Remove
-                  </button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </ResourceBoundary>
   );
 }

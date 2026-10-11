@@ -21,8 +21,8 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }));
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: ({ queryKey }: { queryKey: string[] }) => {
+vi.mock('@/lib/use-resource-query', () => ({
+  useResourceQuery: ({ queryKey }: { queryKey: string[] }) => {
     if (queryKey[0] === 'watchlist' && queryKey[1] === 'tags') {
       return { data: { tags: [] } };
     }
@@ -31,6 +31,9 @@ vi.mock('@tanstack/react-query', () => ({
     }
     return { data: undefined };
   },
+}));
+
+vi.mock('@tanstack/react-query', () => ({
   useMutation: () => ({ mutate: mockMutate, isPending: false }),
   useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
 }));

@@ -1,5 +1,8 @@
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
 import { getChangelog } from '@/lib/api';
 import type { ChangelogEntry } from '@/lib/api';
 import { ListSkeleton, RefreshIndicator } from '@/components/ui/loading-state';
@@ -32,11 +35,12 @@ function formatDate(dateStr: string): string {
 }
 
 export default function CatalogUpdatesPage() {
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const resource = useQuery({
     queryKey: ['changelog'],
-    queryFn: () => getChangelog(200),
+    queryFn: ({ signal }) => getChangelog(200, signal),
     placeholderData: (previous) => previous,
   });
+  const { data, isLoading, isError, refetch, isFetching } = resource;
 
   const grouped = data ? groupByDate(data.changes) : {};
   const dates = Object.keys(grouped);
@@ -50,61 +54,68 @@ export default function CatalogUpdatesPage() {
 
       <RefreshIndicator active={isFetching && !!data} label="Updating catalog history" />
 
-      {isLoading ? (
-        <ListSkeleton label="Loading catalog history" rows={4} />
-      ) : isError ? (
-        <div className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Couldn&apos;t load the changelog. Please try again.
-          </p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="text-sm font-medium text-primary hover:underline disabled:opacity-60"
-          >
-            {isFetching ? 'Retrying…' : 'Retry'}
-          </button>
-        </div>
-      ) : dates.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {dates.map((date) => (
-            <div key={date} className="rounded-xl border border-border bg-card/50 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-foreground">{formatDate(date)}</h2>
-                <span className="text-xs text-muted-foreground">
-                  {grouped[date].length} title{grouped[date].length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <ul className="space-y-1.5">
-                {grouped[date].map((entry) => (
-                  <li key={entry.mal_id} className="flex items-center gap-2 text-sm">
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
-                      Added
-                    </span>
-                    {entry.type && (
-                      <span
-                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${TYPE_COLORS[entry.type] || 'bg-muted text-muted-foreground'}`}
-                      >
-                        {entry.type}
+      <ResourceBoundary
+        resource={resource}
+        delay={0}
+        skeleton={<ListSkeleton label="loading catalog history" rows={4} />}
+        error={
+          <ErrorState
+            title="could not load the changelog"
+            onRetry={() => {
+              void refetch();
+            }}
+          />
+        }
+      >
+        {isLoading ? (
+          <ListSkeleton label="Loading catalog history" rows={4} />
+        ) : isError && !data ? (
+          <ErrorState
+            title="could not load the changelog"
+            onRetry={() => {
+              void refetch();
+            }}
+          />
+        ) : dates.length === 0 ? (
+          <EmptyState title="no changes recorded yet" />
+        ) : (
+          <div className="space-y-4">
+            {dates.map((date) => (
+              <div key={date} className="rounded-xl border border-border bg-card/50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-foreground">{formatDate(date)}</h2>
+                  <span className="text-xs text-muted-foreground">
+                    {grouped[date].length} title{grouped[date].length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <ul className="space-y-1.5">
+                  {grouped[date].map((entry) => (
+                    <li key={entry.mal_id} className="flex items-center gap-2 text-sm">
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
+                        Added
                       </span>
-                    )}
-                    <Link
-                      to="/anime/$malId"
-                      params={{ malId: String(entry.mal_id) }}
-                      className="text-foreground hover:text-primary transition-colors truncate"
-                    >
-                      {entry.title_english || entry.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
+                      {entry.type && (
+                        <span
+                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${TYPE_COLORS[entry.type] || 'bg-muted text-muted-foreground'}`}
+                        >
+                          {entry.type}
+                        </span>
+                      )}
+                      <Link
+                        to="/anime/$malId"
+                        params={{ malId: String(entry.mal_id) }}
+                        className="text-foreground hover:text-primary transition-colors truncate"
+                      >
+                        {entry.title_english || entry.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </ResourceBoundary>
     </div>
   );
 }
