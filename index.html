@@ -8,6 +8,58 @@
       /* Match the mounted app shell before JS arrives; keep the about copy
          below the first viewport instead of shifting the entire body. */
       #root { min-height: 100dvh; }
+      /* Critical shell geometry must not wait for the deferred app CSS.
+         Keep the studio footer below the first viewport, including while the
+         router has not mounted yet. Home retains its existing LCP shell. */
+      [data-app-shell] {
+        display: flex;
+        flex-direction: column;
+        min-height: 100svh;
+      }
+      [data-app-shell] > nav {
+        box-sizing: border-box;
+        min-height: 57px;
+      }
+      [data-app-main] {
+        box-sizing: border-box;
+        flex: 1;
+        width: 100%;
+        max-width: 80rem;
+        min-height: calc(100svh - 57px);
+        margin: 0 auto;
+        padding: 2rem 1rem 3rem;
+      }
+      html[data-home] #boot-shell { display: none; }
+      #boot-shell > nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem;
+        border-bottom: 1px solid #27272a;
+      }
+      #boot-shell [data-placeholder-brand] { width: 5rem; height: 1.25rem; }
+      #boot-shell [data-placeholder-menu] { width: 2rem; height: 1.75rem; }
+      [data-page-placeholder] { display: grid; gap: 2rem; }
+      [data-placeholder-heading] { display: grid; gap: .75rem; }
+      [data-page-placeholder] [aria-hidden], #boot-shell nav > div {
+        background: #27272a;
+        border-radius: .25rem;
+      }
+      [data-placeholder-title] { width: 60%; max-width: 20rem; height: 2rem; }
+      [data-placeholder-description] { width: 80%; max-width: 30rem; height: 1rem; }
+      [data-placeholder-grid] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 1.5rem; }
+      [data-placeholder-image] { width: 100%; aspect-ratio: 2 / 3; }
+      [data-placeholder-card-title] { width: 80%; height: 1.25rem; margin-top: 1rem; }
+      @media (min-width: 640px) {
+        [data-app-main], #boot-shell > nav { padding-right: 1.5rem; padding-left: 1.5rem; }
+        [data-placeholder-grid] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+      @media (min-width: 768px) {
+        [data-placeholder-grid] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      }
+      @media (min-width: 1280px) {
+        [data-placeholder-grid] { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      }
       #lcp-shell { display: none; }
       html[data-home] #lcp-shell {
         display: block;
@@ -74,7 +126,9 @@
     data-endpoint="https://ingest.sassmaker.com/v1/browser"
     data-vitals
   ></script>
-  <link rel="stylesheet" href="/footer.css" />
+  <!-- Footer styling must not delay the inline first-paint shell. -->
+  <link rel="preload" href="/footer.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="/footer.css" /></noscript>
 </head>
   <body data-analytics="true" style="margin:0;background:#09090b;color:#fafafa;font-family:system-ui,sans-serif;">
     <!-- Persistent home copy: the matching React copy reserves layout but stays
@@ -94,6 +148,48 @@
       </div>
     </section>
     <div id="root">
+      <!-- First-paint placeholder; React replaces this with the same reserved
+           app shell. Inline styles above make it independent of JS/app CSS. -->
+      <div id="boot-shell" data-app-shell>
+        <nav aria-hidden="true">
+          <div data-placeholder-brand></div>
+          <div data-placeholder-menu></div>
+        </nav>
+        <main data-app-main>
+          <section data-page-placeholder role="status" aria-label="loading page" aria-busy="true">
+            <div data-placeholder-heading>
+              <div data-placeholder-title aria-hidden="true"></div>
+              <div data-placeholder-description aria-hidden="true"></div>
+            </div>
+            <div data-placeholder-grid>
+              <div data-placeholder-card>
+                <div data-placeholder-image aria-hidden="true"></div>
+                <div data-placeholder-card-title aria-hidden="true"></div>
+              </div>
+              <div data-placeholder-card>
+                <div data-placeholder-image aria-hidden="true"></div>
+                <div data-placeholder-card-title aria-hidden="true"></div>
+              </div>
+              <div data-placeholder-card>
+                <div data-placeholder-image aria-hidden="true"></div>
+                <div data-placeholder-card-title aria-hidden="true"></div>
+              </div>
+              <div data-placeholder-card>
+                <div data-placeholder-image aria-hidden="true"></div>
+                <div data-placeholder-card-title aria-hidden="true"></div>
+              </div>
+              <div data-placeholder-card>
+                <div data-placeholder-image aria-hidden="true"></div>
+                <div data-placeholder-card-title aria-hidden="true"></div>
+              </div>
+              <div data-placeholder-card>
+                <div data-placeholder-image aria-hidden="true"></div>
+                <div data-placeholder-card-title aria-hidden="true"></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
       <!-- ssr:start -->
       <!-- ssr:end -->
     </div>

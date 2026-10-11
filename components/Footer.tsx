@@ -1,4 +1,5 @@
-import { createElement, useEffect, useState } from 'react';
+import { createElement } from 'react';
+import { useResource } from '@saas-maker/ui/lib/use-resource';
 import { getLastUpdated } from '@/lib/api';
 import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
 
@@ -51,21 +52,8 @@ const footerConfig = {
  * is defined by /footer.js and styled by /footer.css, both loaded in index.html.
  */
 export default function Footer() {
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    getLastUpdated()
-      .then((data) => {
-        if (!cancelled) setLastUpdated(data.lastUpdated);
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data } = useResource('catalog:last-updated', (signal) => getLastUpdated(signal));
+  const lastUpdated = data?.lastUpdated;
 
   const summary = '35,000+ titles. One search bar. No sign-up required.';
   const legal = `${PRODUCT_NAME} by ${PUBLISHER_NAME}${lastUpdated ? ` · Updated ${timeAgo(lastUpdated)}` : ''}`;

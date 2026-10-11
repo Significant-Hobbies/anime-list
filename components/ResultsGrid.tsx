@@ -1,5 +1,7 @@
 'use client';
 
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+
 import type { SearchResponse } from '@/lib/types';
 import AnimeCard from './AnimeCard';
 import { CatalogGridSkeleton } from './ui/loading-state';
@@ -18,13 +20,11 @@ export default function ResultsGrid({ results }: { results: SearchResponse }) {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-muted/20 py-24 text-center">
-          <p className="text-lg font-medium text-foreground">No titles match</p>
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            Try clearing a filter, lowering the popularity threshold, or searching with a different
-            title.
-          </p>
-        </div>
+        <EmptyState
+          title="no titles match"
+          description="try clearing a filter, lowering the popularity threshold, or searching with a different title."
+          className="rounded-xl border border-border bg-muted/20 py-24"
+        />
       )}
     </div>
   );

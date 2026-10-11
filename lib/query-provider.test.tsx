@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useResourceQuery as useQuery } from './use-resource-query';
 import { cleanup, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';

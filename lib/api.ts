@@ -67,7 +67,7 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
         localStorage.removeItem('mal_auth');
         window.dispatchEvent(new Event('mal_auth_expired'));
       }
-      throw new Error('Session expired. Please sign in again.');
+      throw new ApiError('Session expired. Please sign in again.', 401);
     }
     if (!res.ok) {
       let code: string | undefined;
@@ -90,7 +90,7 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (!timedOut) throw error;
-      throw new Error('Search service timed out. Please try again.');
+      throw new TypeError('Search service timed out. Please try again.');
     }
     throw error;
   } finally {
@@ -100,16 +100,16 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
 
 const jsonHeaders = { 'Content-Type': 'application/json' } as const;
 
-export function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
+export function getFields(signal?: AbortSignal): Promise<FieldOptions> {
+  return fetchJson(`${BASE}/fields`, { signal });
 }
 
-export function getFields(): Promise<FieldOptions> {
-  return fetchJson(`${BASE}/fields`);
+export function getFilterActions(signal?: AbortSignal): Promise<FilterActions> {
+  return fetchJson(`${BASE}/filters`, { signal });
 }
 
-export function getFilterActions(): Promise<FilterActions> {
-  return fetchJson(`${BASE}/filters`);
+function normalizeSearchResponse(data: SearchResponse | []): SearchResponse {
+  return Array.isArray(data) ? { filteredList: data, totalFiltered: data.length } : data;
 }
 
 export function searchAnime(
@@ -124,7 +124,7 @@ export function searchAnime(
   } = {},
   signal?: AbortSignal
 ): Promise<SearchResponse> {
-  return fetchJson(
+  return fetchJson<SearchResponse | []>(
     `${BASE}/search`,
     {
       method: 'POST',
@@ -141,11 +141,12 @@ export function searchAnime(
       }),
     },
     SEARCH_REQUEST_TIMEOUT_MS
-  );
+  ).then(normalizeSearchResponse);
 }
 
 export function getStats(
-  opts: { hideWatched?: string[]; includeWatched?: string[] } = {}
+  opts: { hideWatched?: string[]; includeWatched?: string[] } = {},
+  signal?: AbortSignal
 ): Promise<AnimeStats> {
   const params = new URLSearchParams();
   if (opts.hideWatched && opts.hideWatched.length > 0) {
@@ -156,16 +157,19 @@ export function getStats(
   }
   const query = params.toString();
   const suffix = query ? `?${query}` : '';
-  return fetchJson(`${BASE}/stats${suffix}`);
+  return fetchJson(`${BASE}/stats${suffix}`, { signal });
 }
 
-export function getWatchlist(status?: string): Promise<WatchlistData> {
+export function getWatchlist(status?: string, signal?: AbortSignal): Promise<WatchlistData> {
   const url = status ? `${BASE}/watchlist?status=${status}` : `${BASE}/watchlist`;
-  return fetchJson(url);
+  return fetchJson(url, { signal });
 }
 
-export function getAnimeDetail(malId: number | string): Promise<AnimeDetailResponse> {
-  return fetchJson(`${BASE}/anime/${malId}`);
+export function getAnimeDetail(
+  malId: number | string,
+  signal?: AbortSignal
+): Promise<AnimeDetailResponse> {
+  return fetchJson(`${BASE}/anime/${malId}`, { signal });
 }
 
 export function addToWatchlist(
@@ -190,12 +194,14 @@ export function removeFromWatchlist(
   });
 }
 
-export function getEnrichedWatchlist(): Promise<EnrichedWatchlistResponse> {
-  return fetchJson(`${BASE}/watchlist/enriched`);
+export function getEnrichedWatchlist(signal?: AbortSignal): Promise<EnrichedWatchlistResponse> {
+  return fetchJson(`${BASE}/watchlist/enriched`, { signal });
 }
 
-export function getTasteRecommendations(): Promise<TasteRecommendationsResponse> {
-  return fetchJson(`${BASE}/watchlist/recommendations`);
+export function getTasteRecommendations(
+  signal?: AbortSignal
+): Promise<TasteRecommendationsResponse> {
+  return fetchJson(`${BASE}/watchlist/recommendations`, { signal });
 }
 
 export function previewWatchlistImport(
@@ -252,8 +258,8 @@ export function updateAnimeNote(
   });
 }
 
-export function getWatchlistTags(): Promise<{ tags: WatchlistTag[] }> {
-  return fetchJson(`${BASE}/watchlist/tags`);
+export function getWatchlistTags(signal?: AbortSignal): Promise<{ tags: WatchlistTag[] }> {
+  return fetchJson(`${BASE}/watchlist/tags`, { signal });
 }
 
 export function saveWatchlistTag(
@@ -291,8 +297,8 @@ export function deleteWatchlistTag(
 
 // Schedule
 
-export function getScheduleTimeline(): Promise<ScheduleTimelineResponse> {
-  return fetchJson(`${BASE}/schedule/timeline`);
+export function getScheduleTimeline(signal?: AbortSignal): Promise<ScheduleTimelineResponse> {
+  return fetchJson(`${BASE}/schedule/timeline`, { signal });
 }
 
 export function addToSchedule(
@@ -335,12 +341,12 @@ export function reorderSchedule(malIds: string[]): Promise<{ success: boolean; m
   });
 }
 
-export function getLastUpdated(): Promise<{
+export function getLastUpdated(signal?: AbortSignal): Promise<{
   lastUpdated: string | null;
   anime: string | null;
   manga: string | null;
 }> {
-  return fetchJson(`${BASE}/last-updated`);
+  return fetchJson(`${BASE}/last-updated`, { signal });
 }
 
 export interface ChangelogEntry {
@@ -351,8 +357,11 @@ export interface ChangelogEntry {
   mal_id: number;
 }
 
-export function getChangelog(limit = 200): Promise<{ changes: ChangelogEntry[] }> {
-  return fetchJson(`${BASE}/changelog?limit=${limit}`);
+export function getChangelog(
+  limit = 200,
+  signal?: AbortSignal
+): Promise<{ changes: ChangelogEntry[] }> {
+  return fetchJson(`${BASE}/changelog?limit=${limit}`, { signal });
 }
 
 export interface RandomAnimePick {
@@ -362,25 +371,32 @@ export interface RandomAnimePick {
   title_english?: string;
 }
 
-export function getRandomAnimePick(options?: {
-  genre?: string;
-  limit?: number;
-}): Promise<{ results: RandomAnimePick[] }> {
+export function getRandomAnimePick(
+  options?: {
+    genre?: string;
+    limit?: number;
+  },
+  signal?: AbortSignal
+): Promise<{ results: RandomAnimePick[] }> {
   const params = new URLSearchParams();
   if (options?.genre) params.set('genre', options.genre);
   if (options?.limit != null) params.set('limit', String(options.limit));
   const query = params.toString();
-  return fetchJson(`${BASE}/anime/random${query ? `?${query}` : ''}`);
+  return fetchJson(`${BASE}/anime/random${query ? `?${query}` : ''}`, { signal });
 }
 
 const MANGA_BASE = `${BASE}/manga`;
 
-export function getMangaFields(): Promise<FieldOptions & { boolean?: string[] }> {
-  return fetchJson(`${MANGA_BASE}/fields`);
+export function getMangaFields(
+  signal?: AbortSignal
+): Promise<FieldOptions & { boolean?: string[] }> {
+  return fetchJson(`${MANGA_BASE}/fields`, { signal });
 }
 
-export function getMangaFilterActions(): Promise<FilterActions & { text?: string[] }> {
-  return fetchJson(`${MANGA_BASE}/filters`);
+export function getMangaFilterActions(
+  signal?: AbortSignal
+): Promise<FilterActions & { text?: string[] }> {
+  return fetchJson(`${MANGA_BASE}/filters`, { signal });
 }
 
 export function searchManga(
@@ -393,7 +409,7 @@ export function searchManga(
   } = {},
   signal?: AbortSignal
 ): Promise<SearchResponse> {
-  return fetchJson(`${MANGA_BASE}/search`, {
+  return fetchJson<SearchResponse | []>(`${MANGA_BASE}/search`, {
     method: 'POST',
     headers: jsonHeaders,
     signal,
@@ -404,24 +420,29 @@ export function searchManga(
       sortBy: opts.sortBy,
       hideWatched: opts.hideWatched ?? [],
     }),
-  });
+  }).then(normalizeSearchResponse);
 }
 
-export function getMangaStats(opts: { hideWatched?: string[] } = {}): Promise<AnimeStats> {
+export function getMangaStats(
+  opts: { hideWatched?: string[] } = {},
+  signal?: AbortSignal
+): Promise<AnimeStats> {
   const params = new URLSearchParams();
   if (opts.hideWatched && opts.hideWatched.length > 0) {
     params.set('hideWatched', opts.hideWatched.join(','));
   }
   const query = params.toString();
-  return fetchJson(`${MANGA_BASE}/stats${query ? `?${query}` : ''}`);
+  return fetchJson(`${MANGA_BASE}/stats${query ? `?${query}` : ''}`, { signal });
 }
 
-export function getMangaWatchlist(): Promise<MangaWatchlistData> {
-  return fetchJson(`${MANGA_BASE}/watchlist`);
+export function getMangaWatchlist(signal?: AbortSignal): Promise<MangaWatchlistData> {
+  return fetchJson(`${MANGA_BASE}/watchlist`, { signal });
 }
 
-export function getEnrichedMangaWatchlist(): Promise<EnrichedMangaWatchlistResponse> {
-  return fetchJson(`${MANGA_BASE}/watchlist/enriched`);
+export function getEnrichedMangaWatchlist(
+  signal?: AbortSignal
+): Promise<EnrichedMangaWatchlistResponse> {
+  return fetchJson(`${MANGA_BASE}/watchlist/enriched`, { signal });
 }
 
 export function addToMangaWatchlist(
@@ -446,12 +467,18 @@ export function removeFromMangaWatchlist(
   });
 }
 
-export function getMangaDetail(malId: number | string): Promise<MangaDetailResponse> {
-  return fetchJson(`${MANGA_BASE}/${malId}`);
+export function getMangaDetail(
+  malId: number | string,
+  signal?: AbortSignal
+): Promise<MangaDetailResponse> {
+  return fetchJson(`${MANGA_BASE}/${malId}`, { signal });
 }
 
-export function getDiscoveryQueue(limit = 50): Promise<DiscoveryQueueResponse> {
-  return fetchJson(`${BASE}/discover/queue?limit=${limit}`);
+export function getDiscoveryQueue(
+  limit = 50,
+  signal?: AbortSignal
+): Promise<DiscoveryQueueResponse> {
+  return fetchJson(`${BASE}/discover/queue?limit=${limit}`, { signal });
 }
 
 export function dismissDiscoveryItems(
@@ -481,8 +508,8 @@ export interface CreatedApiToken {
   createdAt: string;
 }
 
-export function listTokens(): Promise<{ tokens: ApiTokenMetadata[] }> {
-  return fetchJson(`${BASE}/tokens`);
+export function listTokens(signal?: AbortSignal): Promise<{ tokens: ApiTokenMetadata[] }> {
+  return fetchJson(`${BASE}/tokens`, { signal });
 }
 
 export function createToken(name: string): Promise<CreatedApiToken> {

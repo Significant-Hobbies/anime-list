@@ -1,7 +1,13 @@
 'use client';
 
+import { CatalogGridSkeleton } from './ui/loading-state';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
+
 import { useState, useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getDiscoveryQueue,
   dismissDiscoveryItems,
@@ -74,7 +80,7 @@ function DiscoveryCard({ item, onDismiss, onAdd, onSkip, isPending }: DiscoveryC
   const [selectedStatus, setSelectedStatus] = useState('Watching');
   const { data: tagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: getWatchlistTags,
+    queryFn: ({ signal }) => getWatchlistTags(signal),
   });
 
   const availableTags = useMemo(
@@ -199,12 +205,13 @@ export function DiscoveryQueue() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { user, loading: authLoading } = useAuth();
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const resource = useQuery({
     queryKey: ['discoveryQueue'],
-    queryFn: () => getDiscoveryQueue(50),
+    queryFn: ({ signal }) => getDiscoveryQueue(50, signal),
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
+  const { data, isLoading, isError, refetch } = resource;
 
   const nextItem = () => {
     if (data && currentIndex < data.results.length - 1) {
@@ -281,13 +288,16 @@ export function DiscoveryQueue() {
     );
   }
 
-  if (isError) {
+  if (isError && !data) {
     return (
       <div className="container mx-auto py-8">
         <h2 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h2>
-        <div className="text-center p-8 text-destructive">
-          Could not load the discovery queue. Please try again later.
-        </div>
+        <ErrorState
+          title="could not load the discovery queue"
+          onRetry={() => {
+            void refetch();
+          }}
+        />
       </div>
     );
   }
@@ -305,9 +315,14 @@ export function DiscoveryQueue() {
     return (
       <div className="container mx-auto py-8">
         <h2 className="text-3xl font-bold text-center mb-8">Weekly Discovery</h2>
-        <div className="text-center p-8 text-muted-foreground">
-          Nothing new to show right now — check back later!
-        </div>
+        <ResourceBoundary
+          resource={resource}
+          delay={0}
+          skeleton={<CatalogGridSkeleton />}
+          empty={<EmptyState title="nothing new to show right now" />}
+        >
+          <EmptyState title="nothing new to show right now" />
+        </ResourceBoundary>
       </div>
     );
   }
@@ -333,21 +348,27 @@ export function DiscoveryQueue() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="text-center mb-6">
-        <h2 className="text-3xl font-bold">Weekly Discovery</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          {seasonLabel && <span>{seasonLabel} · </span>}
-          {animeCount} anime · {mangaCount} manga · item {currentIndex + 1} of {results.length}
-        </p>
+    <ResourceBoundary
+      resource={{ ...resource, status: resource.status === 'empty' ? 'success' : resource.status }}
+      delay={0}
+      skeleton={<CatalogGridSkeleton />}
+    >
+      <div className="container mx-auto py-8">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold">Weekly Discovery</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            {seasonLabel && <span>{seasonLabel} · </span>}
+            {animeCount} anime · {mangaCount} manga · item {currentIndex + 1} of {results.length}
+          </p>
+        </div>
+        <DiscoveryCard
+          item={currentItem}
+          onDismiss={handleDismiss}
+          onAdd={handleAdd}
+          onSkip={nextItem}
+          isPending={isPending}
+        />
       </div>
-      <DiscoveryCard
-        item={currentItem}
-        onDismiss={handleDismiss}
-        onAdd={handleAdd}
-        onSkip={nextItem}
-        isPending={isPending}
-      />
-    </div>
+    </ResourceBoundary>
   );
 }
