@@ -11,6 +11,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     document.documentElement.toggleAttribute('data-home', isHome);
+    document.documentElement.toggleAttribute('data-app-interior', !isHome);
   }, [isHome]);
 
   return (
@@ -24,7 +25,7 @@ export default function RootLayout() {
               <Outlet />
             </Suspense>
           </main>
-          <Footer />
+          <Footer mode={isHome ? 'full' : 'compact'} />
         </div>
       </AuthProvider>
     </AnalyticsProvider>

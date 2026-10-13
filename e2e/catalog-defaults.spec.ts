@@ -104,10 +104,25 @@ for (const width of [390, 768, 1440]) {
       await expect(
         page.locator('main').getByRole('button', { name: 'Continue with Google', exact: true })
       ).toBeVisible();
+      await expect(page.locator('studio-footer footer')).toHaveAttribute(
+        'data-footer-mode',
+        'compact'
+      );
+      await expect(page.locator('studio-footer form[data-subscribe]')).toHaveCount(0);
+      await expect(page.locator('#about-anime-list')).toBeHidden();
       await page.screenshot({
         path: `test-results/catalog-${path.slice(1)}-${width}.png`,
         fullPage: false,
       });
+      await page.getByRole('link', { name: 'Anime List', exact: true }).click();
+      await expect(page.locator('studio-footer form[data-subscribe]')).toBeVisible();
+      await expect(page.locator('#about-anime-list')).toBeVisible();
+      await page.goBack();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page.locator('studio-footer footer')).toHaveAttribute(
+        'data-footer-mode',
+        'compact'
+      );
       await page
         .getByRole('link', { name: 'Browse anime without signing in', exact: true })
         .click();

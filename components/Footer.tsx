@@ -51,7 +51,7 @@ const footerConfig = {
  * The SaaS Maker UI library StudioFooter (framework-free build). The element
  * is defined by /footer.js and styled by /footer.css, both loaded in index.html.
  */
-export default function Footer() {
+export default function Footer({ mode = 'full' }: { mode?: 'full' | 'compact' }) {
   const { data } = useResource('catalog:last-updated', (signal) => getLastUpdated(signal));
   const lastUpdated = data?.lastUpdated;
 
@@ -66,6 +66,7 @@ export default function Footer() {
       'catalog-id': 'anime-list',
       capture: 'newsletter',
       variant: 'studio',
+      mode,
       'privacy-url': `${SITE_URL}/privacy`,
       summary,
       legal,

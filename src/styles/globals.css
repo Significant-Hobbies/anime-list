@@ -6,6 +6,16 @@
   --font-display: var(--font-inter);
 }
 
+/* Keep the static homepage explanation out of the mounted app workflow. */
+html[data-app-interior] #about-anime-list {
+  display: none;
+}
+
+/* Match StudioFooter compact spacing without changing the existing theme tokens. */
+studio-footer footer[data-footer-mode='compact'] {
+  padding-block: 1.5rem;
+}
+
 /* Keep the existing .dark markup compatible with the library dark variant. */
 @custom-variant dark (&:is(.dark *, [data-mode="dark"] *, [data-mode="dark"]));
 
