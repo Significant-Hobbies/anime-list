@@ -1,3 +1,4 @@
+import { getCatalogCounts } from './db/catalogCounts';
 /// <reference types="@cloudflare/workers-types" />
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
@@ -442,6 +443,8 @@ app.get('/api/changelog', async (c) => {
   const changes = await getRecentChanges(limit);
   return c.json({ changes });
 });
+
+app.get('/api/catalog/counts', async (c) => c.json(await getCatalogCounts()));
 
 // Search
 app.post('/api/search', optionalAuth, async (c) => {

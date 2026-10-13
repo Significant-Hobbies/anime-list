@@ -282,6 +282,9 @@ export function DiscoveryQueue() {
           </p>
           <div className="mt-6">
             <GoogleSignInButton />
+            <a href="/search" className="mt-4 block text-sm text-primary underline">
+              Browse anime without signing in
+            </a>
           </div>
         </div>
       </div>

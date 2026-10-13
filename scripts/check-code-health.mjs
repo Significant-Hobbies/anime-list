@@ -16,12 +16,12 @@ const baselines = {
   complexity: {
     violations: 16,
     maxCcn: 55,
-    maxLength: 663,
+    maxLength: 643,
     maxParams: 8,
   },
   duplication: {
-    clones: 48,
-    duplicatedLines: 812,
+    clones: 45,
+    duplicatedLines: 749,
   },
   unused: {
     files: 0,

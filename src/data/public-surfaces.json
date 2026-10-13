@@ -3,8 +3,8 @@
     "id": "home",
     "path": "/",
     "markdownPath": "/index.md",
-    "title": "Anime List — filter 35,000+ anime and manga",
-    "description": "Filter and explore 35,000+ anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists.",
+    "title": "Anime List — filter anime and manga",
+    "description": "Filter and explore anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists.",
     "markdown": "Anime List is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in."
   },
   {

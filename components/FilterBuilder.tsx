@@ -14,7 +14,13 @@ import {
 } from 'nuqs';
 import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
 import type { SearchFilter, SearchResponse } from '@/lib/types';
-import { getFields, getFilterActions, getWatchlistTags, searchAnime } from '@/lib/api';
+import {
+  getFields,
+  getFilterActions,
+  getWatchlistTags,
+  searchAnime,
+  getCatalogCounts,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_ANIME_MIN_MEMBERS, DEFAULT_ANIME_PAGE_SIZE } from '@/lib/animeSearchDefaults';
@@ -119,6 +125,25 @@ function formatFilterChip(filter: SearchFilter): string {
   const op = ACTION_LABEL[filter.action] ?? filter.action.toLowerCase().replace(/_/g, ' ');
   const value = Array.isArray(filter.value) ? filter.value.join(', ') : String(filter.value);
   return `${field} ${op} ${value}`;
+}
+
+function AnimeCatalogCount({ totalFiltered }: { totalFiltered?: number }) {
+  const { data: catalogCounts } = useQuery({
+    queryKey: ['catalogCounts'],
+    queryFn: ({ signal }) => getCatalogCounts(signal),
+  });
+
+  return (
+    <p className="text-sm text-muted-foreground">
+      {totalFiltered === undefined ? (
+        <Skeleton className="h-5 w-24" />
+      ) : (
+        `${totalFiltered.toLocaleString()} matching anime titles`
+      )}
+      {catalogCounts &&
+        ` · ${catalogCounts.anime.toLocaleString()} anime in the unfiltered catalog`}
+    </p>
+  );
 }
 
 type FilterBuilderProps = {
@@ -336,7 +361,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     setFilters([]);
     setSortBy('score');
     setSelectedSeason('any');
-    setMinMembers(DEFAULT_ANIME_MIN_MEMBERS);
+    setMinMembers(0);
     setAiring('any');
     setHideWatched([]);
     setWatchlistMode('hide');
@@ -368,14 +393,16 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   );
 
   const selectedSeasonLabel = seasonSelectOptions.find((o) => o.value === selectedSeason)?.label;
-  const popularityLabel = POPULARITY_PRESETS.find((p) => p.value === minMembers)?.label;
+  const popularityLabel =
+    POPULARITY_PRESETS.find((p) => p.value === minMembers)?.label ??
+    `${minMembers.toLocaleString()}+ members`;
 
   const hasActiveChips =
     searchText.trim().length > 0 ||
     selectedGenres.length > 0 ||
     selectedSeason !== 'any' ||
     airing !== 'any' ||
-    minMembers !== DEFAULT_ANIME_MIN_MEMBERS ||
+    minMembers > 0 ||
     activeAdvancedFilters.length > 0 ||
     hideWatched.length > 0;
 
@@ -384,7 +411,9 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   const hasNext = currentPage < totalPages;
   const hasPrev = currentPage > 1;
   const browsingMode = selectedSeasonLabel === 'Any season' ? 'All seasons' : selectedSeasonLabel;
-  const resultLabel = data ? `${totalFiltered.toLocaleString()} titles` : 'Catalog ready';
+  const resultLabel = data
+    ? `${totalFiltered.toLocaleString()} matching anime titles`
+    : 'Catalog ready';
 
   return (
     <div className="space-y-6">
@@ -609,11 +638,11 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                 }}
               />
             )}
-            {minMembers !== DEFAULT_ANIME_MIN_MEMBERS && popularityLabel && (
+            {minMembers > 0 && popularityLabel && (
               <ActiveFilterChip
                 label={popularityLabel}
                 onRemove={() => {
-                  setMinMembers(DEFAULT_ANIME_MIN_MEMBERS);
+                  setMinMembers(0);
                   resetPage();
                 }}
               />
@@ -638,9 +667,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
 
       {
         <div className="flex min-h-5 flex-wrap items-center gap-3">
-          <p className="text-sm text-muted-foreground">
-            {data ? `${totalFiltered.toLocaleString()} titles` : <Skeleton className="h-5 w-24" />}
-          </p>
+          <AnimeCatalogCount totalFiltered={data?.totalFiltered} />
           <RefreshIndicator active={isFetching} label="Updating anime results" />
         </div>
       }
