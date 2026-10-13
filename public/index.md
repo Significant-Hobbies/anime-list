@@ -1,4 +1,4 @@
-# Anime List — filter 35,000+ anime and manga
+# Anime List — filter anime and manga
 
 Anime List is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
 

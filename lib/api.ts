@@ -523,3 +523,7 @@ export function createToken(name: string): Promise<CreatedApiToken> {
 export function revokeToken(id: string): Promise<{ success: boolean }> {
   return fetchJson(`${BASE}/tokens/${id}/revoke`, { method: 'POST', headers: jsonHeaders });
 }
+
+export function getCatalogCounts(signal?: AbortSignal): Promise<{ anime: number; manga: number }> {
+  return fetchJson(`${BASE}/catalog/counts`, { signal });
+}

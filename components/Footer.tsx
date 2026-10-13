@@ -55,7 +55,7 @@ export default function Footer() {
   const { data } = useResource('catalog:last-updated', (signal) => getLastUpdated(signal));
   const lastUpdated = data?.lastUpdated;
 
-  const summary = '35,000+ titles. One search bar. No sign-up required.';
+  const summary = 'Anime and manga. One search bar. No sign-up required.';
   const legal = `${PRODUCT_NAME} by ${PUBLISHER_NAME}${lastUpdated ? ` · Updated ${timeAgo(lastUpdated)}` : ''}`;
 
   return createElement(

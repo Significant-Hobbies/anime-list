@@ -1,3 +1,5 @@
+import { getCatalogCounts } from '@/lib/api';
+import { createResourceClient, useResource } from '@saas-maker/ui/lib/use-resource';
 import { useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { SITE_NAME } from '@/lib/brand';
@@ -46,7 +48,7 @@ const FAQ = [
   },
   {
     q: 'How many titles does Anime List cover?',
-    a: 'Roughly 14,800 anime and 20,600 top manga titles — the slice of MyAnimeList that meets a quality bar on score, scored-by count, members, favorites, and year.',
+    a: 'The unfiltered anime and manga totals below come from our retained catalog, rather than the full MyAnimeList catalog. Search defaults to anime with at least 100,000 members; remove that filter to include lesser-known titles.',
   },
   {
     q: 'Is it free?',
@@ -67,8 +69,8 @@ function HeroSection({ quizAboveFold }: { quizAboveFold: boolean }) {
             Find your next anime in 30 seconds.
           </h1>
           <p className="mt-5 mx-auto max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            Filter 35,000+ anime and manga titles from MyAnimeList by score, genre, year, and
-            members. Free, no sign-up to search, private watchlist if you want one.
+            Filter anime and manga titles from MyAnimeList by score, genre, year, and members. Free,
+            no sign-up to search, private watchlist if you want one.
           </p>
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -97,9 +99,29 @@ function HeroSection({ quizAboveFold }: { quizAboveFold: boolean }) {
             </Link>
           )}
         </div>
+        <CatalogTotals />
         <CatalogPreview />
       </div>
     </section>
+  );
+}
+
+const catalogCountsClient = createResourceClient();
+
+function CatalogTotals({ animeOnly = false }: { animeOnly?: boolean }) {
+  const { data } = useResource('catalogCounts', getCatalogCounts, { client: catalogCountsClient });
+  return (
+    <p
+      className={
+        animeOnly ? 'mt-1 text-xs text-muted-foreground' : 'mt-6 text-sm text-muted-foreground'
+      }
+    >
+      {data
+        ? animeOnly
+          ? `${data.anime.toLocaleString()} anime in the unfiltered catalog`
+          : `${(data.anime + data.manga).toLocaleString()} titles in the unfiltered catalog: ${data.anime.toLocaleString()} anime and ${data.manga.toLocaleString()} manga.`
+        : 'Unfiltered catalog totals are available when the catalog service responds.'}
+    </p>
   );
 }
 
@@ -213,7 +235,7 @@ function TryItSection() {
             className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
           >
             <p className="text-sm font-medium text-foreground">Catalog stats</p>
-            <p className="mt-1 text-xs text-muted-foreground">14,800+ anime, score distribution</p>
+            <CatalogTotals animeOnly />
           </Link>
         </div>
       </div>

@@ -45,7 +45,9 @@ function cacheFor(queryClient: QueryClient) {
 
 function isPublic(key: QueryKey) {
   const name = key[0] === 'manga' ? key[1] : key[0];
-  return ['stats', 'search', 'fields', 'filterActions', 'changelog'].includes(String(name));
+  return ['stats', 'search', 'fields', 'filterActions', 'changelog', 'catalogCounts'].includes(
+    String(name)
+  );
 }
 
 type Options<T> = {
