@@ -32,6 +32,21 @@ async function capture(event: string, properties: Record<string, unknown>) {
 /** The product-specific action behind a `core_action` event. */
 export type CoreAction = 'watchlist_add' | 'anime_search' | 'manga_search';
 
+export type DiscoveryMeasurementEvent =
+  | 'discovery.filter_changed'
+  | 'discovery.choice_selected'
+  | 'discovery.back';
+
+/** Send privacy-safe discovery milestones to the optional App Health tracker. */
+export function trackDiscoveryEvent(event: DiscoveryMeasurementEvent): void {
+  try {
+    if (typeof window === 'undefined') return;
+    window.appHealth?.track(event);
+  } catch {
+    // Optional measurement must never block discovery or navigation.
+  }
+}
+
 interface AnalyticsEventMap {
   /** A page view, tracked on mount and on route changes. */
   page_view: { project_id: typeof PROJECT };

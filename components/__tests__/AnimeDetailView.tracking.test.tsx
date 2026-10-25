@@ -25,6 +25,7 @@ const fixture = vi.hoisted(() => ({
   recommendations: [] as { mal_id: number; title: string; votes: number }[],
   add: vi.fn(),
   updateNote: vi.fn(),
+  trackDiscoveryEvent: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ user: fixture.user }) }));
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -36,22 +37,32 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
       to,
       state,
       search,
+      onClick,
     }: {
       children: React.ReactNode;
       to: string;
       state?: (previous: Record<string, unknown>) => Record<string, unknown>;
       search?: Record<string, unknown>;
+      onClick?: React.MouseEventHandler<HTMLAnchorElement>;
     }) => (
       <a
         href={`${to}${search ? mockStringifySearch(search) : ''}`}
         data-return-to-search={state?.({})?.returnToSearch as string | undefined}
+        onClick={(event) => {
+          event.preventDefault();
+          onClick?.(event);
+        }}
       >
         {children}
       </a>
     ),
   };
 });
-vi.mock('@/lib/analytics', () => ({ trackCoreAction: vi.fn(), trackActivated: vi.fn() }));
+vi.mock('@/lib/analytics', () => ({
+  trackCoreAction: vi.fn(),
+  trackActivated: vi.fn(),
+  trackDiscoveryEvent: fixture.trackDiscoveryEvent,
+}));
 vi.mock('@/lib/api', () => ({
   getAnimeDetail: async () => ({
     anime: { mal_id: 1, title: 'Synthetic anime', genres: [], themes: [], demographics: [] },
@@ -90,6 +101,7 @@ beforeEach(() => {
   fixture.recommendations = [];
   fixture.add.mockClear();
   fixture.updateNote.mockClear();
+  fixture.trackDiscoveryEvent.mockClear();
 });
 afterEach(cleanup);
 
@@ -107,10 +119,10 @@ const detailPage = (returnToSearch: string) => (
 it('returns from detail to the originating filtered search', async () => {
   render(detailPage('/search?af=score%3E%3D8&airing=no&page=3'));
 
-  expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute(
-    'href',
-    '/search?af=score%3E%3D8&airing=no&page=3'
-  );
+  const backLink = await screen.findByRole('link', { name: 'Back' });
+  expect(backLink).toHaveAttribute('href', '/search?af=score%3E%3D8&airing=no&page=3');
+  fireEvent.click(backLink);
+  expect(fixture.trackDiscoveryEvent.mock.calls).toEqual([['discovery.back']]);
 });
 
 it('preserves the return path when opening a related anime', async () => {
@@ -122,6 +134,8 @@ it('preserves the return path when opening a related anime', async () => {
     'data-return-to-search',
     '/search?af=score%3E%3D8&airing=no&page=3'
   );
+  fireEvent.click(relatedLink);
+  expect(fixture.trackDiscoveryEvent.mock.calls).toEqual([['discovery.choice_selected']]);
 });
 
 it('preserves the return path when opening a recommended anime', async () => {
@@ -133,6 +147,8 @@ it('preserves the return path when opening a recommended anime', async () => {
     'data-return-to-search',
     '/search?af=score%3E%3D8&airing=no&page=3'
   );
+  fireEvent.click(recommendationLink);
+  expect(fixture.trackDiscoveryEvent.mock.calls).toEqual([['discovery.choice_selected']]);
 });
 
 it('tracks from detail, restores the saved status after remount, and explains guest access', async () => {

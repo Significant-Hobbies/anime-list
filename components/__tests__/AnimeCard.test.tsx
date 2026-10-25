@@ -3,11 +3,13 @@ import type React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { AnimeSummary } from '@/lib/types';
 
-const { mockInvalidateQueries, mockMutate, mockSearchLocation } = vi.hoisted(() => ({
-  mockInvalidateQueries: vi.fn(),
-  mockMutate: vi.fn(),
-  mockSearchLocation: { pathname: '/search', searchStr: '?af=score%3E%3D8&airing=no&page=3' },
-}));
+const { mockInvalidateQueries, mockMutate, mockSearchLocation, mockTrackDiscoveryEvent } =
+  vi.hoisted(() => ({
+    mockInvalidateQueries: vi.fn(),
+    mockMutate: vi.fn(),
+    mockTrackDiscoveryEvent: vi.fn(),
+    mockSearchLocation: { pathname: '/search', searchStr: '?af=score%3E%3D8&airing=no&page=3' },
+  }));
 let mockUser: { id: string } | null = null;
 let mockWatchlistData = {
   user: { id: 'u1', name: 'user' },
@@ -19,15 +21,25 @@ vi.mock('@tanstack/react-router', () => ({
     children,
     to,
     state,
+    onClick,
     ...props
   }: {
     children: React.ReactNode;
     to: string;
     state?: (previous: Record<string, unknown>) => Record<string, unknown>;
+    onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   }) => {
     const linkState = state?.({});
     return (
-      <a href={to} data-return-to-search={linkState?.returnToSearch} {...props}>
+      <a
+        href={to}
+        data-return-to-search={linkState?.returnToSearch}
+        onClick={(event) => {
+          event.preventDefault();
+          onClick?.(event);
+        }}
+        {...props}
+      >
         {children}
       </a>
     );
@@ -67,6 +79,11 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/auth', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
+vi.mock('@/lib/analytics', () => ({
+  trackActivated: vi.fn(),
+  trackCoreAction: vi.fn(),
+  trackDiscoveryEvent: mockTrackDiscoveryEvent,
+}));
 
 import AnimeCard from '../AnimeCard';
 
@@ -99,6 +116,7 @@ describe('AnimeCard', () => {
     };
     mockInvalidateQueries.mockClear();
     mockMutate.mockClear();
+    mockTrackDiscoveryEvent.mockClear();
   });
 
   it('displays English title when title_english is provided', () => {
@@ -156,6 +174,21 @@ describe('AnimeCard', () => {
         '/search?af=score%3E%3D8&airing=no&page=3'
       );
     }
+  });
+
+  it('tracks poster and title choices without sending card data', () => {
+    render(<AnimeCard anime={baseAnime} />);
+
+    const links = screen
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href') === '/anime/1');
+    fireEvent.click(links[0]!);
+    fireEvent.click(links[1]!);
+
+    expect(mockTrackDiscoveryEvent.mock.calls).toEqual([
+      ['discovery.choice_selected'],
+      ['discovery.choice_selected'],
+    ]);
   });
 
   it('does not carry a search return path when opened outside search', () => {
