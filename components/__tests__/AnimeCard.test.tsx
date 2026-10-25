@@ -3,9 +3,10 @@ import type React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { AnimeSummary } from '@/lib/types';
 
-const { mockInvalidateQueries, mockMutate } = vi.hoisted(() => ({
+const { mockInvalidateQueries, mockMutate, mockSearchLocation } = vi.hoisted(() => ({
   mockInvalidateQueries: vi.fn(),
   mockMutate: vi.fn(),
+  mockSearchLocation: { pathname: '/search', searchStr: '?af=score%3E%3D8&airing=no&page=3' },
 }));
 let mockUser: { id: string } | null = null;
 let mockWatchlistData = {
@@ -14,11 +15,28 @@ let mockWatchlistData = {
 };
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) => (
-    <a href={to} {...props}>
-      {children}
-    </a>
-  ),
+  Link: ({
+    children,
+    to,
+    state,
+    ...props
+  }: {
+    children: React.ReactNode;
+    to: string;
+    state?: (previous: Record<string, unknown>) => Record<string, unknown>;
+  }) => {
+    const linkState = state?.({});
+    return (
+      <a href={to} data-return-to-search={linkState?.returnToSearch} {...props}>
+        {children}
+      </a>
+    );
+  },
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: typeof mockSearchLocation }) => unknown;
+  }) => select({ location: mockSearchLocation }),
 }));
 
 vi.mock('@/lib/use-resource-query', () => ({
@@ -73,6 +91,8 @@ const baseAnime: AnimeSummary = {
 describe('AnimeCard', () => {
   beforeEach(() => {
     mockUser = null;
+    mockSearchLocation.pathname = '/search';
+    mockSearchLocation.searchStr = '?af=score%3E%3D8&airing=no&page=3';
     mockWatchlistData = {
       user: { id: 'u1', name: 'user' },
       anime: {},
@@ -121,6 +141,31 @@ describe('AnimeCard', () => {
 
     const links = screen.getAllByRole('link');
     expect(links.some((link) => link.getAttribute('href') === '/anime/1')).toBe(true);
+  });
+
+  it('carries the current filtered search URL into detail navigation', () => {
+    render(<AnimeCard anime={baseAnime} />);
+
+    const detailLinks = screen
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href') === '/anime/1');
+    expect(detailLinks).toHaveLength(2);
+    for (const link of detailLinks) {
+      expect(link).toHaveAttribute(
+        'data-return-to-search',
+        '/search?af=score%3E%3D8&airing=no&page=3'
+      );
+    }
+  });
+
+  it('does not carry a search return path when opened outside search', () => {
+    mockSearchLocation.pathname = '/watchlist';
+    render(<AnimeCard anime={baseAnime} />);
+
+    const detailLink = screen
+      .getAllByRole('link')
+      .find((link) => link.getAttribute('href') === '/anime/1');
+    expect(detailLink).not.toHaveAttribute('data-return-to-search');
   });
 
   it('keeps an external MAL link available', () => {

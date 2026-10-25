@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import type React from 'react';
 import { QueryProvider } from '@/lib/query-provider';
 import AnimeDetailView from '../AnimeDetailView';
 
@@ -16,6 +17,11 @@ const fixture = vi.hoisted(() => ({
   updateNote: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ user: fixture.user }) }));
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+}));
 vi.mock('@/lib/analytics', () => ({ trackCoreAction: vi.fn(), trackActivated: vi.fn() }));
 vi.mock('@/lib/api', () => ({
   getAnimeDetail: async () => ({
@@ -61,6 +67,20 @@ const detail = (malId = 1) => (
     <AnimeDetailView key={`${fixture.user?.id ?? 'guest'}:${malId}`} malId={malId} isModal />
   </QueryProvider>
 );
+const detailPage = (returnToSearch: string) => (
+  <QueryProvider>
+    <AnimeDetailView malId={1} returnToSearch={returnToSearch} />
+  </QueryProvider>
+);
+
+it('returns from detail to the originating filtered search', async () => {
+  render(detailPage('/search?af=score%3E%3D8&airing=no&page=3'));
+
+  expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute(
+    'href',
+    '/search?af=score%3E%3D8&airing=no&page=3'
+  );
+});
 
 it('tracks from detail, restores the saved status after remount, and explains guest access', async () => {
   const first = render(detail());

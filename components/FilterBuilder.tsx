@@ -539,8 +539,8 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                 <SegmentedControl
                   value={watchlistMode}
                   options={[
-                    { value: 'hide' as const, label: 'Hide tagged' },
-                    { value: 'show' as const, label: 'Only tagged' },
+                    { value: 'hide' as const, label: 'Hide selected tags' },
+                    { value: 'show' as const, label: 'Show only selected tags' },
                   ]}
                   onChange={(val) => {
                     setWatchlistMode(val);
@@ -554,6 +554,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                     <button
                       key={tag.tag}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => toggleHideWatched(tag.tag)}
                       className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
                       style={{
@@ -567,6 +568,11 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                   );
                 })}
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {watchlistMode === 'hide'
+                  ? 'Choose tags below to hide those titles. With no tags selected, all titles remain visible.'
+                  : 'Choose tags below to show only those titles. With no tags selected, all titles remain visible.'}
+              </p>
             </FilterSection>
           )}
         </div>

@@ -121,9 +121,11 @@ function RelatedTitleLink({
 export default function AnimeDetailView({
   malId,
   isModal = false,
+  returnToSearch = '/search',
 }: {
   malId: number;
   isModal?: boolean;
+  returnToSearch?: string;
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -294,7 +296,7 @@ export default function AnimeDetailView({
       <div className={cn('space-y-4', isModal ? 'p-6' : 'px-6 pt-10')}>
         {!isModal && (
           <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
-            <Link to="/search">
+            <Link to={returnToSearch}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Discover
             </Link>
@@ -346,7 +348,7 @@ export default function AnimeDetailView({
                 size="sm"
                 className="text-white/60 hover:text-white h-8 px-2 border border-outline/20"
               >
-                <Link to="/search">
+                <Link to={returnToSearch}>
                   <ArrowLeft className="mr-1 h-3 w-3" />
                   Back
                 </Link>
