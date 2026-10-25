@@ -24,6 +24,7 @@ import { useAuth } from '@/lib/auth';
 import { trackActivated, trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_WATCH_TAGS, resolveTagColor } from '@/lib/watchStatus';
 import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
+import { getAnimeDetailLinkState, getAnimeSearchReturnToLocation } from '@/lib/searchReturnTo';
 
 const compactNumber = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -76,9 +77,11 @@ function LoadingSkeleton({ isModal = false }: { isModal?: boolean }) {
 function RelatedTitleLink({
   item,
   relationLabel,
+  returnToSearch,
 }: {
   item: AnimeRelationItem;
   relationLabel?: string;
+  returnToSearch: string;
 }) {
   const title = animeTitle(item);
   const isAnimeRoute = item.url?.includes('/anime/') ?? false;
@@ -103,7 +106,11 @@ function RelatedTitleLink({
 
   if (isAnimeRoute) {
     return (
-      <Link to={href} className={className}>
+      <Link
+        to={href}
+        state={(previous) => getAnimeDetailLinkState(previous, returnToSearch)}
+        className={className}
+      >
         {body}
       </Link>
     );
@@ -121,9 +128,11 @@ function RelatedTitleLink({
 export default function AnimeDetailView({
   malId,
   isModal = false,
+  returnToSearch = '/search',
 }: {
   malId: number;
   isModal?: boolean;
+  returnToSearch?: string;
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -290,11 +299,12 @@ export default function AnimeDetailView({
 
   if (detailQuery.isLoading) return <LoadingSkeleton isModal={isModal} />;
   if (!detailQuery.data) {
+    const returnLocation = getAnimeSearchReturnToLocation(returnToSearch);
     return (
       <div className={cn('space-y-4', isModal ? 'p-6' : 'px-6 pt-10')}>
         {!isModal && (
           <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
-            <Link to="/search">
+            <Link to={returnLocation.to} search={returnLocation.search}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Discover
             </Link>
@@ -316,6 +326,7 @@ export default function AnimeDetailView({
   }
 
   const { anime, relations, watchlistEntry } = detailQuery.data;
+  const returnLocation = getAnimeSearchReturnToLocation(returnToSearch);
   const title = animeTitle(anime);
   const score = formatStat(anime.score);
   const popularity = anime.popularity ? `#${wholeNumber.format(anime.popularity)}` : null;
@@ -346,7 +357,7 @@ export default function AnimeDetailView({
                 size="sm"
                 className="text-white/60 hover:text-white h-8 px-2 border border-outline/20"
               >
-                <Link to="/search">
+                <Link to={returnLocation.to} search={returnLocation.search}>
                   <ArrowLeft className="mr-1 h-3 w-3" />
                   Back
                 </Link>
@@ -650,6 +661,7 @@ export default function AnimeDetailView({
                       key={`direct-${item.mal_id}`}
                       item={item}
                       relationLabel={item.relation}
+                      returnToSearch={returnToSearch}
                     />
                   ))}
                 </div>
@@ -664,6 +676,7 @@ export default function AnimeDetailView({
                           key={`franchise-${item.mal_id}`}
                           item={item}
                           relationLabel={item.relation}
+                          returnToSearch={returnToSearch}
                         />
                       ))}
                     </div>
@@ -684,6 +697,7 @@ export default function AnimeDetailView({
                     return (
                       <Link
                         to={getAnimeDetailHref(item.mal_id)}
+                        state={(previous) => getAnimeDetailLinkState(previous, returnToSearch)}
                         key={item.mal_id}
                         className="min-w-[200px] md:min-w-[240px] group cursor-pointer block"
                       >

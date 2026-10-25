@@ -1,7 +1,16 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import type React from 'react';
 import { QueryProvider } from '@/lib/query-provider';
 import AnimeDetailView from '../AnimeDetailView';
+
+const mockStringifySearch = (search: Record<string, unknown>) =>
+  `?${Object.entries(search)
+    .map(([key, value]) => {
+      const serialized = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return `${encodeURIComponent(key)}=${encodeURIComponent(serialized)}`;
+    })
+    .join('&')}`;
 
 const fixture = vi.hoisted(() => ({
   user: { id: 'tracker' } as { id: string } | null,
@@ -12,16 +21,42 @@ const fixture = vi.hoisted(() => ({
   // client observes an error.
   persistOnError: false,
   failNote: false,
+  relations: [] as { mal_id: number; title: string; url: string; relation: string }[],
+  recommendations: [] as { mal_id: number; title: string; votes: number }[],
   add: vi.fn(),
   updateNote: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ user: fixture.user }) }));
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-router')>();
+  return {
+    ...actual,
+    Link: ({
+      children,
+      to,
+      state,
+      search,
+    }: {
+      children: React.ReactNode;
+      to: string;
+      state?: (previous: Record<string, unknown>) => Record<string, unknown>;
+      search?: Record<string, unknown>;
+    }) => (
+      <a
+        href={`${to}${search ? mockStringifySearch(search) : ''}`}
+        data-return-to-search={state?.({})?.returnToSearch as string | undefined}
+      >
+        {children}
+      </a>
+    ),
+  };
+});
 vi.mock('@/lib/analytics', () => ({ trackCoreAction: vi.fn(), trackActivated: vi.fn() }));
 vi.mock('@/lib/api', () => ({
   getAnimeDetail: async () => ({
     anime: { mal_id: 1, title: 'Synthetic anime', genres: [], themes: [], demographics: [] },
-    relations: [],
-    recommendations: [],
+    relations: fixture.relations,
+    recommendations: fixture.recommendations,
     watchlistEntry:
       fixture.user && fixture.status ? { status: fixture.status, note: fixture.note } : null,
   }),
@@ -51,6 +86,8 @@ beforeEach(() => {
   fixture.failAdd = false;
   fixture.persistOnError = false;
   fixture.failNote = false;
+  fixture.relations = [];
+  fixture.recommendations = [];
   fixture.add.mockClear();
   fixture.updateNote.mockClear();
 });
@@ -61,6 +98,42 @@ const detail = (malId = 1) => (
     <AnimeDetailView key={`${fixture.user?.id ?? 'guest'}:${malId}`} malId={malId} isModal />
   </QueryProvider>
 );
+const detailPage = (returnToSearch: string) => (
+  <QueryProvider>
+    <AnimeDetailView malId={1} returnToSearch={returnToSearch} />
+  </QueryProvider>
+);
+
+it('returns from detail to the originating filtered search', async () => {
+  render(detailPage('/search?af=score%3E%3D8&airing=no&page=3'));
+
+  expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute(
+    'href',
+    '/search?af=score%3E%3D8&airing=no&page=3'
+  );
+});
+
+it('preserves the return path when opening a related anime', async () => {
+  fixture.relations = [{ mal_id: 2, title: 'Related anime', url: '/anime/2', relation: 'Sequel' }];
+  render(detailPage('/search?af=score%3E%3D8&airing=no&page=3'));
+
+  const relatedLink = await screen.findByRole('link', { name: /Related anime/ });
+  expect(relatedLink).toHaveAttribute(
+    'data-return-to-search',
+    '/search?af=score%3E%3D8&airing=no&page=3'
+  );
+});
+
+it('preserves the return path when opening a recommended anime', async () => {
+  fixture.recommendations = [{ mal_id: 3, title: 'Recommended anime', votes: 10 }];
+  render(detailPage('/search?af=score%3E%3D8&airing=no&page=3'));
+
+  const recommendationLink = await screen.findByRole('link', { name: /Recommended anime/ });
+  expect(recommendationLink).toHaveAttribute(
+    'data-return-to-search',
+    '/search?af=score%3E%3D8&airing=no&page=3'
+  );
+});
 
 it('tracks from detail, restores the saved status after remount, and explains guest access', async () => {
   const first = render(detail());
