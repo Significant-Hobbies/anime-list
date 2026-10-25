@@ -6,17 +6,18 @@ describe('discovery measurement events', () => {
     delete window.appHealth;
   });
 
-  it.each(['discovery.filter_changed', 'discovery.choice_selected', 'discovery.back'] as const)(
-    'sends only the fixed %s event name to App Health',
-    (event) => {
-      const track = vi.fn();
-      window.appHealth = { track };
+  it.each([
+    'discovery.list_filter_changed',
+    'discovery.choice_selected',
+    'discovery.back',
+  ] as const)('sends only the fixed %s event name to App Health', (event) => {
+    const track = vi.fn();
+    window.appHealth = { track };
 
-      trackDiscoveryEvent(event);
+    trackDiscoveryEvent(event);
 
-      expect(track.mock.calls).toEqual([[event]]);
-    }
-  );
+    expect(track.mock.calls).toEqual([[event]]);
+  });
 
   it('keeps the product flow working when App Health is absent or throws', () => {
     expect(() => trackDiscoveryEvent('discovery.back')).not.toThrow();

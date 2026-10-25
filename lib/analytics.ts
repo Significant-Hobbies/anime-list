@@ -33,7 +33,7 @@ async function capture(event: string, properties: Record<string, unknown>) {
 export type CoreAction = 'watchlist_add' | 'anime_search' | 'manga_search';
 
 export type DiscoveryMeasurementEvent =
-  | 'discovery.filter_changed'
+  | 'discovery.list_filter_changed'
   | 'discovery.choice_selected'
   | 'discovery.back';
 
