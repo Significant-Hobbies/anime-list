@@ -21,7 +21,7 @@ const baselines = {
   },
   duplication: {
     clones: 45,
-    duplicatedLines: 749,
+    duplicatedLines: 741,
   },
   unused: {
     files: 0,

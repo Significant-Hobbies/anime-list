@@ -24,6 +24,7 @@ import { useAuth } from '@/lib/auth';
 import { trackActivated, trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_WATCH_TAGS, resolveTagColor } from '@/lib/watchStatus';
 import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
+import { getAnimeDetailLinkState } from '@/lib/searchReturnTo';
 
 const compactNumber = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -76,9 +77,11 @@ function LoadingSkeleton({ isModal = false }: { isModal?: boolean }) {
 function RelatedTitleLink({
   item,
   relationLabel,
+  returnToSearch,
 }: {
   item: AnimeRelationItem;
   relationLabel?: string;
+  returnToSearch: string;
 }) {
   const title = animeTitle(item);
   const isAnimeRoute = item.url?.includes('/anime/') ?? false;
@@ -103,7 +106,11 @@ function RelatedTitleLink({
 
   if (isAnimeRoute) {
     return (
-      <Link to={href} className={className}>
+      <Link
+        to={href}
+        state={(previous) => getAnimeDetailLinkState(previous, returnToSearch)}
+        className={className}
+      >
         {body}
       </Link>
     );
@@ -652,6 +659,7 @@ export default function AnimeDetailView({
                       key={`direct-${item.mal_id}`}
                       item={item}
                       relationLabel={item.relation}
+                      returnToSearch={returnToSearch}
                     />
                   ))}
                 </div>
@@ -666,6 +674,7 @@ export default function AnimeDetailView({
                           key={`franchise-${item.mal_id}`}
                           item={item}
                           relationLabel={item.relation}
+                          returnToSearch={returnToSearch}
                         />
                       ))}
                     </div>

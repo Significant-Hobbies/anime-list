@@ -535,6 +535,11 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
 
           {user && watchlistTags.length > 0 && (
             <FilterSection label="List">
+              <p className="mb-2 text-xs text-muted-foreground">
+                {watchlistMode === 'hide'
+                  ? 'Select tags below to hide those titles. With no tags selected, all titles remain visible.'
+                  : 'Select tags below to show only those titles. With no tags selected, all titles remain visible.'}
+              </p>
               <div className="flex flex-wrap items-center gap-2">
                 <SegmentedControl
                   value={watchlistMode}
@@ -568,11 +573,6 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                   );
                 })}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {watchlistMode === 'hide'
-                  ? 'Choose tags below to hide those titles. With no tags selected, all titles remain visible.'
-                  : 'Choose tags below to show only those titles. With no tags selected, all titles remain visible.'}
-              </p>
             </FilterSection>
           )}
         </div>

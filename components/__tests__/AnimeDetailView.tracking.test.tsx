@@ -13,20 +13,31 @@ const fixture = vi.hoisted(() => ({
   // client observes an error.
   persistOnError: false,
   failNote: false,
+  relations: [] as { mal_id: number; title: string; url: string; relation: string }[],
   add: vi.fn(),
   updateNote: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ user: fixture.user }) }));
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    children,
+    to,
+    state,
+  }: {
+    children: React.ReactNode;
+    to: string;
+    state?: (previous: Record<string, unknown>) => Record<string, unknown>;
+  }) => (
+    <a href={to} data-return-to-search={state?.({})?.returnToSearch as string | undefined}>
+      {children}
+    </a>
   ),
 }));
 vi.mock('@/lib/analytics', () => ({ trackCoreAction: vi.fn(), trackActivated: vi.fn() }));
 vi.mock('@/lib/api', () => ({
   getAnimeDetail: async () => ({
     anime: { mal_id: 1, title: 'Synthetic anime', genres: [], themes: [], demographics: [] },
-    relations: [],
+    relations: fixture.relations,
     recommendations: [],
     watchlistEntry:
       fixture.user && fixture.status ? { status: fixture.status, note: fixture.note } : null,
@@ -57,6 +68,7 @@ beforeEach(() => {
   fixture.failAdd = false;
   fixture.persistOnError = false;
   fixture.failNote = false;
+  fixture.relations = [];
   fixture.add.mockClear();
   fixture.updateNote.mockClear();
 });
@@ -78,6 +90,17 @@ it('returns from detail to the originating filtered search', async () => {
 
   expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute(
     'href',
+    '/search?af=score%3E%3D8&airing=no&page=3'
+  );
+});
+
+it('preserves the return path when opening a related anime', async () => {
+  fixture.relations = [{ mal_id: 2, title: 'Related anime', url: '/anime/2', relation: 'Sequel' }];
+  render(detailPage('/search?af=score%3E%3D8&airing=no&page=3'));
+
+  const relatedLink = await screen.findByRole('link', { name: /Related anime/ });
+  expect(relatedLink).toHaveAttribute(
+    'data-return-to-search',
     '/search?af=score%3E%3D8&airing=no&page=3'
   );
 });

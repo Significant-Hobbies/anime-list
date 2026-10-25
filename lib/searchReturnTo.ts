@@ -1,3 +1,5 @@
+import type { HistoryState } from '@tanstack/react-router';
+
 const SEARCH_PATH = '/search';
 const INTERNAL_ORIGIN = 'https://anime-list.invalid';
 
@@ -25,4 +27,9 @@ export function getAnimeSearchReturnTo(state: unknown): string {
   } catch {
     return SEARCH_PATH;
   }
+}
+
+export function getAnimeDetailLinkState(previous: object, returnToSearch?: string): HistoryState {
+  const { returnToSearch: _previousReturnToSearch, ...state } = previous as Record<string, unknown>;
+  return (returnToSearch ? { ...state, returnToSearch } : state) as HistoryState;
 }

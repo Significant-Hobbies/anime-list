@@ -4,6 +4,7 @@ import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
 
 import { useMemo, useState } from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
+import type { HistoryState } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import type { AnimeSummary } from '@/lib/types';
@@ -19,6 +20,7 @@ import { trackActivated, trackCoreAction } from '@/lib/analytics';
 import { Badge } from '@/components/ui/badge';
 import { DEFAULT_WATCH_TAGS, resolveTagColor } from '@/lib/watchStatus';
 import { getAnimeDetailHref } from '@/lib/utils';
+import { getAnimeDetailLinkState } from '@/lib/searchReturnTo';
 
 export default function AnimeCard({
   anime,
@@ -38,6 +40,8 @@ export default function AnimeCard({
     select: ({ location }) =>
       location.pathname === '/search' ? `${location.pathname}${location.searchStr}` : undefined,
   });
+  const detailLinkState = (previous: HistoryState) =>
+    getAnimeDetailLinkState(previous, returnToSearch);
 
   const { data: watchlistData } = useQuery({
     queryKey: ['watchlist'],
@@ -119,11 +123,7 @@ export default function AnimeCard({
   return (
     <div className="group relative cursor-pointer block">
       {/* Poster image */}
-      <Link
-        to={detailHref}
-        state={(previous) => ({ ...previous, ...(returnToSearch ? { returnToSearch } : {}) })}
-        className="block"
-      >
+      <Link to={detailHref} state={detailLinkState} className="block">
         <div className="aspect-[2/3] relative overflow-hidden bg-surface-container-low mb-4">
           {anime.image ? (
             <img
@@ -186,11 +186,7 @@ export default function AnimeCard({
       {/* Title and metadata below poster */}
       <div className="mt-2 flex items-start gap-2 justify-between">
         <div className="min-w-0 flex-1">
-          <Link
-            to={detailHref}
-            state={(previous) => ({ ...previous, ...(returnToSearch ? { returnToSearch } : {}) })}
-            className="block w-full"
-          >
+          <Link to={detailHref} state={detailLinkState} className="block w-full">
             <h4 className="font-medium text-base text-foreground group-hover:text-primary transition-colors h-11 line-clamp-2 leading-snug">
               {title}
             </h4>

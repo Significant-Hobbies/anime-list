@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getAnimeSearchReturnTo } from '@/lib/searchReturnTo';
+import { getAnimeDetailLinkState, getAnimeSearchReturnTo } from '@/lib/searchReturnTo';
 
 describe('getAnimeSearchReturnTo', () => {
   it('preserves the originating search query and page', () => {
@@ -21,5 +21,11 @@ describe('getAnimeSearchReturnTo', () => {
     { returnToSearch: '/search/../about' },
   ])('falls back to search for unsafe or absent state: %j', (state) => {
     expect(getAnimeSearchReturnTo(state)).toBe('/search');
+  });
+});
+
+it('clears a stale return path when a detail link is opened outside search', () => {
+  expect(getAnimeDetailLinkState({ returnToSearch: '/search?old=1', other: 'kept' })).toEqual({
+    other: 'kept',
   });
 });
