@@ -22,7 +22,7 @@ import {
   getCatalogCounts,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { trackCoreAction } from '@/lib/analytics';
+import { trackCoreAction, trackDiscoveryEvent } from '@/lib/analytics';
 import { DEFAULT_ANIME_MIN_MEMBERS, DEFAULT_ANIME_PAGE_SIZE } from '@/lib/animeSearchDefaults';
 import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS, filtersParser } from '@/lib/filterMetadata';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
@@ -548,6 +548,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                     { value: 'show' as const, label: 'Show only selected tags' },
                   ]}
                   onChange={(val) => {
+                    if (val !== watchlistMode) trackDiscoveryEvent('discovery.filter_changed');
                     setWatchlistMode(val);
                     resetPage();
                   }}
@@ -560,7 +561,10 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                       key={tag.tag}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => toggleHideWatched(tag.tag)}
+                      onClick={() => {
+                        toggleHideWatched(tag.tag);
+                        trackDiscoveryEvent('discovery.filter_changed');
+                      }}
                       className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
                       style={{
                         borderColor: active ? color : toRgba(color, 0.25),

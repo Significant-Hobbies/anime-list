@@ -21,7 +21,7 @@ import type { AnimeRecommendationItem, AnimeRelationItem } from '@/lib/types';
 import { cn, getAnimeDetailHref } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
-import { trackActivated, trackCoreAction } from '@/lib/analytics';
+import { trackActivated, trackCoreAction, trackDiscoveryEvent } from '@/lib/analytics';
 import { DEFAULT_WATCH_TAGS, resolveTagColor } from '@/lib/watchStatus';
 import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
 import { getAnimeDetailLinkState, getAnimeSearchReturnToLocation } from '@/lib/searchReturnTo';
@@ -110,6 +110,7 @@ function RelatedTitleLink({
         to={href}
         state={(previous) => getAnimeDetailLinkState(previous, returnToSearch)}
         className={className}
+        onClick={() => trackDiscoveryEvent('discovery.choice_selected')}
       >
         {body}
       </Link>
@@ -304,7 +305,11 @@ export default function AnimeDetailView({
       <div className={cn('space-y-4', isModal ? 'p-6' : 'px-6 pt-10')}>
         {!isModal && (
           <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
-            <Link to={returnLocation.to} search={returnLocation.search}>
+            <Link
+              to={returnLocation.to}
+              search={returnLocation.search}
+              onClick={() => trackDiscoveryEvent('discovery.back')}
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Discover
             </Link>
@@ -357,7 +362,11 @@ export default function AnimeDetailView({
                 size="sm"
                 className="text-white/60 hover:text-white h-8 px-2 border border-outline/20"
               >
-                <Link to={returnLocation.to} search={returnLocation.search}>
+                <Link
+                  to={returnLocation.to}
+                  search={returnLocation.search}
+                  onClick={() => trackDiscoveryEvent('discovery.back')}
+                >
                   <ArrowLeft className="mr-1 h-3 w-3" />
                   Back
                 </Link>
@@ -700,6 +709,7 @@ export default function AnimeDetailView({
                         state={(previous) => getAnimeDetailLinkState(previous, returnToSearch)}
                         key={item.mal_id}
                         className="min-w-[200px] md:min-w-[240px] group cursor-pointer block"
+                        onClick={() => trackDiscoveryEvent('discovery.choice_selected')}
                       >
                         <div className="aspect-[2/3] overflow-hidden bg-surface-container-low mb-3 relative rounded-sm border border-outline/10">
                           {item.image ? (
