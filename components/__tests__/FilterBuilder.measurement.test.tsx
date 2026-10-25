@@ -39,7 +39,7 @@ it('tracks list mode and tag changes with fixed event names only', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Done', pressed: true }));
 
   expect(fixture.trackDiscoveryEvent.mock.calls).toEqual([
-    ['discovery.filter_changed'],
-    ['discovery.filter_changed'],
+    ['discovery.list_filter_changed'],
+    ['discovery.list_filter_changed'],
   ]);
 });

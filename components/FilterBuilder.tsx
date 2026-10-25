@@ -548,7 +548,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                     { value: 'show' as const, label: 'Show only selected tags' },
                   ]}
                   onChange={(val) => {
-                    if (val !== watchlistMode) trackDiscoveryEvent('discovery.filter_changed');
+                    if (val !== watchlistMode) trackDiscoveryEvent('discovery.list_filter_changed');
                     setWatchlistMode(val);
                     resetPage();
                   }}
@@ -563,7 +563,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
                       aria-pressed={active}
                       onClick={() => {
                         toggleHideWatched(tag.tag);
-                        trackDiscoveryEvent('discovery.filter_changed');
+                        trackDiscoveryEvent('discovery.list_filter_changed');
                       }}
                       className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
                       style={{
