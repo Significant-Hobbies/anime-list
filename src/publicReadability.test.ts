@@ -164,3 +164,14 @@ describe('public source readability', () => {
     expect(catalog.mcp.url).toBe(origin + '/api/mcp');
   });
 });
+
+it('unknown Markdown paths cannot advertise off-origin canonicals', async () => {
+  for (const path of ['/api/md//evil.example/x', '//evil.example/x.md']) {
+    const response = await handleReadability(new Request(origin + path), assets);
+    expect(response?.status).toBe(404);
+    expect(response?.headers.get('content-location')).toBe(origin + '//evil.example/x');
+    expect(response?.headers.get('cache-control')).toBe('no-store');
+    expect(response?.headers.get('x-robots-tag')).toBe('noindex, follow');
+    expect(response?.headers.get('link')).toContain(origin + '/llms.txt');
+  }
+});
