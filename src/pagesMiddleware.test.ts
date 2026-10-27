@@ -98,11 +98,36 @@ describe('Pages SPA routing status', () => {
     expect(await response.text()).toContain('content="noindex"');
   });
 
-  it('does not intercept detail Markdown before the detail function', async () => {
-    const ctx = context('/anime/5114', 'GET', 'text/markdown');
-    const response = await onRequest(ctx);
-    expect(response.status).toBe(200);
-    expect(ctx.next).toHaveBeenCalledOnce();
+  it('negotiates full public detail Markdown before the HTML function', async () => {
+    const upstream = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          anime: {
+            mal_id: 5114,
+            title: 'Fullmetal Alchemist',
+            synopsis: 'Full public synopsis',
+            genres: [],
+            themes: [],
+            demographics: [],
+          },
+          relations: [],
+          recommendations: [],
+          watchlistEntry: { note: 'private secret' },
+        }),
+        { headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+    try {
+      const ctx = context('/anime/5114', 'GET', 'text/markdown');
+      const response = await onRequest(ctx);
+      expect(response.status).toBe(200);
+      expect(ctx.next).not.toHaveBeenCalled();
+      const body = await response.text();
+      expect(body).toContain('Full public synopsis');
+      expect(body).not.toContain('private secret');
+    } finally {
+      upstream.mockRestore();
+    }
   });
 
   it('does not convert genuine static assets to not-found', async () => {

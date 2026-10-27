@@ -1,24 +1,28 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import surfaces from './data/public-surfaces.json';
 import anime from './data/seo-anime.json';
 import manga from './data/seo-manga.json';
-import { renderDetailMarkdown } from './agentMarkdown';
+import { renderPublicMarkdown } from './publicMarkdown';
 import { rewriteStaticSeo } from './staticSeo';
 
 describe('public agent surface coverage', () => {
   it('maps every canonical static HTML route to distinct Markdown', () => {
-    expect(surfaces).toHaveLength(13);
-    expect(new Set(surfaces.map((surface) => surface.path)).size).toBe(13);
-    expect(new Set(surfaces.map((surface) => surface.markdownPath)).size).toBe(13);
-    expect(surfaces.every((surface) => surface.markdownPath.endsWith('.md'))).toBe(true);
+    const publicPages = surfaces.filter((surface) => surface.path !== '/discover');
+    expect(publicPages).toHaveLength(12);
+    expect(new Set(publicPages.map((surface) => surface.path)).size).toBe(12);
+    expect(new Set(publicPages.map((surface) => surface.markdownPath)).size).toBe(12);
+    expect(publicPages.every((surface) => surface.markdownPath.endsWith('.md'))).toBe(true);
   });
 
   it('keeps personal and machine resources out of the HTML registry', () => {
-    const paths = surfaces.map((surface) => surface.path);
+    const paths = surfaces
+      .filter((surface) => surface.path !== '/discover')
+      .map((surface) => surface.path);
     for (const excluded of [
+      '/discover',
       '/quiz',
       '/schedule',
       '/watchlist',
@@ -33,15 +37,35 @@ describe('public agent surface coverage', () => {
     }
   });
 
-  it('renders source-derived Markdown for both detail collections', () => {
+  it('renders full public source Markdown for both detail collections', async () => {
     expect(anime).toHaveLength(5306);
     expect(manga).toHaveLength(2288);
-    const animeMarkdown = renderDetailMarkdown(anime[0], 'anime');
-    const mangaMarkdown = renderDetailMarkdown(manga[0], 'manga');
-    expect(animeMarkdown).toContain(`# ${anime[0].title}`);
-    expect(animeMarkdown).toContain(`/anime/${anime[0].id}`);
-    expect(mangaMarkdown).toContain(`# ${manga[0].title}`);
-    expect(mangaMarkdown).toContain(`/manga/${manga[0].id}`);
+    for (const [kind, entry] of [
+      ['anime', anime[0]],
+      ['manga', manga[0]],
+    ] as const) {
+      const upstream = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            [kind]: {
+              mal_id: entry.id,
+              title: entry.title,
+              synopsis: 'Untruncated public synopsis',
+              genres: entry.genres,
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+      try {
+        const markdown = await renderPublicMarkdown(`/${kind}/${entry.id}`);
+        expect(markdown).toContain(`# ${entry.title}`);
+        expect(markdown).toContain(`/${kind}/${entry.id}`);
+        expect(markdown).toContain('Untruncated public synopsis');
+      } finally {
+        upstream.mockRestore();
+      }
+    }
   });
 
   it('rewrites the SPA canonical and social metadata for static routes', () => {

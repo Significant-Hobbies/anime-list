@@ -1,16 +1,172 @@
+# Keep in sync with ai.txt and llms.txt.
+
 User-agent: *
 Allow: /
-
-Sitemap: https://anime.significanthobbies.com/sitemap.xml
-Sitemap: https://anime.significanthobbies.com/sitemap-index.xml
-# Agent indexing
-Allow: /llms.txt
-Allow: /index.md
-Allow: /api/ai
-Allow: /llms-full.txt
 Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
 Disallow: /schedule
 Disallow: /watchlist
 Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: GPTBot
+Allow: /
+Disallow: /discover
 Disallow: /alerts
 Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: CCBot
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: Bytespider
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: Claude-User
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /discover
+Disallow: /alerts
+Disallow: /collections
+Disallow: /quiz
+Disallow: /schedule
+Disallow: /watchlist
+Disallow: /manga/watchlist
+Disallow: /api/auth
+Disallow: /api/tokens
+Disallow: /api/watchlist
+
+Sitemap: https://anime.significanthobbies.com/sitemap.xml

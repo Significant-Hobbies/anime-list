@@ -1,61 +1,389 @@
-# Anime List — full agent brief
+# Anime List - full content
 
-Anime List indexes 5,306 popular anime and 2,288 popular manga for crawlable public discovery.
+> Filter and explore anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists.
 
-## Anime List — filter anime and manga
+Generated: 2026-10-27
 
-Anime List is an anime and manga discovery app backed by MyAnimeList catalog data. Public discovery works without an account; personal watchlists and schedules require sign-in.
+---
+<!-- source: https://anime.significanthobbies.com/ -->
+Anime & manga, indexed from MyAnimeList
 
-## Advanced anime search — Anime List
+# Find your next anime in 30 seconds.
+
+Canonical: https://anime.significanthobbies.com/
+
+Filter anime and manga titles from MyAnimeList by score, genre, year, and members. Free, no sign-up to search, private watchlist if you want one.
+
+[Filter the catalog](https://anime.significanthobbies.com/search) [Browse the queue](https://anime.significanthobbies.com/discover)
+
+Illustrative catalog query
+
+Filters stay in the URL
+
+Stacked filters
+
+- Score ≥ 8
+
+- Type is TV
+
+- Finished airing
+
+- Sort by score
+
+01
+
+Monster
+
+Drama · Mystery · Suspense
+
+  8.89
+
+02
+
+Hajime no Ippo
+
+Sports
+
+  8.78
+
+03
+
+Cowboy Bebop
+
+Action · Award Winning · Sci-Fi
+
+  8.75
+
+Sample catalog entries from the checked-in MyAnimeList-derived dataset. Open the query for current results and scores.
+
+## What you get
+
+### Filter across every dimension
+
+Score, type, genre, theme, year, airing status, member count — stack operators (includes all/any, excludes, numeric comparisons) until the results match what you want. Filter state lives in the URL, so any query is shareable.
+
+### A watchlist that's yours
+
+Track titles as Watching, Completed, Deferred, Avoiding, or BRR. Private to your Google account, synced across sessions, and never sold.
+
+### Ranking that surfaces hidden gems
+
+A log-scale popularity formula keeps mega-popular titles from burying everything else, so quality scores from smaller fandoms still get a fair shot.
+
+## Try it without signing up
+
+Filter rows stack into a single query. Results, stats, and your watchlist all read from the same URL state — every query is shareable.
+
+[Top-rated TV anime score 8+, finished airing](https://anime.significanthobbies.com/search?af=%7B%22f%22%3A%5B%7B%22field%22%3A%22score%22%2C%22action%22%3A%22GREATER_THAN_OR_EQUALS%22%2C%22value%22%3A8%7D%2C%7B%22field%22%3A%22type%22%2C%22action%22%3A%22EQUALS%22%2C%22value%22%3A%22TV%22%7D%5D%7D&airing=no&sort=score) [Currently airing queue this season, sorted for you](https://anime.significanthobbies.com/discover) [Catalog stats](https://anime.significanthobbies.com/stats)
+
+## Frequently asked
+
+Where does the data come from?
+
+Catalog data comes from MyAnimeList through the public Tenrai API. We are not affiliated with MyAnimeList.net or Tenrai.
+
+How often is it updated?
+
+A daily sync at midnight UTC refreshes the current and previous anime seasons plus the top manga pages. A quarterly job re-scores the full catalog.
+
+Do I need an account?
+
+No — search, stats, and the schedule work fully signed-out. Sign in with Google only if you want a personal watchlist.
+
+How many titles does Anime List cover?
+
+The unfiltered anime and manga totals below come from our retained catalog, rather than the full MyAnimeList catalog. Search defaults to anime with at least 100,000 members; remove that filter to include lesser-known titles.
+
+Is it free?
+
+Yes. No paid tier, no ads. The point is to explore the catalog without anything in the way.
+
+## Find your next title.
+
+No sign-up needed to start. Sign in later if you want a watchlist.
+
+ [Open Anime List](https://anime.significanthobbies.com/search)
+
+
+---
+<!-- source: https://anime.significanthobbies.com/search -->
+# Advanced anime search — Anime List
+
+Canonical: https://anime.significanthobbies.com/search
 
 Pick a genre and season, then open More filters to set a minimum score or choose a format. Lower Popularity to include lesser-known titles. Search without an account; share your filters by copying the page URL.
 
 For example, choose Action and add a score filter greater than or equal to 7 to narrow the catalog. The default popularity threshold is 100,000 MyAnimeList members; member counts measure catalog popularity, not whether a title fits your taste. Try a lower threshold when you want less widely watched anime.
 
-## Random anime picker — Anime List
+
+---
+<!-- source: https://anime.significanthobbies.com/random -->
+# Random anime picker — Anime List
+
+Canonical: https://anime.significanthobbies.com/random
 
 The HTML route selects a random anime from the public catalog. Use advanced search when you want to constrain the pick by score, year, genre, or other catalog fields.
 
-## Anime catalog statistics — Anime List
 
-Explore aggregate anime catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
+---
+<!-- source: https://anime.significanthobbies.com/stats -->
+# statistics
 
-## Advanced manga search — Anime List
+Canonical: https://anime.significanthobbies.com/stats
 
-Search the public manga catalog with multi-field filters for score, year, genre, theme, demographic, status, format, popularity, and favorites.
+anime database distributions and percentiles
 
-## Manga catalog statistics — Anime List
 
-Explore aggregate manga catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
+---
+<!-- source: https://anime.significanthobbies.com/manga -->
+# Browse manga
 
-## Anime discovery — Anime List
+Canonical: https://anime.significanthobbies.com/manga
 
-Discovery combines a signed-in weekly queue with a public, privacy-safe taste quiz. Quiz answers are not persisted; analytics retain only the resulting archetype.
+Filter the manga catalog by title, genre, popularity, and format.
 
-## Anime List changelog
 
-The HTML changelog owns verified product releases. Catalog ingestion history is maintained separately on the catalog updates page.
+---
+<!-- source: https://anime.significanthobbies.com/manga/stats -->
+# manga statistics
 
-## Anime List catalog updates
+Canonical: https://anime.significanthobbies.com/manga/stats
 
-The HTML page shows catalog ingestion history from the public API, including the latest anime and manga refresh times and recent changes.
+manga database distributions and percentiles
 
-## About Anime List
 
-Anime List helps people discover anime and manga with transparent multi-field filters and ranking, then track personal choices after signing in.
+---
+<!-- source: https://anime.significanthobbies.com/changelog -->
+Anime List product history
 
-## Anime List privacy
+# Changelog
 
-Public catalog browsing does not require an account. Google sign-in and an httpOnly authentication cookie are used for personal watchlists, schedules, and access tokens. If you opt in to Anime List email updates, SaaS Maker processes your email address and consent record to manage the subscription; contact the maintainer to request deletion. We use PostHog and SaaS Maker App Health for product analytics. App Health measures page visits and selected homepage actions using page paths, action names, and a pseudonymous browser identifier stored locally for up to 90 days where browser storage is available. Search, discover, and stats action events do not include account details, search terms, or watchlist contents. We do not use advertising pixels or remarketing.
+Canonical: https://anime.significanthobbies.com/changelog
 
-## Anime List terms
+Meaningful improvements to discovery, personal lists, and catalog reliability. Catalog ingestion has its own separate update feed.
 
-Anime List provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
+[Roadmap](https://github.com/Significant-Hobbies/anime-list/issues) [Source](https://github.com/Significant-Hobbies/anime-list) [Catalog updates](https://anime.significanthobbies.com/catalog-updates)
 
-## Anime List MCP setup
+- 2026-07-25
 
-Anime List exposes public MCP catalog tools for search, detail, and statistics. Watchlist tools require a revocable personal access token created after signing in.
+## Agent-ready catalog access
 
-## Authentication boundary
+- Added a documented MCP setup page for searching the public catalog and reading a signed-in watchlist.
 
-Public catalog pages and detail Markdown require no account. Personal watchlists, schedules, token management, and authenticated MCP tools are not public indexing surfaces.
+- Personal access tokens can be created, viewed once, and revoked without exposing account credentials.
+
+- 2026-07-17
+
+## Anime and manga pages became easier to discover
+
+- Thousands of title pages gained unique search and social metadata, readable summaries, and structured data.
+
+- Chunked anime and manga sitemaps now cover the qualifying public catalog.
+
+- 2026-07-11
+
+## Faster, steadier search
+
+- Anime and manga searches now cancel stale requests and avoid showing results from an older query.
+
+- Simple numeric filters use a faster catalog path, while background refresh failures no longer take search down.
+
+- 2026-06-20
+
+## Watchlists, alerts, and public collections
+
+- Watchlists can be imported or exported with a conflict preview before anything changes.
+
+- Saved searches can surface new matches in-app, and curated collections can be published with a shareable link.
+
+
+---
+<!-- source: https://anime.significanthobbies.com/catalog-updates -->
+# Catalog updates
+
+Canonical: https://anime.significanthobbies.com/catalog-updates
+
+Recently added anime to the database
+
+
+---
+<!-- source: https://anime.significanthobbies.com/about -->
+[← Home](https://anime.significanthobbies.com/)
+
+# Discover anime & manga
+
+Canonical: https://anime.significanthobbies.com/about
+
+Anime List is a calm way to explore anime and manga on top of public MyAnimeList data — search, filter, compare stats, and keep a private list.
+
+[Browse anime](https://anime.significanthobbies.com/) [Browse manga](https://anime.significanthobbies.com/manga)
+
+## What you get
+
+### Filter across every dimension
+
+Score, type, genre, year, airing status, member count — combine them in one query. Filter state lives in the URL, so searches are shareable.
+
+### A watchlist that's yours
+
+Track what you're watching, completed, deferred, or skipping. It's private to your Google account.
+
+### Ranking that surfaces hidden gems
+
+A log-scale popularity formula keeps mega-popular titles from burying everything else.
+
+## How it works
+
+- 1
+
+### Search or filter
+
+Start with a title search, or stack filters until the results match what you want.
+
+- 2
+
+### Add to your list
+
+Sign in with Google and tag any title. Your watchlist syncs across sessions.
+
+- 3
+
+### Stay current
+
+Data syncs daily from MyAnimeList through Tenrai. Check the schedule for what's airing.
+
+Ready to find your next title?
+
+ [Open Anime List](https://anime.significanthobbies.com/)
+
+
+---
+<!-- source: https://anime.significanthobbies.com/privacy -->
+[← Home](https://anime.significanthobbies.com/)
+
+# Privacy
+
+Canonical: https://anime.significanthobbies.com/privacy
+
+Last updated: 2026-09-28.
+
+## What we store
+
+- Your Google OAuth identity when you sign in.
+
+- Your watchlist entries and statuses.
+
+- Optional sync tokens for MAL / AniList if you connect them.
+
+- If you opt in to Anime List email updates, SaaS Maker processes your email address and consent record to manage the subscription.
+
+## Analytics
+
+We use PostHog and SaaS Maker App Health for product analytics. App Health measures page visits and selected homepage actions using page paths, action names, and a pseudonymous browser identifier stored locally for up to 90 days where browser storage is available. The search, discover, and stats action events do not include account details, search terms, or watchlist contents. We do not use advertising pixels or remarketing.
+
+## What we don't
+
+- Anime metadata is sourced from public APIs (Tenrai, AniList) — we don't share your watchlist back with them.
+
+- No selling of subscriber data.
+
+## Rate limits
+
+Search uses an in-memory cache with stale-while-revalidate — your queries are fast and the upstream APIs are quiet.
+
+## Deletion
+
+Revoke the Google OAuth grant in your Google account to disconnect. Contact the maintainer to request deletion of your watchlist, account data, or newsletter subscription.
+
+
+---
+<!-- source: https://anime.significanthobbies.com/terms -->
+[← Home](https://anime.significanthobbies.com/)
+
+# Terms
+
+Canonical: https://anime.significanthobbies.com/terms
+
+Last updated: 2026-09-02.
+
+## Data sources
+
+Anime / manga metadata is sourced from the public Tenrai and AniList APIs and refreshed on a schedule. Each entry traces back to MAL / AniList; we add structure on top, not new claims about the works themselves.
+
+## Your watchlist
+
+Signed-in users get a personal watchlist tied to their Google account. Watchlists are private to your account by default.
+
+## No warranty
+
+Provided as-is. Air dates, episode counts, and synopses come from upstream sources and can drift. Cross-check before marathon-watching.
+
+
+---
+<!-- source: https://anime.significanthobbies.com/mcp -->
+[← Home](https://anime.significanthobbies.com/)
+
+# MCP Server
+
+Canonical: https://anime.significanthobbies.com/mcp
+
+Anime List exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT, Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search results include explicit continuation metadata so clients can retrieve every matching title. Public tools work without auth; watchlist tools require a Personal Access Token.
+
+Endpoint:  https://anime.significanthobbies.com/api/mcp
+
+## Public tools (no auth)
+
+- search_anime  — Page through the anime catalog with filters, totals, and an explicit next offset.
+
+- search_manga  — Page through the manga catalog with filters, totals, and an explicit next offset.
+
+- get_anime_detail  — Full detail for one anime by MAL id.
+
+- get_manga_detail  — Full detail for one manga by MAL id.
+
+- get_anime_stats  — Aggregate stats over the anime catalog.
+
+- get_random_anime  — Random anime, optionally filtered by genre.
+
+## Watchlist tools (require a token)
+
+- list_watchlist  — Your anime watchlist with statuses.
+
+- list_manga_watchlist  — Your manga watchlist with statuses.
+
+- list_watchlist_tags  — Your watchlist tags with per-tag counts.
+
+- get_watchlist_enriched  — Your watchlist joined with catalog metadata (title, image, score, genres).
+
+## Client configuration
+
+Add the server to your AI tool. For watchlist tools, create a token below and replace <paste-token-here> with it.
+
+### Claude Desktop
+
+  Copy
+
+```
+{
+  "mcpServers": {
+    "anime-list": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://anime.significanthobbies.com/api/mcp"],
+      "env": { "AUTHORIZATION_HEADER": "Bearer <paste-token-here>" }
+    }
+  }
+}
+```
+
+Cursor and other MCP clients: use the same URL with an Authorization: Bearer anime_list_… header.
+
+Sign in to create and manage Personal Access Tokens for watchlist access.
+
+Personal tokens and account data are excluded.
+
+
+Included 12 of 7606 registered public pages (limit 50 pages / 500000 characters).
+
+Full catalog: https://anime.significanthobbies.com/api/md/_catalog
+
+Full export contains authored static page content only. Live catalog data, title enrichment, search results and statistics are available through the individual Markdown routes; personal data is excluded.

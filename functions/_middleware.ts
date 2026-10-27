@@ -1,3 +1,5 @@
+import { handleReadability, readableHtml } from './_readability';
+import { wantsMarkdown } from '../lib/agent-readability/http.mjs';
 import surfaces from '../src/data/public-surfaces.json';
 import { rewriteStaticSeo } from '../src/staticSeo';
 import { rewriteShellNoindex } from '../src/seoRewrite';
@@ -130,13 +132,6 @@ const OPENAPI_SPEC = {
   },
 };
 
-function wantsMarkdown(request: Request): boolean {
-  const accept = (request.headers.get('accept') || '').toLowerCase();
-  if (!accept.includes('text/markdown')) return false;
-  if (!accept.includes('text/html')) return true;
-  return accept.indexOf('text/markdown') < accept.indexOf('text/html');
-}
-
 function normalizePath(pathname: string): string {
   if (!pathname || pathname === '/') return '/';
   const withSlash = pathname.startsWith('/') ? pathname : `/${pathname}`;
@@ -168,8 +163,32 @@ function markdown404(pathname: string, method: string): Response {
   });
 }
 
+Object.assign(OPENAPI_SPEC.paths, {
+  '/api/md/_catalog': {
+    get: {
+      operationId: 'listPublicMarkdown',
+      summary: 'All public HTML routes and canonical Markdown alternates',
+      responses: { '200': { description: 'Public route registry' } },
+    },
+  },
+  '/api/md/{path}': {
+    get: {
+      operationId: 'getPublicMarkdown',
+      summary: 'Full source-derived public page content',
+      parameters: [{ name: 'path', in: 'path', required: true, schema: { type: 'string' } }],
+      responses: {
+        '200': { description: 'Markdown representation' },
+        '404': { description: 'Unregistered or private route' },
+        '503': { description: 'Public data unavailable' },
+      },
+    },
+  },
+});
+
 export const onRequest: PagesFunction = async (context) => {
   const { request } = context;
+  const readable = await handleReadability(request, context.env.ASSETS);
+  if (readable) return readable;
   const url = new URL(request.url);
   const pathname = url.pathname.length > 1 ? url.pathname.replace(/\/$/, '') : '/';
 
@@ -194,28 +213,6 @@ export const onRequest: PagesFunction = async (context) => {
 
   const surface = publicSurfaces.get(pathname);
 
-  // Accept: text/markdown negotiation — serve the .md alternate for known surfaces.
-  if (
-    surface &&
-    wantsMarkdown(request) &&
-    (request.method === 'GET' || request.method === 'HEAD')
-  ) {
-    const mdUrl = new URL(surface.markdownPath, url);
-    const mdReq = new Request(mdUrl.toString(), { method: request.method });
-    const mdResp = await context.env.ASSETS.fetch(mdReq);
-    if (mdResp.status === 200) {
-      const headers = new Headers(mdResp.headers);
-      headers.set('content-type', 'text/markdown; charset=utf-8');
-      headers.set('vary', 'Accept, Accept-Encoding');
-      headers.set('x-content-type-options', 'nosniff');
-      headers.set('cache-control', 'no-store');
-      return new Response(request.method === 'HEAD' ? null : mdResp.body, {
-        status: 200,
-        headers,
-      });
-    }
-  }
-
   // Agent-friendly 404 with markdown recovery body for markdown clients.
   if (
     !isAppRoute(pathname) &&
@@ -229,6 +226,16 @@ export const onRequest: PagesFunction = async (context) => {
   if (!surface) {
     const response = await context.next();
     const ct = response.headers.get('content-type') ?? '';
+    if (personalRoutes.has(pathname) && ct.includes('text/html')) {
+      const headers = new Headers(response.headers);
+      headers.set('X-Robots-Tag', 'noindex, nofollow');
+      headers.set('Cache-Control', 'private, no-store');
+      const html = request.method === 'HEAD' ? null : await response.text();
+      return new Response(html ? rewriteShellNoindex(html) : null, {
+        status: response.status,
+        headers,
+      });
+    }
     // Pages' SPA fallback otherwise turns arbitrary URLs (including /%60)
     // into indexable 200 homepages. Preserve assets, API and real app routes.
     if (
@@ -262,7 +269,7 @@ export const onRequest: PagesFunction = async (context) => {
       const headers = new Headers(response.headers);
       const existingVary = headers.get('vary');
       headers.set('vary', existingVary ? `${existingVary}, Accept` : 'Accept, Accept-Encoding');
-      return new Response(response.body, { status: 200, headers });
+      return readableHtml(new Response(response.body, { status: 200, headers }), pathname);
     }
     return response;
   }
@@ -270,9 +277,9 @@ export const onRequest: PagesFunction = async (context) => {
   const response = await context.next();
   const contentType = response.headers.get('content-type') ?? '';
   if (request.method === 'HEAD' || response.status !== 200 || !contentType.includes('text/html'))
-    return response;
+    return readableHtml(response, pathname);
 
-  const html = rewriteStaticSeo(await response.text(), surface, url.origin);
+  const html = rewriteStaticSeo(await response.text(), surface, SITE_URL);
   const headers = new Headers(response.headers);
   headers.set('content-type', 'text/html; charset=utf-8');
   // HTML identifies the active release and must change atomically with a Pages
@@ -281,9 +288,12 @@ export const onRequest: PagesFunction = async (context) => {
   // Add Vary: Accept for pages that have markdown alternates.
   const existingVary = headers.get('vary');
   headers.set('vary', existingVary ? `${existingVary}, Accept` : 'Accept, Accept-Encoding');
-  return new Response(html, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+  return readableHtml(
+    new Response(html, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    }),
+    pathname
+  );
 };

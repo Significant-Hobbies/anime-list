@@ -1,9 +1,5 @@
-# Anime List catalog updates
+# Catalog updates
 
-The HTML page shows catalog ingestion history from the public API, including the latest anime and manga refresh times and recent changes.
+Canonical: https://anime.significanthobbies.com/catalog-updates
 
-## Links
-
-- [HTML page](https://anime.significanthobbies.com/catalog-updates)
-- [Agent catalog](https://anime.significanthobbies.com/api/ai)
-- [Anime List home](https://anime.significanthobbies.com/)
+Recently added anime to the database

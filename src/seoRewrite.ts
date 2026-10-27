@@ -117,6 +117,9 @@ export function buildHeadBlock(entry: SeoEntry, kind: SeoKind, canonicalUrl: str
 
   return [
     `<title>${titleFull}</title>`,
+    `<link rel="mcp-server" href="https://anime.significanthobbies.com/api/mcp" />`,
+    `<meta name="ai-summary" content="${descEsc}" />`,
+    `<link rel="alternate" type="text/markdown" href="${escapeHtml(canonicalUrl)}.md" />`,
     `<meta name="description" content="${descEsc}" />`,
     `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`,
     `<meta property="og:title" content="${titleFull}" />`,

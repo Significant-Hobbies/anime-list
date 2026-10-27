@@ -18,6 +18,7 @@
       "!**/dist",
       "!**/build",
       "!**/node_modules",
+      "!lib/agent-readability",
       "!**/.astro",
       "!**/next-env.d.ts",
       "!**/cloudflare-env.d.ts",
