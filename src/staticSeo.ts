@@ -25,6 +25,13 @@ export function rewriteStaticSeo(html: string, surface: StaticSeoSurface, origin
   const image = `${origin}/apple-touch-icon.png`;
   const block = [
     `<title>${title}</title>`,
+    `<link rel="mcp-server" href="https://anime.significanthobbies.com/api/mcp" />`,
+    `<meta name="ai-summary" content="${description}" />`,
+    ...(surface.path === '/discover'
+      ? []
+      : [
+          `<link rel="alternate" type="text/markdown" href="${origin}${surface.path === '/' ? '/index' : surface.path}.md" />`,
+        ]),
     `<meta name="description" content="${description}" />`,
     `<link rel="canonical" href="${canonicalEscaped}" />`,
     `<meta property="og:title" content="${title}" />`,

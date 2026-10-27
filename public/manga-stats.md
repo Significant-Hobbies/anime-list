@@ -1,9 +1,5 @@
-# Manga catalog statistics — Anime List
+# manga statistics
 
-Explore aggregate manga catalog statistics, including distributions by score, year, format, genre, theme, demographic, membership, and favorites.
+Canonical: https://anime.significanthobbies.com/manga/stats
 
-## Links
-
-- [HTML page](https://anime.significanthobbies.com/manga/stats)
-- [Agent catalog](https://anime.significanthobbies.com/api/ai)
-- [Anime List home](https://anime.significanthobbies.com/)
+manga database distributions and percentiles

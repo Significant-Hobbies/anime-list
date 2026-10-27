@@ -14,14 +14,14 @@ const sourceExtensions = new Set(['.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx'])
 
 const baselines = {
   complexity: {
-    violations: 16,
+    violations: 15,
     maxCcn: 55,
     maxLength: 643,
     maxParams: 8,
   },
   duplication: {
-    clones: 44,
-    duplicatedLines: 733,
+    clones: 43,
+    duplicatedLines: 711,
   },
   unused: {
     files: 0,
@@ -120,6 +120,8 @@ function checkComplexity() {
     'src/data/**',
     '-x',
     'lib/feedback-widget/**',
+    '-x',
+    'lib/agent-readability/**',
     '--csv',
   ]);
   const rows = result.stdout
@@ -157,7 +159,7 @@ function checkDuplication() {
     '--mode',
     'strict',
     '--ignore',
-    '**/*.test.*,**/*.d.ts,**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,src/data/**,lib/feedback-widget/**,scripts/check-code-health.mjs',
+    '**/*.test.*,**/*.d.ts,**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,src/data/**,lib/feedback-widget/**,lib/agent-readability/**,scripts/check-code-health.mjs',
     '--reporters',
     'json',
     '--output',

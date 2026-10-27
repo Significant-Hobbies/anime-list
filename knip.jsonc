@@ -10,6 +10,8 @@
   ],
   "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"],
   "ignore": [
+    // Canonical Fleet helper distribution; unused adapters are retained for byte parity.
+    "lib/agent-readability/**",
     // Static asset loaded via a raw <script src> tag (index.html), not an import.
     "public/app-health-log.js",
     "public/footer.js",

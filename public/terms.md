@@ -1,9 +1,19 @@
-# Anime List terms
+[← Home](https://anime.significanthobbies.com/)
 
-Anime List provides discovery and tracking tools without warranty. Catalog scores and metadata come from third-party sources and remain subject to their terms.
+# Terms
 
-## Links
+Canonical: https://anime.significanthobbies.com/terms
 
-- [HTML page](https://anime.significanthobbies.com/terms)
-- [Agent catalog](https://anime.significanthobbies.com/api/ai)
-- [Anime List home](https://anime.significanthobbies.com/)
+Last updated: 2026-09-02.
+
+## Data sources
+
+Anime / manga metadata is sourced from the public Tenrai and AniList APIs and refreshed on a schedule. Each entry traces back to MAL / AniList; we add structure on top, not new claims about the works themselves.
+
+## Your watchlist
+
+Signed-in users get a personal watchlist tied to their Google account. Watchlists are private to your account by default.
+
+## No warranty
+
+Provided as-is. Air dates, episode counts, and synopses come from upstream sources and can drift. Cross-check before marathon-watching.

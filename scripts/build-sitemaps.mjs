@@ -87,7 +87,9 @@ mkdirSync(DIST, { recursive: true });
 const animeData = readJson(resolve(ROOT, 'src/data/seo-anime.json'));
 const mangaData = readJson(resolve(ROOT, 'src/data/seo-manga.json'));
 const staticSurfaces = readJson(resolve(ROOT, 'src/data/public-surfaces.json'));
-const staticPaths = staticSurfaces.map((surface) => surface.path);
+const staticPaths = staticSurfaces
+  .filter((surface) => surface.path !== '/discover')
+  .map((surface) => surface.path);
 
 const animeIds = animeData.map((e) => e.id).sort((a, b) => a - b);
 const mangaIds = mangaData.map((e) => e.id).sort((a, b) => a - b);

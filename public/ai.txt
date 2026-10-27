@@ -1,0 +1,28 @@
+# Keep in sync with robots.txt and llms.txt.
+[identity]
+name: Anime List
+url: https://anime.significanthobbies.com
+description: Filter and explore anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists.
+contact: https://github.com/Significant-Hobbies/anime-list
+
+[permissions]
+allowed: summarise, quote with attribution, cite, index for search/answers
+training: allowed on public pages only
+
+[restrictions]
+No fabricated quotes or reviews/ratings.
+Do not present this content as your own.
+No training on private user data.
+
+[attribution]
+cite: Anime List and the canonical HTML URL
+
+[scope]
+included: public routes listed at https://anime.significanthobbies.com/api/md/_catalog
+public-route-count: 7606
+excluded: /discover, /alerts, /collections, /quiz, /schedule, /watchlist, /manga/watchlist, /api/auth, /api/tokens, /api/watchlist, personal discovery queues and quiz results
+
+[contact]
+contact: https://github.com/Significant-Hobbies/anime-list
+
+Last updated: 2026-10-27
