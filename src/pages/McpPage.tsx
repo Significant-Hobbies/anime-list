@@ -1,8 +1,13 @@
 'use client';
 
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
+
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
 import { getApiUrl } from '@/lib/apiConfig';
 import { listTokens, createToken, revokeToken, type ApiTokenMetadata } from '@/lib/api';
@@ -95,10 +100,11 @@ function TokenManager() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const resource = useQuery({
     queryKey: ['tokens'],
-    queryFn: listTokens,
+    queryFn: ({ signal }) => listTokens(signal),
   });
+  const { data } = resource;
 
   const createMut = useMutation({
     mutationFn: () => createToken(name.trim()),
@@ -177,10 +183,22 @@ function TokenManager() {
         </div>
       )}
 
-      <div className="mt-6">
-        {isLoading ? (
-          <TableSkeleton label="Loading access tokens" />
-        ) : data?.tokens?.length ? (
+      <ResourceBoundary
+        className="mt-6"
+        resource={resource}
+        delay={0}
+        skeleton={<TableSkeleton label="loading access tokens" />}
+        empty={<EmptyState title="no tokens yet" />}
+        error={
+          <ErrorState
+            title="could not load access tokens"
+            onRetry={() => {
+              void resource.retry();
+            }}
+          />
+        }
+      >
+        {data?.tokens?.length ? (
           <table className="w-full">
             <thead>
               <tr className="text-left text-xs text-muted-foreground">
@@ -198,9 +216,9 @@ function TokenManager() {
             </tbody>
           </table>
         ) : (
-          <p className="text-sm text-muted-foreground">No tokens yet.</p>
+          <EmptyState title="no tokens yet" />
         )}
-      </div>
+      </ResourceBoundary>
     </div>
   );
 }

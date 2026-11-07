@@ -1,16 +1,14 @@
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
 import StatsCharts from '@/components/StatsCharts';
 import { getStats, getWatchlistTags } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
-import {
-  LoadingStatus,
-  RefreshIndicator,
-  Skeleton,
-  StatsGridSkeleton,
-} from '@/components/ui/loading-state';
+import { StatsGridSkeleton } from '@/components/ui/loading-state';
 
 export default function StatsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -18,24 +16,21 @@ export default function StatsPage() {
 
   const { data: tagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: () => getWatchlistTags(),
+    queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
   const availableTags = tagsData?.tags ?? [];
 
-  const {
-    data: stats,
-    isLoading,
-    error,
-    refetch,
-    isFetching,
-  } = useQuery({
+  const resource = useQuery({
     queryKey: ['stats', includeStatuses],
-    queryFn: () =>
-      getStats({
-        includeWatched: includeStatuses,
-      }),
+    queryFn: ({ signal }) =>
+      getStats(
+        {
+          includeWatched: includeStatuses,
+        },
+        signal
+      ),
     placeholderData: (previous) => previous,
   });
 
@@ -48,20 +43,11 @@ export default function StatsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Statistics</h1>
+        <h1 className="text-2xl font-bold text-foreground">statistics</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Anime database distributions and percentiles
+          anime database distributions and percentiles
         </p>
       </div>
-
-      {authLoading && (
-        <div aria-busy="true" className="flex flex-wrap items-center gap-2">
-          <LoadingStatus label="Checking sign-in status" />
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-6 w-20 rounded-full bg-muted/45" />
-          <Skeleton className="h-6 w-16 rounded-full bg-muted/45" />
-        </div>
-      )}
 
       {!authLoading && user && (
         <div className="flex flex-wrap items-center gap-2">
@@ -108,30 +94,23 @@ export default function StatsPage() {
         </div>
       )}
 
-      <RefreshIndicator active={isFetching && !!stats} label="Updating anime statistics" />
-
-      {isLoading ? (
-        <StatsGridSkeleton label="Loading anime statistics" />
-      ) : error ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-destructive text-sm">
-            We couldn&apos;t load the statistics. Check your connection and try again.
-          </p>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="px-3 py-1.5 text-sm rounded border hover:opacity-80 disabled:opacity-50"
-          >
-            {isFetching ? 'Retrying…' : 'Try again'}
-          </button>
-        </div>
-      ) : stats ? (
-        <StatsCharts stats={stats} />
-      ) : (
-        <p className="text-muted-foreground">
-          Unable to load statistics. Make sure anime data has been fetched.
-        </p>
-      )}
+      <ResourceBoundary
+        resource={resource}
+        delay={0}
+        skeleton={<StatsGridSkeleton label="loading anime statistics" />}
+        error={
+          <ErrorState
+            title="could not load statistics"
+            description="check your connection and try again."
+            onRetry={() => {
+              void resource.retry();
+            }}
+          />
+        }
+        empty={<EmptyState title="no statistics available" />}
+      >
+        {(stats) => <StatsCharts stats={stats} totalLabel="total anime" />}
+      </ResourceBoundary>
     </div>
   );
 }

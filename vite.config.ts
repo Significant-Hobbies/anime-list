@@ -29,6 +29,14 @@ export default defineConfig(() => ({
     host: '::',
     port: 5173,
   },
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'https://anime.significanthobbies.com',
+        changeOrigin: true,
+      },
+    },
+  },
   plugins: [react(), tailwindcss(), deferAppCss()],
   css: {
     transformer: 'lightningcss',

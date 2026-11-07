@@ -31,8 +31,8 @@ importers:
         specifier: 1.31.0
         version: 1.31.0(zod@4.4.3)
       '@saas-maker/ui':
-        specifier: github:sass-maker/ui-library#v0.1.14&path:/packages/ui
-        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89#path:/packages/ui(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)
+        specifier: github:sass-maker/ui-library#v0.1.19&path:/packages/ui
+        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/a83f51b118f6eaaf1c102c9ae5f6196cdafe0a9e#path:/packages/ui(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)
       '@tanstack/react-query':
         specifier: 5.101.4
         version: 5.101.4(react@19.2.8)
@@ -1891,9 +1891,9 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89#path:/packages/ui':
-    resolution: {path: /packages/ui, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89}
-    version: 0.1.14
+  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/a83f51b118f6eaaf1c102c9ae5f6196cdafe0a9e#path:/packages/ui':
+    resolution: {path: /packages/ui, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/a83f51b118f6eaaf1c102c9ae5f6196cdafe0a9e}
+    version: 0.1.19
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
@@ -5465,7 +5465,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89#path:/packages/ui(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)':
+  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/a83f51b118f6eaaf1c102c9ae5f6196cdafe0a9e#path:/packages/ui(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)':
     dependencies:
       '@tanstack/react-table': 9.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       class-variance-authority: 0.7.1

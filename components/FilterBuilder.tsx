@@ -1,5 +1,9 @@
 'use client';
 
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   useQueryState,
@@ -8,15 +12,9 @@ import {
   parseAsArrayOf,
   parseAsInteger,
 } from 'nuqs';
-import { useQuery } from '@tanstack/react-query';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
 import type { SearchFilter, SearchResponse } from '@/lib/types';
-import {
-  getFields,
-  getFilterActions,
-  getWatchlistTags,
-  isAbortError,
-  searchAnime,
-} from '@/lib/api';
+import { getFields, getFilterActions, getWatchlistTags, searchAnime } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_ANIME_MIN_MEMBERS, DEFAULT_ANIME_PAGE_SIZE } from '@/lib/animeSearchDefaults';
@@ -38,7 +36,7 @@ import {
   SegmentedControl,
 } from './discover/ui';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
-import { RefreshIndicator } from './ui/loading-state';
+import { RefreshIndicator, Skeleton } from './ui/loading-state';
 
 const DEFAULT_FILTER: SearchFilter = {
   field: 'score',
@@ -193,21 +191,21 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     if (currentPage !== 1) setCurrentPage(1);
   };
 
-  const { data: fields } = useQuery({
+  const { data: fields = DEFAULT_FIELD_OPTIONS } = useQuery({
     queryKey: ['fields'],
-    queryFn: getFields,
+    queryFn: ({ signal }) => getFields(signal),
     initialData: DEFAULT_FIELD_OPTIONS,
   });
 
-  const { data: actions } = useQuery({
+  const { data: actions = DEFAULT_FILTER_ACTIONS } = useQuery({
     queryKey: ['filterActions'],
-    queryFn: getFilterActions,
+    queryFn: ({ signal }) => getFilterActions(signal),
     initialData: DEFAULT_FILTER_ACTIONS,
   });
 
   const { data: watchlistTagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: () => getWatchlistTags(),
+    queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
@@ -289,13 +287,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     [debouncedFilterKey]
   );
 
-  const {
-    data,
-    isLoading: loading,
-    isFetching,
-    error,
-    refetch,
-  } = useQuery<SearchResponse>({
+  const resource = useQuery<SearchResponse>({
     queryKey: ['search', debouncedFilterKey],
     queryFn: ({ signal }) => {
       const { filters: f, opts } = debouncedSearchRequest;
@@ -303,8 +295,8 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     },
     initialData: debouncedFilterKey === initialSearchKey ? initialSearchData : undefined,
     placeholderData: (prev) => prev,
-    retry: (failureCount, error) => !isAbortError(error) && failureCount < 1,
   });
+  const { data, isFetching } = resource;
 
   const toggleGenre = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -393,10 +385,6 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   const hasPrev = currentPage > 1;
   const browsingMode = selectedSeasonLabel === 'Any season' ? 'All seasons' : selectedSeasonLabel;
   const resultLabel = data ? `${totalFiltered.toLocaleString()} titles` : 'Catalog ready';
-
-  if (!fields || !actions) {
-    return <ResultsGridSkeleton />;
-  }
 
   return (
     <div className="space-y-6">
@@ -648,33 +636,40 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
         )}
       </DiscoverPanel>
 
-      {data && (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-muted-foreground">{totalFiltered.toLocaleString()} titles</p>
+      {
+        <div className="flex min-h-5 flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            {data ? `${totalFiltered.toLocaleString()} titles` : <Skeleton className="h-5 w-24" />}
+          </p>
           <RefreshIndicator active={isFetching} label="Updating anime results" />
         </div>
-      )}
+      }
 
-      {error && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <p className="text-sm text-destructive" role="status">
-            {catalogErrorMessage(error, "Couldn't reach the search service.")}
-          </p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="text-sm font-medium text-destructive underline-offset-2 hover:underline disabled:opacity-50"
-          >
-            {isFetching ? 'Retrying…' : 'Retry'}
-          </button>
-        </div>
-      )}
-
-      <div>
-        {loading && !data ? (
-          <ResultsGridSkeleton />
-        ) : data ? (
+      <ResourceBoundary
+        resource={resource}
+        delay={0}
+        skeleton={<ResultsGridSkeleton />}
+        empty={
+          <EmptyState
+            title="no titles match"
+            description="try clearing a filter, lowering the popularity threshold, or searching with a different title."
+            className="rounded-xl border border-border bg-muted/20 py-24"
+          />
+        }
+        error={
+          <ErrorState
+            title="could not load results"
+            description={catalogErrorMessage(
+              resource.error,
+              "couldn't reach the search service."
+            ).toLowerCase()}
+            onRetry={() => {
+              void resource.retry();
+            }}
+          />
+        }
+      >
+        {data ? (
           <div aria-busy={isFetching || undefined}>
             <ResultsGrid results={data} />
 
@@ -709,7 +704,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
             )}
           </div>
         ) : null}
-      </div>
+      </ResourceBoundary>
     </div>
   );
 }

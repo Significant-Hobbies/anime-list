@@ -1,8 +1,13 @@
 'use client';
 
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
+
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import type { EnrichedWatchlistItem } from '@/lib/types';
 import {
@@ -54,21 +59,22 @@ export default function WatchlistView() {
   const [tagDrafts, setTagDrafts] = useState<Record<string, { tag: string; color: string }>>({});
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
+  const resource = useQuery({
     queryKey: ['watchlist', 'enriched'],
-    queryFn: () => getEnrichedWatchlist(),
+    queryFn: ({ signal }) => getEnrichedWatchlist(signal),
     enabled: !!user,
   });
+  const { data, isLoading, error, refetch, isFetching } = resource;
 
   const { data: tagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: () => getWatchlistTags(),
+    queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
   const { data: recommendationsData } = useQuery({
     queryKey: ['watchlist', 'recommendations'],
-    queryFn: () => getTasteRecommendations(),
+    queryFn: ({ signal }) => getTasteRecommendations(signal),
     enabled: !!user,
   });
 
@@ -234,525 +240,540 @@ export default function WatchlistView() {
   }
 
   if (isLoading) return <WatchlistSkeleton />;
-  if (error)
+  if (error && !data)
     return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-destructive text-sm">
-          We couldn&apos;t load your watchlist. Check your connection and try again.
-        </p>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="px-3 py-1.5 text-sm rounded border hover:opacity-80 disabled:opacity-50"
-        >
-          {isFetching ? 'Retrying…' : 'Try again'}
-        </button>
-      </div>
+      <ErrorState
+        title="could not load your watchlist"
+        description="check your connection and try again."
+        onRetry={() => {
+          void refetch();
+        }}
+      />
     );
 
   const filtered = activeTab ? items.filter((item) => item.watchStatus === activeTab) : items;
 
   return (
-    <div className="space-y-5">
-      <RefreshIndicator active={isFetching} label="Updating anime watchlist" />
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex gap-2 flex-wrap">
-          {tags.map((tag) => {
-            const isActive = activeTab === tag.tag;
-            const color = resolveTagColor(tag.tag, tag.color);
-            return (
-              <button
-                key={tag.id}
-                onClick={() => setActiveTab(tag.tag)}
-                className={cn(
-                  'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200',
-                  isActive ? '' : 'text-muted-foreground hover:text-foreground'
-                )}
-                style={
-                  isActive
-                    ? {
-                        color,
-                        borderColor: toRgba(color, 0.45),
-                        backgroundColor: toRgba(color, 0.15),
-                      }
-                    : {
-                        color,
-                        borderColor: toRgba(color, 0.3),
-                      }
-                }
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                {tag.tag}
-                <span className="text-xs opacity-60">({tag.count})</span>
-              </button>
-            );
-          })}
-          {tags.length === 0 && <span className="text-sm text-muted-foreground">No tags yet</span>}
-        </div>
-        <button
-          onClick={() => setShowListSettings((prev) => !prev)}
-          className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
-        >
-          {showListSettings ? 'Close Settings' : 'List Settings'}
-        </button>
-        <button
-          onClick={() => setShowSyncTools((prev) => !prev)}
-          className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
-        >
-          {showSyncTools ? 'Close Sync' : 'Import / Export'}
-        </button>
-      </div>
-
-      {showSyncTools && (
-        <Card className="space-y-3 p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-foreground">Import / Export</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Export Anime List JSON/CSV backups, or import MAL XML, MAL CSV, AniList JSON, or
-                Anime List JSON.
-              </p>
-            </div>
-            <select
-              value={syncSource}
-              onChange={(event) => setSyncSource(event.target.value as 'mal' | 'anilist' | 'shelf')}
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-            >
-              <option value="mal">MyAnimeList XML / CSV</option>
-              <option value="anilist">AniList JSON</option>
-              <option value="shelf">Anime List JSON backup</option>
-            </select>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => exportJsonMutation.mutate()}
-              disabled={exportJsonMutation.isPending}
-              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
-            >
-              Copy Anime List JSON
-            </button>
-            <button
-              onClick={async () => {
-                await downloadShelfWatchlistCsv();
-                setSyncResult('Downloaded anime-list-watchlist.csv');
-              }}
-              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
-            >
-              Download CSV
-            </button>
-            <button
-              onClick={() => exportAniListMutation.mutate()}
-              disabled={exportAniListMutation.isPending}
-              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
-            >
-              Copy AniList JSON
-            </button>
-          </div>
-          <textarea
-            value={syncPayload}
-            onChange={(event) => setSyncPayload(event.target.value)}
-            placeholder={
-              syncSource === 'mal'
-                ? '<myanimelist>...</myanimelist> or mal_id,title,status CSV'
-                : syncSource === 'shelf'
-                  ? '{"version":1,"anime":[...]}'
-                  : '{"lists":[...]}'
-            }
-            className="min-h-36 w-full rounded-md border border-input bg-background p-3 font-mono text-xs"
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-muted-foreground">Import mode</label>
-            <select
-              value={importMode}
-              onChange={(event) =>
-                setImportMode(event.target.value as 'merge' | 'replace' | 'skip')
-              }
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-            >
-              <option value="merge">Merge (skip conflicts)</option>
-              <option value="replace">Replace conflicts</option>
-              <option value="skip">New titles only</option>
-            </select>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => previewImportMutation.mutate()}
-              disabled={previewImportMutation.isPending || !syncPayload.trim()}
-              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
-            >
-              Preview Import
-            </button>
-            <button
-              onClick={() => applyImportMutation.mutate()}
-              disabled={applyImportMutation.isPending || !syncPayload.trim()}
-              className="h-8 rounded-md bg-primary px-3 text-xs text-primary-foreground disabled:opacity-60"
-            >
-              Apply Import
-            </button>
-          </div>
-          {importPreview?.conflicts && importPreview.conflicts.length > 0 && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
-              {importPreview.conflicts.length} conflict(s) detected. Use Replace to overwrite, or
-              Merge/Skip to avoid silent overwrites.
-              <ul className="mt-2 space-y-1">
-                {importPreview.conflicts.slice(0, 5).map((row) => (
-                  <li key={row.malId}>
-                    {row.title ?? row.malId}: {row.existingStatus} → {row.incomingStatus}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {syncResult && (
-            <p className="rounded-md border border-border bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
-              {syncResult}
-            </p>
-          )}
-        </Card>
-      )}
-
-      {showListSettings && (
-        <div className="rounded-lg border border-border p-3 space-y-3">
-          <h3 className="text-sm font-medium text-foreground">Manage Lists</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              placeholder="New list name"
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs min-w-[180px]"
-            />
-            <input
-              type="color"
-              value={newTagColor}
-              onChange={(e) => setNewTagColor(e.target.value)}
-              className="h-8 w-9 rounded border border-input bg-background p-0.5"
-              aria-label="New list color"
-            />
-            <button
-              onClick={() => {
-                const tag = newTagName.trim();
-                if (!tag) return;
-                createTagMutation.mutate(
-                  { tag, color: newTagColor },
-                  {
-                    onSuccess: () => {
-                      setNewTagName('');
-                      setActiveTab(tag);
-                    },
-                  }
-                );
-              }}
-              disabled={createTagMutation.isPending}
-              className="h-8 rounded-md px-3 text-xs bg-primary text-primary-foreground disabled:opacity-60"
-            >
-              Add List
-            </button>
-          </div>
-
-          <div className="space-y-2">
+    <ResourceBoundary
+      resource={{ ...resource, status: resource.status === 'empty' ? 'success' : resource.status }}
+      delay={0}
+      skeleton={<WatchlistSkeleton />}
+    >
+      <div className="space-y-5">
+        <RefreshIndicator active={isFetching} label="Updating anime watchlist" />
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             {tags.map((tag) => {
-              const draft = tagDrafts[tag.id] || {
-                tag: tag.tag,
-                color: resolveTagColor(tag.tag, tag.color),
-              };
+              const isActive = activeTab === tag.tag;
+              const color = resolveTagColor(tag.tag, tag.color);
               return (
-                <div key={`${tag.id}-manage`} className="flex flex-wrap items-center gap-2">
-                  <input
-                    value={draft.tag}
-                    onChange={(e) =>
-                      setTagDrafts((prev) => ({
-                        ...prev,
-                        [tag.id]: {
-                          ...draft,
-                          tag: e.target.value,
-                        },
-                      }))
-                    }
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs min-w-[180px]"
-                  />
-                  <input
-                    type="color"
-                    value={draft.color}
-                    onChange={(e) =>
-                      setTagDrafts((prev) => ({
-                        ...prev,
-                        [tag.id]: {
-                          ...draft,
-                          color: e.target.value,
-                        },
-                      }))
-                    }
-                    className="h-8 w-9 rounded border border-input bg-background p-0.5"
-                    aria-label={`${tag.tag} color`}
-                  />
-                  <button
-                    onClick={() =>
-                      updateTagMutation.mutate({
-                        tagId: tag.id,
-                        tag: draft.tag.trim(),
-                        color: draft.color,
-                      })
-                    }
-                    disabled={updateTagMutation.isPending}
-                    className="h-8 rounded-md px-2 text-xs border border-border hover:bg-accent disabled:opacity-60"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (
-                        !window.confirm(
-                          `Delete list "${tag.tag}"? Items will be moved automatically.`
-                        )
-                      ) {
-                        return;
-                      }
-                      deleteTagMutation.mutate({ tagId: tag.id });
-                    }}
-                    disabled={deleteTagMutation.isPending}
-                    className="h-8 rounded-md px-2 text-xs border border-destructive/40 text-destructive hover:bg-destructive/10 disabled:opacity-60"
-                  >
-                    Delete
-                  </button>
-                </div>
+                <button
+                  key={tag.id}
+                  onClick={() => setActiveTab(tag.tag)}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200',
+                    isActive ? '' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  style={
+                    isActive
+                      ? {
+                          color,
+                          borderColor: toRgba(color, 0.45),
+                          backgroundColor: toRgba(color, 0.15),
+                        }
+                      : {
+                          color,
+                          borderColor: toRgba(color, 0.3),
+                        }
+                  }
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                  {tag.tag}
+                  <span className="text-xs opacity-60">({tag.count})</span>
+                </button>
               );
             })}
+            {tags.length === 0 && (
+              <span className="text-sm text-muted-foreground">No tags yet</span>
+            )}
           </div>
+          <button
+            onClick={() => setShowListSettings((prev) => !prev)}
+            className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
+          >
+            {showListSettings ? 'Close Settings' : 'List Settings'}
+          </button>
+          <button
+            onClick={() => setShowSyncTools((prev) => !prev)}
+            className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
+          >
+            {showSyncTools ? 'Close Sync' : 'Import / Export'}
+          </button>
         </div>
-      )}
 
-      {tasteProfile && (
-        <Card className="overflow-hidden p-0">
-          <div className="border-b border-border p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        {showSyncTools && (
+          <Card className="space-y-3 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Taste Profile</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Recommendations from your watchlist genres, themes, types, and list signals.
+                <h3 className="text-sm font-medium text-foreground">Import / Export</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Export Anime List JSON/CSV backups, or import MAL XML, MAL CSV, AniList JSON, or
+                  Anime List JSON.
                 </p>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-md border border-border px-3 py-2">
-                  <div className="text-sm font-semibold">{tasteProfile.sampledTitles}</div>
-                  <div className="text-[10px] uppercase text-muted-foreground">sampled</div>
+              <select
+                value={syncSource}
+                onChange={(event) =>
+                  setSyncSource(event.target.value as 'mal' | 'anilist' | 'shelf')
+                }
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+              >
+                <option value="mal">MyAnimeList XML / CSV</option>
+                <option value="anilist">AniList JSON</option>
+                <option value="shelf">Anime List JSON backup</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => exportJsonMutation.mutate()}
+                disabled={exportJsonMutation.isPending}
+                className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
+              >
+                Copy Anime List JSON
+              </button>
+              <button
+                onClick={async () => {
+                  await downloadShelfWatchlistCsv();
+                  setSyncResult('Downloaded anime-list-watchlist.csv');
+                }}
+                className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
+              >
+                Download CSV
+              </button>
+              <button
+                onClick={() => exportAniListMutation.mutate()}
+                disabled={exportAniListMutation.isPending}
+                className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
+              >
+                Copy AniList JSON
+              </button>
+            </div>
+            <textarea
+              value={syncPayload}
+              onChange={(event) => setSyncPayload(event.target.value)}
+              placeholder={
+                syncSource === 'mal'
+                  ? '<myanimelist>...</myanimelist> or mal_id,title,status CSV'
+                  : syncSource === 'shelf'
+                    ? '{"version":1,"anime":[...]}'
+                    : '{"lists":[...]}'
+              }
+              className="min-h-36 w-full rounded-md border border-input bg-background p-3 font-mono text-xs"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-muted-foreground">Import mode</label>
+              <select
+                value={importMode}
+                onChange={(event) =>
+                  setImportMode(event.target.value as 'merge' | 'replace' | 'skip')
+                }
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+              >
+                <option value="merge">Merge (skip conflicts)</option>
+                <option value="replace">Replace conflicts</option>
+                <option value="skip">New titles only</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => previewImportMutation.mutate()}
+                disabled={previewImportMutation.isPending || !syncPayload.trim()}
+                className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
+              >
+                Preview Import
+              </button>
+              <button
+                onClick={() => applyImportMutation.mutate()}
+                disabled={applyImportMutation.isPending || !syncPayload.trim()}
+                className="h-8 rounded-md bg-primary px-3 text-xs text-primary-foreground disabled:opacity-60"
+              >
+                Apply Import
+              </button>
+            </div>
+            {importPreview?.conflicts && importPreview.conflicts.length > 0 && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
+                {importPreview.conflicts.length} conflict(s) detected. Use Replace to overwrite, or
+                Merge/Skip to avoid silent overwrites.
+                <ul className="mt-2 space-y-1">
+                  {importPreview.conflicts.slice(0, 5).map((row) => (
+                    <li key={row.malId}>
+                      {row.title ?? row.malId}: {row.existingStatus} → {row.incomingStatus}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {syncResult && (
+              <p className="rounded-md border border-border bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+                {syncResult}
+              </p>
+            )}
+          </Card>
+        )}
+
+        {showListSettings && (
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <h3 className="text-sm font-medium text-foreground">Manage Lists</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                placeholder="New list name"
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs min-w-[180px]"
+              />
+              <input
+                type="color"
+                value={newTagColor}
+                onChange={(e) => setNewTagColor(e.target.value)}
+                className="h-8 w-9 rounded border border-input bg-background p-0.5"
+                aria-label="New list color"
+              />
+              <button
+                onClick={() => {
+                  const tag = newTagName.trim();
+                  if (!tag) return;
+                  createTagMutation.mutate(
+                    { tag, color: newTagColor },
+                    {
+                      onSuccess: () => {
+                        setNewTagName('');
+                        setActiveTab(tag);
+                      },
+                    }
+                  );
+                }}
+                disabled={createTagMutation.isPending}
+                className="h-8 rounded-md px-3 text-xs bg-primary text-primary-foreground disabled:opacity-60"
+              >
+                Add List
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {tags.map((tag) => {
+                const draft = tagDrafts[tag.id] || {
+                  tag: tag.tag,
+                  color: resolveTagColor(tag.tag, tag.color),
+                };
+                return (
+                  <div key={`${tag.id}-manage`} className="flex flex-wrap items-center gap-2">
+                    <input
+                      value={draft.tag}
+                      onChange={(e) =>
+                        setTagDrafts((prev) => ({
+                          ...prev,
+                          [tag.id]: {
+                            ...draft,
+                            tag: e.target.value,
+                          },
+                        }))
+                      }
+                      className="h-8 rounded-md border border-input bg-background px-2 text-xs min-w-[180px]"
+                    />
+                    <input
+                      type="color"
+                      value={draft.color}
+                      onChange={(e) =>
+                        setTagDrafts((prev) => ({
+                          ...prev,
+                          [tag.id]: {
+                            ...draft,
+                            color: e.target.value,
+                          },
+                        }))
+                      }
+                      className="h-8 w-9 rounded border border-input bg-background p-0.5"
+                      aria-label={`${tag.tag} color`}
+                    />
+                    <button
+                      onClick={() =>
+                        updateTagMutation.mutate({
+                          tagId: tag.id,
+                          tag: draft.tag.trim(),
+                          color: draft.color,
+                        })
+                      }
+                      disabled={updateTagMutation.isPending}
+                      className="h-8 rounded-md px-2 text-xs border border-border hover:bg-accent disabled:opacity-60"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (
+                          !window.confirm(
+                            `Delete list "${tag.tag}"? Items will be moved automatically.`
+                          )
+                        ) {
+                          return;
+                        }
+                        deleteTagMutation.mutate({ tagId: tag.id });
+                      }}
+                      disabled={deleteTagMutation.isPending}
+                      className="h-8 rounded-md px-2 text-xs border border-destructive/40 text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {tasteProfile && (
+          <Card className="overflow-hidden p-0">
+            <div className="border-b border-border p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Taste Profile</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Recommendations from your watchlist genres, themes, types, and list signals.
+                  </p>
                 </div>
-                <div className="rounded-md border border-border px-3 py-2">
-                  <div className="text-sm font-semibold">{tasteProfile.favoriteGenres.length}</div>
-                  <div className="text-[10px] uppercase text-muted-foreground">genres</div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-md border border-border px-3 py-2">
+                    <div className="text-sm font-semibold">{tasteProfile.sampledTitles}</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">sampled</div>
+                  </div>
+                  <div className="rounded-md border border-border px-3 py-2">
+                    <div className="text-sm font-semibold">
+                      {tasteProfile.favoriteGenres.length}
+                    </div>
+                    <div className="text-[10px] uppercase text-muted-foreground">genres</div>
+                  </div>
+                  <div className="rounded-md border border-border px-3 py-2">
+                    <div className="text-sm font-semibold">{recommendations.length}</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">picks</div>
+                  </div>
                 </div>
-                <div className="rounded-md border border-border px-3 py-2">
-                  <div className="text-sm font-semibold">{recommendations.length}</div>
-                  <div className="text-[10px] uppercase text-muted-foreground">picks</div>
-                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[...tasteProfile.favoriteGenres, ...tasteProfile.favoriteThemes]
+                  .slice(0, 8)
+                  .map((signal) => (
+                    <Badge
+                      key={`${signal.name}-${signal.weight}`}
+                      variant="outline"
+                      className="text-[11px]"
+                    >
+                      {signal.name} · {signal.weight}
+                    </Badge>
+                  ))}
+                {tasteProfile.sampledTitles === 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    Add anime to your watchlist to build a profile.
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {[...tasteProfile.favoriteGenres, ...tasteProfile.favoriteThemes]
-                .slice(0, 8)
-                .map((signal) => (
-                  <Badge
-                    key={`${signal.name}-${signal.weight}`}
-                    variant="outline"
-                    className="text-[11px]"
+            {recommendations.length > 0 && (
+              <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+                {recommendations.slice(0, 6).map((item) => (
+                  <Link
+                    key={item.mal_id}
+                    to={getAnimeDetailHref(item.mal_id)}
+                    className="group flex gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/50"
                   >
-                    {signal.name} · {signal.weight}
-                  </Badge>
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.title_english || item.title}
+                        width={56}
+                        height={78}
+                        className="h-[78px] w-14 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="h-[78px] w-14 shrink-0 rounded-md bg-muted" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+                        {item.title_english || item.title}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted-foreground">
+                        {item.score ? <span>{item.score}</span> : null}
+                        {item.year ? <span>{item.year}</span> : null}
+                        {item.type ? <span>{item.type}</span> : null}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {item.reasons.slice(0, 2).map((reason) => (
+                          <Badge
+                            key={reason}
+                            variant="secondary"
+                            className="text-[10px] font-normal"
+                          >
+                            {reason}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-semibold text-primary">{item.tasteScore}</div>
+                      <div className="text-[10px] text-muted-foreground">fit</div>
+                    </div>
+                  </Link>
                 ))}
-              {tasteProfile.sampledTitles === 0 && (
-                <span className="text-sm text-muted-foreground">
-                  Add anime to your watchlist to build a profile.
-                </span>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+          </Card>
+        )}
 
-          {recommendations.length > 0 && (
-            <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-              {recommendations.slice(0, 6).map((item) => (
-                <Link
-                  key={item.mal_id}
-                  to={getAnimeDetailHref(item.mal_id)}
-                  className="group flex gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/50"
-                >
-                  {item.image ? (
+        {filtered.length === 0 ? (
+          <EmptyState
+            title={activeTab ? `no anime with tag "${activeTab}"` : 'no anime in watchlist yet'}
+          />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {filtered.map((item) => (
+              <Card
+                key={item.mal_id}
+                className="overflow-hidden flex flex-row p-0 hover:border-primary/30 transition-colors"
+              >
+                {item.image ? (
+                  <Link
+                    to={getAnimeDetailHref(item.mal_id)}
+                    className="relative block w-[85px] min-h-[120px] shrink-0"
+                  >
                     <img
                       src={item.image}
-                      alt={item.title_english || item.title}
-                      width={56}
-                      height={78}
-                      className="h-[78px] w-14 rounded-md object-cover"
+                      alt={item.title}
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
-                  ) : (
-                    <div className="h-[78px] w-14 shrink-0 rounded-md bg-muted" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
-                      {item.title_english || item.title}
+                  </Link>
+                ) : (
+                  <div className="w-[85px] min-h-[120px] shrink-0 bg-muted flex items-center justify-center">
+                    <span className="text-muted-foreground text-xs">No img</span>
+                  </div>
+                )}
+
+                <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link
+                      to={getAnimeDetailHref(item.mal_id)}
+                      className="min-w-0 flex-1 text-sm font-medium text-foreground hover:text-primary transition-colors truncate"
+                    >
+                      {item.title}
+                    </Link>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {item.url ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Open ${item.title} on MyAnimeList`}
+                          className="text-muted-foreground transition-colors hover:text-primary"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : null}
+                      {item.type && (
+                        <Badge variant="secondary" className="shrink-0 text-[10px]">
+                          {item.type}
+                        </Badge>
+                      )}
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted-foreground">
-                      {item.score ? <span>{item.score}</span> : null}
-                      {item.year ? <span>{item.year}</span> : null}
-                      {item.type ? <span>{item.type}</span> : null}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {item.reasons.slice(0, 2).map((reason) => (
-                        <Badge key={reason} variant="secondary" className="text-[10px] font-normal">
-                          {reason}
+                  </div>
+
+                  <div className="flex gap-3 text-xs text-muted-foreground">
+                    {item.score && (
+                      <span>
+                        <span
+                          className={cn(
+                            'font-medium',
+                            item.score >= 8
+                              ? 'text-emerald-400'
+                              : item.score >= 6
+                                ? 'text-yellow-400'
+                                : 'text-red-400'
+                          )}
+                        >
+                          {item.score}
+                        </span>
+                      </span>
+                    )}
+                    {item.year && <span>{item.year}</span>}
+                    {item.episodes && <span>{item.episodes} eps</span>}
+                  </div>
+
+                  {item.genres.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {item.genres.slice(0, 4).map((g) => (
+                        <Badge
+                          key={g}
+                          variant="outline"
+                          className="text-[10px] font-normal px-1.5 py-0"
+                        >
+                          {g}
                         </Badge>
                       ))}
                     </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-sm font-semibold text-primary">{item.tasteScore}</div>
-                    <div className="text-[10px] text-muted-foreground">fit</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          {activeTab ? `No anime with tag "${activeTab}"` : 'No anime in watchlist yet'}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {filtered.map((item) => (
-            <Card
-              key={item.mal_id}
-              className="overflow-hidden flex flex-row p-0 hover:border-primary/30 transition-colors"
-            >
-              {item.image ? (
-                <Link
-                  to={getAnimeDetailHref(item.mal_id)}
-                  className="relative block w-[85px] min-h-[120px] shrink-0"
-                >
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                </Link>
-              ) : (
-                <div className="w-[85px] min-h-[120px] shrink-0 bg-muted flex items-center justify-center">
-                  <span className="text-muted-foreground text-xs">No img</span>
-                </div>
-              )}
-
-              <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <Link
-                    to={getAnimeDetailHref(item.mal_id)}
-                    className="min-w-0 flex-1 text-sm font-medium text-foreground hover:text-primary transition-colors truncate"
-                  >
-                    {item.title}
-                  </Link>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {item.url ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Open ${item.title} on MyAnimeList`}
-                        className="text-muted-foreground transition-colors hover:text-primary"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    ) : null}
-                    {item.type && (
-                      <Badge variant="secondary" className="shrink-0 text-[10px]">
-                        {item.type}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-3 text-xs text-muted-foreground">
-                  {item.score && (
-                    <span>
-                      <span
-                        className={cn(
-                          'font-medium',
-                          item.score >= 8
-                            ? 'text-emerald-400'
-                            : item.score >= 6
-                              ? 'text-yellow-400'
-                              : 'text-red-400'
-                        )}
-                      >
-                        {item.score}
-                      </span>
-                    </span>
                   )}
-                  {item.year && <span>{item.year}</span>}
-                  {item.episodes && <span>{item.episodes} eps</span>}
-                </div>
 
-                {item.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {item.genres.slice(0, 4).map((g) => (
-                      <Badge
-                        key={g}
-                        variant="outline"
-                        className="text-[10px] font-normal px-1.5 py-0"
-                      >
-                        {g}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                  {item.note ? (
+                    <p className="line-clamp-2 rounded-md bg-secondary/50 px-2 py-1 text-xs text-muted-foreground">
+                      {item.note}
+                    </p>
+                  ) : null}
 
-                {item.note ? (
-                  <p className="line-clamp-2 rounded-md bg-secondary/50 px-2 py-1 text-xs text-muted-foreground">
-                    {item.note}
-                  </p>
-                ) : null}
-
-                <div className="mt-auto pt-1">
-                  <select
-                    value={item.watchStatus}
-                    onChange={(e) => {
-                      if (e.target.value === 'REMOVE') {
-                        removeMutation.mutate(item.mal_id);
-                        return;
-                      }
-                      if (e.target.value === '__NEW_TAG__') {
-                        const customTag = window.prompt('New tag name');
-                        if (!customTag?.trim()) return;
-                        const tag = customTag.trim();
-                        const color = getDefaultTagColor(tag);
-                        statusMutation.mutate({ malId: item.mal_id, status: tag, tagColor: color });
-                        setActiveTab(tag);
-                        return;
-                      }
-                      statusMutation.mutate({
-                        malId: item.mal_id,
-                        status: e.target.value,
-                        tagColor: tagColorMap.get(e.target.value),
-                      });
-                    }}
-                    disabled={statusMutation.isPending || removeMutation.isPending}
-                    className="h-7 rounded-lg border border-input bg-secondary px-2 text-xs"
-                  >
-                    {tags.map((tag) => (
-                      <option key={tag.tag} value={tag.tag}>
-                        {tag.tag}
+                  <div className="mt-auto pt-1">
+                    <select
+                      value={item.watchStatus}
+                      onChange={(e) => {
+                        if (e.target.value === 'REMOVE') {
+                          removeMutation.mutate(item.mal_id);
+                          return;
+                        }
+                        if (e.target.value === '__NEW_TAG__') {
+                          const customTag = window.prompt('New tag name');
+                          if (!customTag?.trim()) return;
+                          const tag = customTag.trim();
+                          const color = getDefaultTagColor(tag);
+                          statusMutation.mutate({
+                            malId: item.mal_id,
+                            status: tag,
+                            tagColor: color,
+                          });
+                          setActiveTab(tag);
+                          return;
+                        }
+                        statusMutation.mutate({
+                          malId: item.mal_id,
+                          status: e.target.value,
+                          tagColor: tagColorMap.get(e.target.value),
+                        });
+                      }}
+                      disabled={statusMutation.isPending || removeMutation.isPending}
+                      className="h-7 rounded-lg border border-input bg-secondary px-2 text-xs"
+                    >
+                      {tags.map((tag) => (
+                        <option key={tag.tag} value={tag.tag}>
+                          {tag.tag}
+                        </option>
+                      ))}
+                      <option value="__NEW_TAG__">+ New tag...</option>
+                      <option value="REMOVE" className="text-destructive">
+                        Remove from watchlist
                       </option>
-                    ))}
-                    <option value="__NEW_TAG__">+ New tag...</option>
-                    <option value="REMOVE" className="text-destructive">
-                      Remove from watchlist
-                    </option>
-                  </select>
+                    </select>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </ResourceBoundary>
   );
 }

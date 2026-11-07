@@ -1,8 +1,13 @@
 'use client';
 
+import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowUpRight, ExternalLink, Heart, Star } from 'lucide-react';
 import {
   getAnimeDetail,
@@ -39,24 +44,29 @@ function formatStat(value?: number | null, compact = false): string | null {
 function LoadingSkeleton({ isModal = false }: { isModal?: boolean }) {
   return (
     <section
-      className={cn('space-y-6', isModal ? 'p-6' : 'px-6 py-10')}
+      className="space-y-12 px-4 sm:px-6 py-10"
       aria-busy="true"
-      aria-label="Loading anime details"
+      aria-label="loading anime details"
     >
-      <LoadingStatus label="Loading anime details" />
-      {!isModal && <Skeleton className="h-9 w-32" />}
-      <div className="grid gap-6 lg:grid-cols-12">
-        <Skeleton className="aspect-[2/3] lg:col-span-4" />
-        <div className="lg:col-span-8 space-y-4 rounded-sm border border-outline/10 bg-surface-container-low p-6">
-          <div className="space-y-2">
-            <Skeleton className="h-12 w-2/3" />
-            <Skeleton className="h-4 w-1/2 bg-muted/45" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-20" />
-            ))}
-          </div>
+      <LoadingStatus label="loading anime details" />
+      <div className="space-y-6">
+        <div className="flex h-10 items-center justify-between">
+          {!isModal && <Skeleton className="h-8 w-16" />}
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="min-h-36 sm:min-h-40 space-y-4">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-20 sm:h-24 w-4/5" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
+        <div className="lg:col-span-4 space-y-8">
+          <Skeleton className="aspect-[2/3] w-full" />
+          <Skeleton className="h-12" />
+        </div>
+        <div className="lg:col-span-8 space-y-8">
+          <Skeleton className="h-8 w-2/3" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </div>
     </section>
@@ -131,12 +141,12 @@ export default function AnimeDetailView({
 
   const detailQuery = useQuery({
     queryKey: ['anime', 'detail', malId],
-    queryFn: () => getAnimeDetail(malId),
+    queryFn: ({ signal }) => getAnimeDetail(malId, signal),
   });
 
   const { data: tagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: () => getWatchlistTags(),
+    queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
@@ -279,7 +289,7 @@ export default function AnimeDetailView({
   }, [identityKey, savedNote]);
 
   if (detailQuery.isLoading) return <LoadingSkeleton isModal={isModal} />;
-  if (detailQuery.error || !detailQuery.data) {
+  if (!detailQuery.data) {
     return (
       <div className={cn('space-y-4', isModal ? 'p-6' : 'px-6 pt-10')}>
         {!isModal && (
@@ -290,23 +300,17 @@ export default function AnimeDetailView({
             </Link>
           </Button>
         )}
-        <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
-          <h2 className="text-lg font-semibold text-foreground mb-2">
-            Unable to load anime details
-          </h2>
-          <p className="text-sm font-body opacity-80">
-            We couldn&apos;t reach the anime data right now. Check your connection and try again.
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => detailQuery.refetch()}
-            disabled={detailQuery.isFetching}
-          >
-            {detailQuery.isFetching ? 'Retrying…' : 'Try again'}
-          </Button>
-        </div>
+        {detailQuery.error ? (
+          <ErrorState
+            title="unable to load anime details"
+            description="check your connection and try again."
+            onRetry={() => {
+              void detailQuery.refetch();
+            }}
+          />
+        ) : (
+          <EmptyState title="no anime details available" />
+        )}
       </div>
     );
   }
@@ -324,377 +328,390 @@ export default function AnimeDetailView({
   );
 
   return (
-    <div className={cn('space-y-12', !isModal && 'max-w-7xl mx-auto', 'px-4 sm:px-6 py-10')}>
-      {/* Detail Header */}
-      <div className="space-y-6">
-        <div className={cn('flex items-center gap-4', isModal ? 'justify-end' : 'justify-between')}>
-          {!isModal && (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="text-white/60 hover:text-white h-8 px-2 border border-outline/20"
-            >
-              <Link to="/search">
-                <ArrowLeft className="mr-1 h-3 w-3" />
-                Back
-              </Link>
-            </Button>
-          )}
-          <a
-            href={anime.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+    <ResourceBoundary
+      resource={detailQuery}
+      delay={0}
+      skeleton={<LoadingSkeleton isModal={isModal} />}
+    >
+      <div className={cn('space-y-12', !isModal && 'max-w-7xl mx-auto', 'px-4 sm:px-6 py-10')}>
+        {/* Detail Header */}
+        <div className="space-y-6">
+          <div
+            className={cn('flex items-center gap-4', isModal ? 'justify-end' : 'justify-between')}
           >
-            Open on MAL <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            {anime.rank ? (
-              <span className="bg-primary text-primary-foreground px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-sm">
-                Rank {rank}
-              </span>
-            ) : null}
-            {anime.season && anime.year ? (
-              <span className="text-white/60 font-body text-[10px] font-bold tracking-widest uppercase">
-                {anime.season} {anime.year}
-              </span>
-            ) : null}
-            {anime.type ? (
-              <span className="text-white/60 font-body text-[10px] font-bold tracking-widest uppercase">
-                • {anime.type}
-              </span>
-            ) : null}
-          </div>
-          <h1 className="font-semibold text-3xl sm:text-5xl tracking-tight text-foreground">
-            {title}
-          </h1>
-          {anime.title !== title && (
-            <h2 className="font-body text-lg text-white/40 tracking-wide uppercase font-bold">
-              {anime.title}
-            </h2>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content Layout */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
-        {/* Left Column: Poster & Stats */}
-        <div className="lg:col-span-4 space-y-8">
-          <div className="relative aspect-[2/3] w-full rounded-sm overflow-hidden bg-surface-container-low border border-outline/10 shadow-2xl">
-            {anime.image ? (
-              <img
-                src={anime.image}
-                alt={title}
-                fetchPriority="high"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : null}
-          </div>
-
-          {/* Watchlist Action */}
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              disabled={!user || watchlistMutation.isPending || removeMutation.isPending}
-              aria-label={
-                !user
-                  ? 'Sign in to track this anime'
-                  : currentStatus
-                    ? `Edit watchlist status: ${currentStatus}`
-                    : 'Add to watchlist'
-              }
-              className="w-full h-12 rounded-sm bg-primary text-primary-foreground flex items-center justify-center hover:scale-[1.02] transition-transform"
-              style={
-                currentStatusColor
-                  ? {
-                      backgroundColor: currentStatusColor,
-                      boxShadow: `0 0 25px -5px ${currentStatusColor}66`,
-                    }
-                  : undefined
-              }
+            {!isModal && (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="text-white/60 hover:text-white h-8 px-2 border border-outline/20"
+              >
+                <Link to="/search">
+                  <ArrowLeft className="mr-1 h-3 w-3" />
+                  Back
+                </Link>
+              </Button>
+            )}
+            <a
+              href={anime.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              <span
-                className={
-                  watchlistMutation.isPending
-                    ? 'animate-spin text-sm'
-                    : 'text-sm font-black uppercase tracking-widest'
+              Open on MAL <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+
+          <div className="h-36 sm:h-40 overflow-y-auto space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {anime.rank ? (
+                <span className="bg-primary text-primary-foreground px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-sm">
+                  Rank {rank}
+                </span>
+              ) : null}
+              {anime.season && anime.year ? (
+                <span className="text-white/60 font-body text-[10px] font-bold tracking-widest uppercase">
+                  {anime.season} {anime.year}
+                </span>
+              ) : null}
+              {anime.type ? (
+                <span className="text-white/60 font-body text-[10px] font-bold tracking-widest uppercase">
+                  • {anime.type}
+                </span>
+              ) : null}
+            </div>
+            <h1 className="font-semibold text-3xl sm:text-5xl tracking-tight text-foreground">
+              {title}
+            </h1>
+            {anime.title !== title && (
+              <h2 className="font-body text-lg text-white/40 tracking-wide uppercase font-bold">
+                {anime.title}
+              </h2>
+            )}
+          </div>
+        </div>
+
+        {/* Main Content Layout */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
+          {/* Left Column: Poster & Stats */}
+          <div className="lg:col-span-4 space-y-8">
+            <div className="relative aspect-[2/3] w-full rounded-sm overflow-hidden bg-surface-container-low border border-outline/10 shadow-2xl">
+              {anime.image ? (
+                <img
+                  src={anime.image}
+                  alt={title}
+                  fetchPriority="high"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : null}
+            </div>
+
+            {/* Watchlist Action */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                disabled={!user || watchlistMutation.isPending || removeMutation.isPending}
+                aria-label={
+                  !user
+                    ? 'Sign in to track this anime'
+                    : currentStatus
+                      ? `Edit watchlist status: ${currentStatus}`
+                      : 'Add to watchlist'
+                }
+                className="w-full h-12 rounded-sm bg-primary text-primary-foreground flex items-center justify-center hover:scale-[1.02] transition-transform"
+                style={
+                  currentStatusColor
+                    ? {
+                        backgroundColor: currentStatusColor,
+                        boxShadow: `0 0 25px -5px ${currentStatusColor}66`,
+                      }
+                    : undefined
                 }
               >
-                {watchlistMutation.isPending ? '...' : trackingLabel}
-              </span>
-            </button>
-            {(watchlistMutation.isError || removeMutation.isError) && (
-              <p role="status" className="mt-2 text-xs text-destructive">
-                That change didn&apos;t save — the shown status is the last confirmed one. Please
-                try again.
-              </p>
-            )}
-            {showMenu && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-surface-container-high border border-outline/20 shadow-2xl rounded-sm py-1 w-full z-20">
-                {availableTags.map((tag) => {
-                  const color = resolveTagColor(tag.tag, tag.color);
-                  const isCurrentTag = currentStatus === tag.tag;
-                  return (
-                    <button
-                      key={tag.tag}
-                      aria-pressed={isCurrentTag}
-                      onClick={() => handleAdd(tag.tag, tag.color)}
-                      className="flex items-center justify-between gap-2 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors text-left"
-                    >
-                      <span className="flex items-center gap-3">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: color, color: color }}
-                        />
-                        <span className="text-white/80">{tag.tag}</span>
-                      </span>
-                      {isCurrentTag && <span className="text-[9px] text-primary">Remove</span>}
-                    </button>
-                  );
-                })}
-                <div className="border-t border-outline/10">
-                  <button
-                    onClick={() => scheduleMutation.mutate()}
-                    disabled={scheduleMutation.isPending || scheduled}
-                    className="flex items-center gap-3 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/80 hover:bg-white/5 transition-colors text-left disabled:opacity-50"
-                  >
-                    <svg
-                      className="h-3 w-3 text-primary"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-                      />
-                    </svg>
-                    {scheduled ? 'Scheduled' : 'Schedule'}
-                  </button>
-                </div>
-                <div className="border-t border-outline/10 px-3 pt-3 pb-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={customTag}
-                      onChange={(e) => setCustomTag(e.target.value)}
-                      placeholder="NEW TAG"
-                      className="h-8 flex-1 rounded-sm border border-outline/20 bg-surface px-2 text-[10px] font-bold uppercase tracking-widest text-white placeholder:text-white/20 focus:outline-none focus:border-primary"
-                    />
-                    <input
-                      type="color"
-                      value={customColor}
-                      onChange={(e) => setCustomColor(e.target.value)}
-                      className="h-8 w-8 rounded-sm border border-outline/20 bg-surface p-0.5 cursor-pointer"
-                      aria-label="Tag color"
-                    />
-                  </div>
-                  <button
-                    onClick={() => {
-                      const tag = customTag.trim();
-                      if (!tag) return;
-                      handleAdd(tag, customColor);
-                    }}
-                    className="h-8 w-full rounded-sm bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bento Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-surface-container-high p-5 flex flex-col justify-between aspect-square rounded-sm border border-outline/5">
-              <span className="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase flex items-center gap-2">
-                <Star className="h-3 w-3 text-primary" /> Rating
-              </span>
-              <div className="flex items-end gap-1">
-                <span className="text-4xl font-black font-display text-white italic">
-                  {score || 'N/A'}
+                <span
+                  className={
+                    watchlistMutation.isPending
+                      ? 'animate-spin text-sm'
+                      : 'text-sm font-black uppercase tracking-widest'
+                  }
+                >
+                  {watchlistMutation.isPending ? '...' : trackingLabel}
                 </span>
-                {score && <span className="text-primary font-bold mb-1">/10</span>}
-              </div>
-            </div>
-            <div className="bg-surface-container-lowest p-5 flex flex-col justify-between aspect-square rounded-sm border border-outline/5">
-              <span className="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase flex items-center gap-2">
-                <Heart className="h-3 w-3 text-primary" /> Popularity
-              </span>
-              <span className="text-3xl font-black font-display text-white">
-                {popularity || 'N/A'}
-              </span>
-            </div>
-          </div>
-
-          {/* Details Table */}
-          <div className="bg-surface-container-low p-6 rounded-sm border border-outline/5 space-y-4">
-            {[
-              { label: 'Episodes', value: anime.episodes },
-              { label: 'Status', value: anime.status },
-              { label: 'Members', value: anime.members ? wholeNumber.format(anime.members) : null },
-              {
-                label: 'Favorites',
-                value: anime.favorites ? wholeNumber.format(anime.favorites) : null,
-              },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="flex justify-between border-b border-outline/10 last:border-0 pb-2 last:pb-0"
-              >
-                <span className="text-[10px] font-bold tracking-widest text-white/40 uppercase">
-                  {stat.label}
-                </span>
-                <span className="text-sm font-bold text-white">{stat.value || 'Unknown'}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right Column: Content & Editorial */}
-        <div className="lg:col-span-8 space-y-12 md:space-y-16">
-          {/* Genre Chips */}
-          <div className="flex flex-wrap gap-3">
-            {[...anime.genres, ...anime.themes, ...anime.demographics].map((g) => (
-              <span
-                key={g}
-                className="px-4 py-2 border border-outline/20 text-[10px] font-black tracking-[0.2em] uppercase text-white hover:bg-white/5 transition-colors cursor-default bg-surface-container-low"
-              >
-                {g}
-              </span>
-            ))}
-          </div>
-
-          {/* Synopsis */}
-          {synopsis && (
-            <div className="space-y-6">
-              <h2 className="text-3xl font-semibold tracking-tight text-foreground">Synopsis</h2>
-              <p className="text-base md:text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {synopsis}
-              </p>
-            </div>
-          )}
-
-          {/* Private Note */}
-          {user && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-foreground">Notes</h2>
-              {watchlistEntry ? (
-                <div className="bg-surface-container-low p-1 rounded-sm border border-outline/20 flex flex-col focus-within:border-primary/50 transition-colors">
-                  <textarea
-                    value={noteDraft}
-                    onChange={(event) => setNoteDraft(event.target.value)}
-                    rows={4}
-                    maxLength={2000}
-                    className="w-full bg-transparent px-4 py-4 text-sm font-body text-white outline-none resize-y min-h-[100px]"
-                    placeholder="Document your thoughts..."
-                  />
-                  {noteMutation.isError && (
-                    <p role="status" className="px-4 py-2 text-xs text-destructive">
-                      Couldn&apos;t save the note — your draft is still here. Please try again.
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between px-4 py-3 bg-surface-container-high border-t border-outline/10">
-                    <span className="text-xs text-muted-foreground">
-                      {noteDraft.trim().length}/2000
-                    </span>
-                    <Button
-                      size="sm"
-                      className="h-8"
-                      onClick={() => noteMutation.mutate(noteDraft)}
-                      disabled={
-                        noteMutation.isPending ||
-                        noteDraft.trim() === (watchlistEntry.note ?? '').trim()
-                      }
-                    >
-                      {noteMutation.isPending ? 'Saving…' : 'Save note'}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm font-body text-white/40 italic">
-                  Add to your library to unlock private notes.
+              </button>
+              {(watchlistMutation.isError || removeMutation.isError) && (
+                <p role="status" className="mt-2 text-xs text-destructive">
+                  That change didn&apos;t save — the shown status is the last confirmed one. Please
+                  try again.
                 </p>
               )}
-            </div>
-          )}
-
-          {/* Relations */}
-          {(prequels.length > 0 || sequels.length > 0 || franchiseGuide.length > 0) && (
-            <div className="space-y-6">
-              <div className="flex items-end border-b border-outline/10 pb-4">
-                <h2 className="text-xl font-semibold text-foreground">Related titles</h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {[...prequels, ...sequels].map((item) => (
-                  <RelatedTitleLink
-                    key={`direct-${item.mal_id}`}
-                    item={item}
-                    relationLabel={item.relation}
-                  />
-                ))}
-              </div>
-              {franchiseGuide.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-4">More in series</h3>
-                  <div className="grid gap-2">
-                    {franchiseGuide.map((item) => (
-                      <RelatedTitleLink
-                        key={`franchise-${item.mal_id}`}
-                        item={item}
-                        relationLabel={item.relation}
+              {showMenu && (
+                <div className="absolute left-0 right-0 top-full mt-2 bg-surface-container-high border border-outline/20 shadow-2xl rounded-sm py-1 w-full z-20">
+                  {availableTags.map((tag) => {
+                    const color = resolveTagColor(tag.tag, tag.color);
+                    const isCurrentTag = currentStatus === tag.tag;
+                    return (
+                      <button
+                        key={tag.tag}
+                        aria-pressed={isCurrentTag}
+                        onClick={() => handleAdd(tag.tag, tag.color)}
+                        className="flex items-center justify-between gap-2 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors text-left"
+                      >
+                        <span className="flex items-center gap-3">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: color, color: color }}
+                          />
+                          <span className="text-white/80">{tag.tag}</span>
+                        </span>
+                        {isCurrentTag && <span className="text-[9px] text-primary">Remove</span>}
+                      </button>
+                    );
+                  })}
+                  <div className="border-t border-outline/10">
+                    <button
+                      onClick={() => scheduleMutation.mutate()}
+                      disabled={scheduleMutation.isPending || scheduled}
+                      className="flex items-center gap-3 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/80 hover:bg-white/5 transition-colors text-left disabled:opacity-50"
+                    >
+                      <svg
+                        className="h-3 w-3 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+                        />
+                      </svg>
+                      {scheduled ? 'Scheduled' : 'Schedule'}
+                    </button>
+                  </div>
+                  <div className="border-t border-outline/10 px-3 pt-3 pb-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={customTag}
+                        onChange={(e) => setCustomTag(e.target.value)}
+                        placeholder="NEW TAG"
+                        className="h-8 flex-1 rounded-sm border border-outline/20 bg-surface px-2 text-[10px] font-bold uppercase tracking-widest text-white placeholder:text-white/20 focus:outline-none focus:border-primary"
                       />
-                    ))}
+                      <input
+                        type="color"
+                        value={customColor}
+                        onChange={(e) => setCustomColor(e.target.value)}
+                        className="h-8 w-8 rounded-sm border border-outline/20 bg-surface p-0.5 cursor-pointer"
+                        aria-label="Tag color"
+                      />
+                    </div>
+                    <button
+                      onClick={() => {
+                        const tag = customTag.trim();
+                        if (!tag) return;
+                        handleAdd(tag, customColor);
+                      }}
+                      className="h-8 w-full rounded-sm bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-colors"
+                    >
+                      Add
+                    </button>
                   </div>
                 </div>
               )}
             </div>
-          )}
 
-          {/* Recommendations Scroll */}
-          {recommendations.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex items-end border-b border-outline/10 pb-4">
-                <h2 className="text-xl font-semibold text-foreground">Recommendations</h2>
+            {/* Bento Stats Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-surface-container-high p-5 flex flex-col justify-between aspect-square rounded-sm border border-outline/5">
+                <span className="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase flex items-center gap-2">
+                  <Star className="h-3 w-3 text-primary" /> Rating
+                </span>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-black font-display text-white italic">
+                    {score || 'N/A'}
+                  </span>
+                  {score && <span className="text-primary font-bold mb-1">/10</span>}
+                </div>
               </div>
-              <div className="flex gap-4 md:gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-                {recommendations.map((item) => {
-                  const itemTitle = animeTitle(item);
-                  return (
-                    <Link
-                      to={getAnimeDetailHref(item.mal_id)}
-                      key={item.mal_id}
-                      className="min-w-[200px] md:min-w-[240px] group cursor-pointer block"
-                    >
-                      <div className="aspect-[2/3] overflow-hidden bg-surface-container-low mb-3 relative rounded-sm border border-outline/10">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={itemTitle}
-                            className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : null}
-                        <div className="absolute inset-0 bg-primary-container/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      </div>
-                      <h4 className="text-sm md:text-base font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                        {itemTitle}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {item.type || 'Unknown'} · {item.year || 'Unknown'}
-                      </p>
-                    </Link>
-                  );
-                })}
+              <div className="bg-surface-container-lowest p-5 flex flex-col justify-between aspect-square rounded-sm border border-outline/5">
+                <span className="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase flex items-center gap-2">
+                  <Heart className="h-3 w-3 text-primary" /> Popularity
+                </span>
+                <span className="text-3xl font-black font-display text-white">
+                  {popularity || 'N/A'}
+                </span>
               </div>
             </div>
-          )}
-        </div>
-      </section>
-    </div>
+
+            {/* Details Table */}
+            <div className="bg-surface-container-low p-6 rounded-sm border border-outline/5 space-y-4">
+              {[
+                { label: 'Episodes', value: anime.episodes },
+                { label: 'Status', value: anime.status },
+                {
+                  label: 'Members',
+                  value: anime.members ? wholeNumber.format(anime.members) : null,
+                },
+                {
+                  label: 'Favorites',
+                  value: anime.favorites ? wholeNumber.format(anime.favorites) : null,
+                },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex justify-between border-b border-outline/10 last:border-0 pb-2 last:pb-0"
+                >
+                  <span className="text-[10px] font-bold tracking-widest text-white/40 uppercase">
+                    {stat.label}
+                  </span>
+                  <span className="text-sm font-bold text-white">{stat.value || 'Unknown'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column: Content & Editorial */}
+          <div className="lg:col-span-8 space-y-12 md:space-y-16">
+            {/* Genre Chips */}
+            <div className="flex flex-wrap gap-3">
+              {[...anime.genres, ...anime.themes, ...anime.demographics].map((g) => (
+                <span
+                  key={g}
+                  className="px-4 py-2 border border-outline/20 text-[10px] font-black tracking-[0.2em] uppercase text-white hover:bg-white/5 transition-colors cursor-default bg-surface-container-low"
+                >
+                  {g}
+                </span>
+              ))}
+            </div>
+
+            {/* Synopsis */}
+            {synopsis && (
+              <div className="space-y-6">
+                <h2 className="text-3xl font-semibold tracking-tight text-foreground">Synopsis</h2>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {synopsis}
+                </p>
+              </div>
+            )}
+
+            {/* Private Note */}
+            {user && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-foreground">Notes</h2>
+                {watchlistEntry ? (
+                  <div className="bg-surface-container-low p-1 rounded-sm border border-outline/20 flex flex-col focus-within:border-primary/50 transition-colors">
+                    <textarea
+                      value={noteDraft}
+                      onChange={(event) => setNoteDraft(event.target.value)}
+                      rows={4}
+                      maxLength={2000}
+                      className="w-full bg-transparent px-4 py-4 text-sm font-body text-white outline-none resize-y min-h-[100px]"
+                      placeholder="Document your thoughts..."
+                    />
+                    {noteMutation.isError && (
+                      <p role="status" className="px-4 py-2 text-xs text-destructive">
+                        Couldn&apos;t save the note — your draft is still here. Please try again.
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between px-4 py-3 bg-surface-container-high border-t border-outline/10">
+                      <span className="text-xs text-muted-foreground">
+                        {noteDraft.trim().length}/2000
+                      </span>
+                      <Button
+                        size="sm"
+                        className="h-8"
+                        onClick={() => noteMutation.mutate(noteDraft)}
+                        disabled={
+                          noteMutation.isPending ||
+                          noteDraft.trim() === (watchlistEntry.note ?? '').trim()
+                        }
+                      >
+                        {noteMutation.isPending ? 'Saving…' : 'Save note'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm font-body text-white/40 italic">
+                    Add to your library to unlock private notes.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Relations */}
+            {(prequels.length > 0 || sequels.length > 0 || franchiseGuide.length > 0) && (
+              <div className="space-y-6">
+                <div className="flex items-end border-b border-outline/10 pb-4">
+                  <h2 className="text-xl font-semibold text-foreground">Related titles</h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {[...prequels, ...sequels].map((item) => (
+                    <RelatedTitleLink
+                      key={`direct-${item.mal_id}`}
+                      item={item}
+                      relationLabel={item.relation}
+                    />
+                  ))}
+                </div>
+                {franchiseGuide.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                      More in series
+                    </h3>
+                    <div className="grid gap-2">
+                      {franchiseGuide.map((item) => (
+                        <RelatedTitleLink
+                          key={`franchise-${item.mal_id}`}
+                          item={item}
+                          relationLabel={item.relation}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recommendations Scroll */}
+            {recommendations.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-end border-b border-outline/10 pb-4">
+                  <h2 className="text-xl font-semibold text-foreground">Recommendations</h2>
+                </div>
+                <div className="flex gap-4 md:gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
+                  {recommendations.map((item) => {
+                    const itemTitle = animeTitle(item);
+                    return (
+                      <Link
+                        to={getAnimeDetailHref(item.mal_id)}
+                        key={item.mal_id}
+                        className="min-w-[200px] md:min-w-[240px] group cursor-pointer block"
+                      >
+                        <div className="aspect-[2/3] overflow-hidden bg-surface-container-low mb-3 relative rounded-sm border border-outline/10">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={itemTitle}
+                              className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : null}
+                          <div className="absolute inset-0 bg-primary-container/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        </div>
+                        <h4 className="text-sm md:text-base font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                          {itemTitle}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {item.type || 'Unknown'} · {item.year || 'Unknown'}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </ResourceBoundary>
   );
 }

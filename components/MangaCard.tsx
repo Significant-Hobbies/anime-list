@@ -1,8 +1,10 @@
 'use client';
 
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
+
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import type { AnimeSummary } from '@/lib/types';
 import { addToMangaWatchlist, getMangaWatchlist, getWatchlistTags } from '@/lib/api';
@@ -26,13 +28,13 @@ export default function MangaCard({
 
   const { data: watchlistData } = useQuery({
     queryKey: ['manga', 'watchlist'],
-    queryFn: () => getMangaWatchlist(),
+    queryFn: ({ signal }) => getMangaWatchlist(signal),
     enabled: !!user,
   });
 
   const { data: tagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: () => getWatchlistTags(),
+    queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
@@ -98,11 +100,11 @@ export default function MangaCard({
 
       <div className="mt-3 space-y-1">
         <Link to={getMangaDetailHref(manga.id)}>
-          <h3 className="line-clamp-2 text-sm font-bold uppercase tracking-tight text-white group-hover:text-primary transition-colors">
+          <h3 className="h-10 line-clamp-2 text-sm font-bold uppercase tracking-tight text-white group-hover:text-primary transition-colors">
             {displayTitle}
           </h3>
         </Link>
-        <div className="flex flex-wrap gap-1 text-[10px] text-white/40 uppercase tracking-widest">
+        <div className="min-h-3.5 flex flex-wrap gap-1 text-[10px] text-white/40 uppercase tracking-widest">
           {manga.type ? <span>{manga.type}</span> : null}
           {manga.year ? <span>{manga.year}</span> : null}
           {manga.chapters ? <span>{manga.chapters} ch</span> : null}

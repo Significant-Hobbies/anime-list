@@ -2,6 +2,7 @@ import { Skeleton as LibrarySkeleton } from '@saas-maker/ui/components/skeleton'
 import { useRouterState } from '@tanstack/react-router';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
+import { Card } from './card';
 
 type SkeletonProps = ComponentProps<'div'>;
 
@@ -9,7 +10,7 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
     <LibrarySkeleton
       aria-hidden="true"
-      className={cn('animate-none bg-muted/70 motion-safe:animate-pulse', className)}
+      className={cn('motion-safe:animate-none animate-none bg-muted/70', className)}
       {...props}
     />
   );
@@ -28,11 +29,7 @@ export function RouteProgress() {
 
   if (!isLoading) return null;
 
-  return (
-    <div className="fixed inset-x-0 top-14 z-[60] h-0.5 overflow-hidden" aria-hidden="true">
-      <div className="h-full w-1/3 animate-[route-progress_1.1s_ease-in-out_infinite] bg-primary shadow-[0_0_12px_rgba(129,140,248,0.75)] motion-reduce:w-full motion-reduce:animate-none" />
-    </div>
-  );
+  return <div className="fixed inset-x-0 top-14 z-[60] h-0.5 bg-primary/40" aria-hidden="true" />;
 }
 
 export function RefreshIndicator({
@@ -45,43 +42,37 @@ export function RefreshIndicator({
   if (!active) return null;
 
   return (
-    <span
-      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-      role="status"
-      aria-live="polite"
-    >
-      <span
-        aria-hidden="true"
-        className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-pulse"
-      />
-      {label}
+    <span className="sr-only" role="status" aria-live="polite">
+      {label.toLowerCase()}
     </span>
   );
 }
 
-function CatalogCardSkeleton() {
+function CatalogCardSkeleton({ manga = false }: { manga?: boolean }) {
   return (
     <div>
-      <Skeleton className="aspect-[2/3] rounded-lg" />
-      <div className="mt-3 space-y-2">
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-3 w-1/2 bg-muted/45" />
+      <Skeleton className="aspect-[2/3] rounded-sm" />
+      <div className={manga ? 'mt-3 space-y-1' : 'mt-4 space-y-1'}>
+        <Skeleton className={manga ? 'h-10 w-4/5' : 'h-11 w-4/5'} />
+        <Skeleton className={manga ? 'h-3.5 w-1/2 bg-muted/45' : 'h-8 w-1/2 bg-muted/45'} />
       </div>
     </div>
   );
 }
 
-export function CatalogGridSkeleton({ label = 'Loading catalog' }: { label?: string }) {
+export function CatalogGridSkeleton({
+  label = 'loading catalog',
+  manga = false,
+}: {
+  label?: string;
+  manga?: boolean;
+}) {
   return (
     <section aria-busy="true" aria-label={label} className="space-y-5">
       <LoadingStatus label={label} />
-      <div className="flex items-center justify-between gap-4">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-4 w-16 bg-muted/45" />
-      </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {Array.from({ length: 12 }).map((_, index) => (
-          <CatalogCardSkeleton key={index} />
+          <CatalogCardSkeleton key={index} manga={manga} />
         ))}
       </div>
     </section>
@@ -90,15 +81,29 @@ export function CatalogGridSkeleton({ label = 'Loading catalog' }: { label?: str
 
 export function StatsGridSkeleton({ label = 'Loading statistics' }: { label?: string }) {
   return (
-    <section aria-busy="true" aria-label={label} className="grid gap-4 md:grid-cols-2">
+    <section aria-busy="true" aria-label={label} className="space-y-4">
       <LoadingStatus label={label} />
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div key={index} className="rounded-xl border border-border bg-card/50 p-5">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="mt-4 h-28 w-full bg-muted/45" />
-          <Skeleton className="mt-4 h-3 w-2/3 bg-muted/45" />
-        </div>
-      ))}
+      <Skeleton className="h-5 w-28" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <Card key={index} className={cn('gap-0 p-4', index < 4 ? 'h-56' : 'h-96')}>
+            <Skeleton className="h-5 w-28 mb-3" />
+            <div className="space-y-1.5">
+              {Array.from({ length: index < 4 ? 5 : 11 }).map((_, row) => (
+                <div key={row} className="flex items-center gap-2">
+                  <Skeleton className="h-3 w-28 shrink-0" />
+                  <Skeleton className="h-5 flex-1 rounded-full bg-muted/45" />
+                  <Skeleton className="h-3 w-14 shrink-0" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+      <Card className="h-64 gap-0 p-4">
+        <Skeleton className="h-5 w-28 mb-3" />
+        <Skeleton className="h-40 w-full bg-muted/45" />
+      </Card>
     </section>
   );
 }
@@ -181,27 +186,25 @@ export function TableSkeleton({ label = 'Loading table' }: { label?: string }) {
 
 export function PageShellSkeleton() {
   return (
-    <div
+    <section
+      data-page-placeholder
       role="status"
       aria-live="polite"
       aria-busy="true"
-      aria-label="Loading page"
-      className="space-y-8"
+      aria-label="loading page"
     >
-      <div className="space-y-3">
-        <Skeleton className="h-3 w-20 bg-primary/25" />
-        <Skeleton className="h-10 w-3/5 max-w-lg" />
-        <Skeleton className="h-4 w-4/5 max-w-2xl bg-muted/45" />
+      <div data-placeholder-heading>
+        <Skeleton data-placeholder-title />
+        <Skeleton data-placeholder-description />
       </div>
-      <div className="rounded-2xl border border-border bg-card/50 p-5">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-11" />
-          <Skeleton className="h-11 bg-muted/45" />
-          <Skeleton className="h-11 bg-muted/45" />
-        </div>
-        <Skeleton className="mt-5 h-24 bg-muted/45" />
+      <div data-placeholder-grid>
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} data-placeholder-card>
+            <Skeleton data-placeholder-image />
+            <Skeleton data-placeholder-card-title />
+          </div>
+        ))}
       </div>
-      <CatalogGridSkeleton />
-    </div>
+    </section>
   );
 }

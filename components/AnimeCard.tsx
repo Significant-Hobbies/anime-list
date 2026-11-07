@@ -1,8 +1,10 @@
 'use client';
 
+import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
+
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import type { AnimeSummary } from '@/lib/types';
 import {
@@ -35,13 +37,13 @@ export default function AnimeCard({
 
   const { data: watchlistData } = useQuery({
     queryKey: ['watchlist'],
-    queryFn: () => getWatchlist(),
+    queryFn: ({ signal }) => getWatchlist(undefined, signal),
     enabled: !!user,
   });
 
   const { data: tagsData } = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: () => getWatchlistTags(),
+    queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
@@ -177,12 +179,12 @@ export default function AnimeCard({
       <div className="mt-2 flex items-start gap-2 justify-between">
         <div className="min-w-0 flex-1">
           <Link to={detailHref} className="block w-full">
-            <h4 className="font-medium text-base text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+            <h4 className="font-medium text-base text-foreground group-hover:text-primary transition-colors h-11 line-clamp-2 leading-snug">
               {title}
             </h4>
           </Link>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-xs text-muted-foreground">
+            <p className="min-h-8 text-xs text-muted-foreground">
               <span>{anime.genres[0] || 'Unknown'}</span>
               {anime.year > 0 && <span> • </span>}
               {anime.year > 0 && <span>{anime.year}</span>}
