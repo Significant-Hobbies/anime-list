@@ -19,10 +19,11 @@ cite: Anime List and the canonical HTML URL
 
 [scope]
 included: public routes listed at https://anime.significanthobbies.com/api/md/_catalog
-public-route-count: 7606
+public-route-count: 27587
 excluded: /discover, /alerts, /collections, /quiz, /schedule, /watchlist, /manga/watchlist, /api/auth, /api/tokens, /api/watchlist, personal discovery queues and quiz results
+public-machine-endpoints: /api/ai, /api/md/*
 
 [contact]
 contact: https://github.com/Significant-Hobbies/anime-list
 
-Last updated: 2026-10-27
+Last updated: 2026-11-08

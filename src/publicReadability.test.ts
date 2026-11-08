@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleReadability, publicRoutes } from '../functions/_readability';
 import { renderPublicMarkdown } from './publicMarkdown';
 import copy from './data/public-markdown.json';
+import anime from './data/seo-anime.json';
+import manga from './data/seo-manga.json';
+import catalog from './data/catalog-pages.json';
+const routeCount = 12 + anime.length + manga.length + catalog.length;
 
 const origin = 'https://anime.significanthobbies.com';
 const assets = {
@@ -54,8 +58,8 @@ describe('public source readability', () => {
         expect(publicRoutes.some((route) => route.path.startsWith(path.split('$')[0]))).toBe(true);
       else expect(publicRoutes.some((route) => route.path === path)).toBe(true);
     }
-    expect(publicRoutes).toHaveLength(7606);
-    expect(new Set(publicRoutes.map((route) => route.path)).size).toBe(7606);
+    expect(publicRoutes).toHaveLength(routeCount);
+    expect(new Set(publicRoutes.map((route) => route.path)).size).toBe(routeCount);
   });
 
   it('returns the same canonical body and contract across suffix, API and negotiation', async () => {
@@ -125,13 +129,13 @@ describe('public source readability', () => {
     expect(headers.has('Authorization')).toBe(false);
   });
 
-  it('fails closed for upstream errors, invalid IDs and HTML fallback', async () => {
+  it('keeps qualified snapshot Markdown readable during upstream HTML fallback and rejects unknown IDs', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('<html>fallback</html>', { headers: { 'Content-Type': 'text/html' } })
     );
     const response = await handleReadability(request('/anime/1.md'), assets);
-    expect(response?.status).toBe(503);
-    expect(response?.headers.get('Cache-Control')).toBe('no-store');
+    expect(response?.status).toBe(200);
+    expect(await response?.text()).toContain('Public catalog snapshot committed 12 February 2026');
     expect(response?.headers.get('X-Robots-Tag')).toBe('noindex, follow');
     expect((await handleReadability(request('/anime/999999999.md'), assets))?.status).toBe(404);
   });
@@ -156,7 +160,7 @@ describe('public source readability', () => {
   it('bounds the static-only export and advertises the real public MCP endpoint', async () => {
     const response = await handleReadability(request('/llms-full.txt'), assets);
     const body = await response!.text();
-    expect(body).toContain('Included 12 of 7606');
+    expect(body).toContain(`Included 12 of ${routeCount}`);
     expect(body).toContain('authored static page content only');
     expect(body).toContain('/api/md/_catalog');
     expect(body.length).toBeLessThan(500000);

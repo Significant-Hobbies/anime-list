@@ -25,6 +25,7 @@ export interface SeoEntry {
   chapters?: number | null;
   volumes?: number | null;
   image?: string | null;
+  status?: string | null;
 }
 
 export type SeoKind = 'anime' | 'manga';
@@ -64,6 +65,7 @@ export function buildJsonLd(entry: SeoEntry, kind: SeoKind, canonicalUrl: string
     description: entry.synopsis,
     url: canonicalUrl,
     genre: entry.genres,
+    sameAs: `https://myanimelist.net/${kind}/${entry.id}`,
   };
 
   if (entry.image) base.image = entry.image;
@@ -88,7 +90,7 @@ export function buildJsonLd(entry: SeoEntry, kind: SeoKind, canonicalUrl: string
   } else {
     base['@type'] = 'Book';
     base.bookFormat = 'https://schema.org/GraphicNovel';
-    if (entry.chapters != null) base.numberOfPages = entry.chapters;
+    // A chapter count is not a printed page count.
   }
 
   // Remove undefined values
@@ -105,7 +107,7 @@ export function buildHeadBlock(entry: SeoEntry, kind: SeoKind, canonicalUrl: str
   const titleEsc = escapeHtml(entry.title);
   const kindLabel = kind === 'anime' ? 'anime' : 'manga';
   const desc =
-    entry.synopsis ||
+    entry.synopsis.slice(0, 300) ||
     `Discover ${entry.title} — ${kindLabel} details, score, genres, and more on Anime List.`;
   const descEsc = escapeHtml(desc);
   const titleFull = `${titleEsc} — Anime List`;
@@ -152,17 +154,21 @@ export function buildSsrSummary(entry: SeoEntry, kind: SeoKind): string {
   if (entry.genres.length)
     facts.push(`<dt>Genres</dt><dd>${entry.genres.map(escapeHtml).join(', ')}</dd>`);
   if (entry.year) facts.push(`<dt>Year</dt><dd>${entry.year}</dd>`);
+  if (entry.status) facts.push(`<dt>Status</dt><dd>${escapeHtml(entry.status)}</dd>`);
   if (kind === 'anime' && entry.episodes != null)
     facts.push(`<dt>Episodes</dt><dd>${entry.episodes}</dd>`);
   if (kind === 'manga' && entry.chapters != null)
     facts.push(`<dt>Chapters</dt><dd>${entry.chapters}</dd>`);
 
   return [
-    '<article data-ssr aria-label="Title summary">',
+    '<article data-ssr aria-label="Title summary" style="max-width:64rem;margin:0 auto;padding:2rem 1.5rem;line-height:1.75;overflow-wrap:anywhere;">',
+    `  <nav aria-label="Catalog"><a href="/">Anime List</a> · <a href="/catalog">Title catalog</a> · <a href="/${kind === 'anime' ? 'search' : 'manga'}">Search ${kind}</a></nav>`,
+    '<style>article[data-ssr] h1{font-size:clamp(1.8rem,4vw,2.75rem);font-weight:600;letter-spacing:-.025em;line-height:1.25;margin:1.5rem 0}article[data-ssr] a{color:#a5b4fc;text-underline-offset:4px}article[data-ssr] p,article[data-ssr] dd{color:#a1a1aa}article[data-ssr] dl{display:grid;grid-template-columns:minmax(6rem,auto) 1fr;gap:.5rem 1.5rem}article[data-ssr] dd{margin:0}article[data-ssr] dt{font-weight:600}</style>',
     `  <h1>${titleEsc}</h1>`,
     `  <p><strong>${kindLabel}</strong> — discover, filter, and track on Anime List.</p>`,
-    `  <p>${synopsisEsc}</p>`,
+    `  <p style="white-space:pre-line;">${synopsisEsc}</p>`,
     facts.length ? `  <dl>${facts.join('')}</dl>` : '',
+    `  <p>Source: <a href="https://myanimelist.net/${kind}/${entry.id}">MyAnimeList ${kind} #${entry.id}</a>. Public catalog snapshot committed 12 February 2026; scores and availability may have changed. <a href="/${kind}/${entry.id}.md">Read as Markdown</a>.</p>`,
     '</article>',
   ]
     .filter(Boolean)
@@ -190,7 +196,7 @@ export function rewriteShell(html: string, opts: RewriteOptions): string {
   const headBlock = buildHeadBlock(entry, kind, canonicalUrl);
   const headResult = html.replace(
     new RegExp(`${SEO_START}[\\s\\S]*?${SEO_END}`),
-    `${SEO_START}\n    ${headBlock}\n    ${SEO_END}`
+    () => `${SEO_START}\n    ${headBlock}\n    ${SEO_END}`
   );
 
   if (headResult === html) {
@@ -201,7 +207,7 @@ export function rewriteShell(html: string, opts: RewriteOptions): string {
   const ssrBlock = buildSsrSummary(entry, kind);
   const ssrResult = headResult.replace(
     new RegExp(`${SSR_START}[\\s\\S]*?${SSR_END}`),
-    `${SSR_START}\n      ${ssrBlock}\n      ${SSR_END}`
+    () => `${SSR_START}\n      ${ssrBlock}\n      ${SSR_END}`
   );
 
   if (ssrResult === headResult) {
@@ -210,10 +216,14 @@ export function rewriteShell(html: string, opts: RewriteOptions): string {
 
   // Detail pages serve the hidden LCP shell ahead of the SSR summary; demote
   // its hero so the entry title is the page's single <h1> for crawlers.
-  return ssrResult.replace(
-    /<h1 id="lcp-shell-title"([^>]*)>([\s\S]*?)<\/h1>/,
-    '<p id="lcp-shell-title"$1>$2</p>'
-  );
+  // Replace the skeleton before JS loads, so factual content is the first
+  // visible detail view. React then mounts its normal interactive detail page.
+  return ssrResult
+    .replace(/<div id="boot-shell"[\s\S]*?(?=<!-- ssr:start -->)/, '')
+    .replace(
+      /<h1 id="lcp-shell-title"([^>]*)>([\s\S]*?)<\/h1>/,
+      '<p id="lcp-shell-title"$1>$2</p>'
+    );
 }
 
 export function rewriteShellNoindex(html: string): string {

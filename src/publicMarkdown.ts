@@ -1,6 +1,7 @@
 import { PRODUCTION_API_URL } from '../lib/apiConfig';
 import { DEFAULT_ANIME_MIN_MEMBERS, DEFAULT_ANIME_PAGE_SIZE } from '../lib/animeSearchDefaults';
 import pages from './data/public-markdown.json';
+import { getAnimeEntry, getMangaEntry } from './seoCatalog';
 
 const ORIGIN = 'https://anime.significanthobbies.com';
 type PublicRecord = Record<string, unknown>;
@@ -80,7 +81,20 @@ async function renderPublicDetail(path: string) {
   const match = /^\/(anime|manga)\/(\d+)$/.exec(path);
   if (!match) throw new Error('Invalid public detail path');
   const kind = match[1];
-  const data = await publicJson(path);
+  let data: PublicRecord;
+  try {
+    data = await publicJson(path);
+  } catch {
+    // Every admitted title remains readable during a catalog API outage.
+    const entry = (kind === 'anime' ? getAnimeEntry : getMangaEntry)(Number(match[2]));
+    if (!entry) return null;
+    return (
+      `# ${label(entry.title)}\n\nCanonical: ${ORIGIN}${path}\n\n` +
+      `- **Type:** ${entry.type}\n- **Year:** ${entry.year}\n- **Genres:** ${entry.genres.join(', ')}\n\n` +
+      `## Synopsis\n\n${entry.synopsis}\n\n` +
+      `Source: [MyAnimeList](https://myanimelist.net/${kind}/${entry.id}). Public catalog snapshot committed 12 February 2026; scores and availability may have changed.\n\n[Title catalog](${ORIGIN}/catalog)\n`
+    );
+  }
   const entry = data[kind] as PublicRecord;
   if (!entry || Number(entry.mal_id) !== Number(match[2]) || !entry.title)
     throw new Error('Invalid public detail');

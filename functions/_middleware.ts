@@ -1,6 +1,7 @@
 import { handleReadability, readableHtml } from './_readability';
 import { wantsMarkdown } from '../lib/agent-readability/http.mjs';
 import surfaces from '../src/data/public-surfaces.json';
+import catalog from '../src/data/catalog-pages.json';
 import { rewriteStaticSeo } from '../src/staticSeo';
 import { rewriteShellNoindex } from '../src/seoRewrite';
 
@@ -10,6 +11,7 @@ const personalRoutes = new Set(['/quiz', '/schedule', '/watchlist', '/manga/watc
 function isAppRoute(pathname: string): boolean {
   return (
     publicSurfaces.has(pathname) ||
+    catalog.some((page) => page.path === pathname) ||
     personalRoutes.has(pathname) ||
     /^\/(?:anime|manga|genre)\/[^/]+$/.test(pathname)
   );

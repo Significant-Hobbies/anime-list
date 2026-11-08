@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import {
   rewriteShell,
@@ -97,7 +98,8 @@ describe('buildJsonLd', () => {
     const jsonLd = buildJsonLd(mangaEntry, 'manga', 'https://example.com/manga/1');
     expect(jsonLd['@type']).toBe('Book');
     expect(jsonLd).toHaveProperty('bookFormat');
-    expect(jsonLd).toHaveProperty('numberOfPages', 162);
+    expect(jsonLd).not.toHaveProperty('numberOfPages');
+    expect(jsonLd).toHaveProperty('sameAs', 'https://myanimelist.net/manga/1');
   });
 
   it('omits aggregateRating when score is null or 0', () => {
@@ -256,4 +258,27 @@ describe('rewriteShellNoindex', () => {
     const badHtml = '<html><head></head><body></body></html>';
     expect(() => rewriteShellNoindex(badHtml)).toThrow('seo:start/end markers not found');
   });
+});
+
+it('shows the factual summary before JavaScript instead of the boot skeleton', () => {
+  const realShell = readFileSync('index.html', 'utf8');
+  const result = rewriteShell(realShell, {
+    origin: 'https://anime.significanthobbies.com',
+    kind: 'anime',
+    entry: animeEntry,
+  });
+  expect(result).not.toContain('<div id="boot-shell"');
+  expect(result).toContain('href="/catalog"');
+  expect(result).toContain('Public catalog snapshot committed 12 February 2026');
+  expect(result).toContain('https://myanimelist.net/anime/5114');
+});
+
+it('preserves literal replacement tokens in public source text', () => {
+  const result = rewriteShell(SHELL, {
+    origin: 'https://anime.significanthobbies.com',
+    kind: 'anime',
+    entry: { ...animeEntry, synopsis: 'Literal $& and $` source text' },
+  });
+  expect(result).toContain('Literal $&amp; and $` source text');
+  expect(result.match(/<title>/g)).toHaveLength(1);
 });

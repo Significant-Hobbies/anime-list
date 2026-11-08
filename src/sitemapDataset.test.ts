@@ -17,11 +17,12 @@ import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
 const DIST = resolve(ROOT, 'dist');
+const catalog = JSON.parse(readFileSync(resolve(ROOT, 'src/data/catalog-pages.json'), 'utf8'));
 
 function idsFrom(file: string): { kind: string; id: number }[] {
   const xml = readFileSync(resolve(DIST, file), 'utf8');
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
-    .map((m) => m[1].match(/\/(anime|manga)\/(\d+)$/))
+    .map((m) => m[1].match(/^https:\/\/anime\.significanthobbies\.com\/(anime|manga)\/(\d+)$/))
     .filter((m): m is RegExpMatchArray => Boolean(m))
     .map((m) => ({ kind: m[1], id: Number(m[2]) }));
 }
@@ -70,6 +71,12 @@ describe('sitemap / SEO dataset consistency', () => {
     expect(missing).toEqual([]);
   });
 
+  it('advertises every eligible detail exactly once', () => {
+    const urls = chunks.flatMap((file) => idsFrom(file)).map(({ kind, id }) => `${kind}/${id}`);
+    expect(new Set(urls).size).toBe(animeIds.size + mangaIds.size);
+    expect(urls).toHaveLength(animeIds.size + mangaIds.size);
+  });
+
   it('advertises the static routes', () => {
     const xml = readFileSync(resolve(DIST, 'sitemap-static.xml'), 'utf8');
     for (const path of ['/search', '/manga', '/manga/stats', '/catalog-updates', '/mcp']) {
@@ -83,6 +90,6 @@ describe('sitemap / SEO dataset consistency', () => {
     expect(xml).not.toContain('/llms.txt');
     expect(xml).not.toContain('/index.md');
     expect(xml).not.toContain('/api/ai');
-    expect([...xml.matchAll(/<url>/g)]).toHaveLength(12);
+    expect([...xml.matchAll(/<url>/g)]).toHaveLength(12 + catalog.length);
   });
 });
