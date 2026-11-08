@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sourceMarkdown } from './source-markdown.mjs';
+import { catalogPages, CATALOG_PAGE_SIZE } from './lib/catalog-pages.mjs';
 import {
   buildAiTxt,
   buildMarkdownIndex,
@@ -62,12 +63,39 @@ for (const surface of surfaces) {
   if (surface.markdownPath !== markdownPathFor(surface.path))
     writePublic(surface.markdownPath, pages[surface.path]);
 }
+const catalog = catalogPages(anime, manga);
+writeFileSync(resolve(root, 'src/data/catalog-pages.json'), JSON.stringify(catalog) + '\n');
+for (const route of catalog) {
+  const entries = route.kind === 'anime' ? anime : manga;
+  pages[route.path] =
+    `# ${route.title}\n\nCanonical: ${origin}${route.path}\n\n` +
+    (route.kind
+      ? entries
+          .slice((route.page - 1) * CATALOG_PAGE_SIZE, route.page * CATALOG_PAGE_SIZE)
+          .map(
+            (entry) =>
+              `- [${entry.title.replace(/[\[\]]/g, '')}](${origin}/${route.kind}/${entry.id}) — ${entry.type}, ${entry.year}`
+          )
+          .join('\n')
+      : `Browse ${anime.length} anime and ${manga.length} manga with source-backed synopses and factual fields.\n\n` +
+        catalog
+          .filter((page) => page.kind)
+          .map((page) => `- [${page.title}](${origin}${page.path})`)
+          .join('\n')) +
+    '\n\nPublic MyAnimeList catalog snapshot committed 12 February 2026. Not a live availability listing.\n';
+}
 const routes = [
   ...surfaces.map((surface) => ({
     path: surface.path,
     title: surface.title,
     description: surface.description,
     aliases: surface.markdownPath !== markdownPathFor(surface.path) ? [surface.markdownPath] : [],
+  })),
+  ...catalog.map((route) => ({
+    path: route.path,
+    title: route.title,
+    description: 'Browse source-backed public anime and manga titles.',
+    full: false,
   })),
   ...[
     ['anime', anime],
@@ -93,7 +121,7 @@ const identity = {
   openapi: origin + '/openapi.json',
   contact: 'https://github.com/Significant-Hobbies/anime-list',
   trainingAllowed: true,
-  updatedAt: '2026-10-27',
+  updatedAt: '2026-11-08',
   excludedPaths: [
     '/discover',
     '/alerts',

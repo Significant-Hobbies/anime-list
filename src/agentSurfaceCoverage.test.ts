@@ -38,8 +38,8 @@ describe('public agent surface coverage', () => {
   });
 
   it('renders full public source Markdown for both detail collections', async () => {
-    expect(anime).toHaveLength(5306);
-    expect(manga).toHaveLength(2288);
+    expect(anime.length).toBeGreaterThan(10000);
+    expect(manga.length).toBeGreaterThan(10000);
     for (const [kind, entry] of [
       ['anime', anime[0]],
       ['manga', manga[0]],

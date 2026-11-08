@@ -2,7 +2,7 @@
 
 > Filter and explore anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists.
 
-Generated: 2026-10-27
+Generated: 2026-11-08
 
 ---
 <!-- source: https://anime.significanthobbies.com/ -->
@@ -382,7 +382,7 @@ Sign in to create and manage Personal Access Tokens for watchlist access.
 Personal tokens and account data are excluded.
 
 
-Included 12 of 7606 registered public pages (limit 50 pages / 500000 characters).
+Included 12 of 27587 registered public pages (limit 50 pages / 500000 characters).
 
 Full catalog: https://anime.significanthobbies.com/api/md/_catalog
 

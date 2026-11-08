@@ -1,4 +1,5 @@
 import surfaces from '../src/data/public-surfaces.json';
+import catalog from '../src/data/catalog-pages.json';
 import anime from '../src/data/seo-anime.json';
 import manga from '../src/data/seo-manga.json';
 import identity from '../src/data/agent-identity.json';
@@ -19,6 +20,12 @@ export const publicRoutes = [
       description: surface.description,
       aliases: surface.markdownPath !== markdownPathFor(surface.path) ? [surface.markdownPath] : [],
     })),
+  ...catalog.map((page) => ({
+    path: page.path,
+    title: page.title,
+    description: 'Browse source-backed public anime and manga titles.',
+    full: false,
+  })),
   ...(
     [
       ['anime', anime],

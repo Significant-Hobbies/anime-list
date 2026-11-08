@@ -33,6 +33,7 @@
       "!**/cleaned_manga_data.json",
       "!**/src/data/seo-anime.json",
       "!**/src/data/seo-manga.json",
+      "!**/src/data/public-markdown.json",
       "!**/*.css",
       "!**/*.svg"
     ]

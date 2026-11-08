@@ -31,46 +31,46 @@ MCP: https://anime.significanthobbies.com/api/mcp. Public catalog tools need no 
 - [Anime List privacy](https://anime.significanthobbies.com/privacy.md): Understand Anime List account data, Google sign-in, watchlist storage, and product analytics.
 - [Anime List terms](https://anime.significanthobbies.com/terms.md): Terms for using Anime List catalog discovery, personal watchlists, and MyAnimeList-derived metadata.
 - [Anime List MCP setup](https://anime.significanthobbies.com/mcp.md): Connect agents to Anime List public catalog tools and manage a personal access token for authenticated watchlist tools.
-- [Cowboy Bebop](https://anime.significanthobbies.com/anime/1.md): Cowboy Bebop — anime catalog detail
-- [Cowboy Bebop: Tengoku no Tobira](https://anime.significanthobbies.com/anime/5.md): Cowboy Bebop: Tengoku no Tobira — anime catalog detail
-- [Trigun](https://anime.significanthobbies.com/anime/6.md): Trigun — anime catalog detail
-- [Witch Hunter Robin](https://anime.significanthobbies.com/anime/7.md): Witch Hunter Robin — anime catalog detail
-- [Eyeshield 21](https://anime.significanthobbies.com/anime/15.md): Eyeshield 21 — anime catalog detail
-- [Hachimitsu to Clover](https://anime.significanthobbies.com/anime/16.md): Hachimitsu to Clover — anime catalog detail
-- [Hungry Heart: Wild Striker](https://anime.significanthobbies.com/anime/17.md): Hungry Heart: Wild Striker — anime catalog detail
-- [Initial D Fourth Stage](https://anime.significanthobbies.com/anime/18.md): Initial D Fourth Stage — anime catalog detail
-- [Monster](https://anime.significanthobbies.com/anime/19.md): Monster — anime catalog detail
-- [Naruto](https://anime.significanthobbies.com/anime/20.md): Naruto — anime catalog detail
-- [One Piece](https://anime.significanthobbies.com/anime/21.md): One Piece — anime catalog detail
-- [Tennis no Oujisama](https://anime.significanthobbies.com/anime/22.md): Tennis no Oujisama — anime catalog detail
-- [School Rumble](https://anime.significanthobbies.com/anime/24.md): School Rumble — anime catalog detail
-- [Sunabouzu](https://anime.significanthobbies.com/anime/25.md): Sunabouzu — anime catalog detail
-- [Texhnolyze](https://anime.significanthobbies.com/anime/26.md): Texhnolyze — anime catalog detail
-- [Trinity Blood](https://anime.significanthobbies.com/anime/27.md): Trinity Blood — anime catalog detail
-- [Yakitate!! Japan](https://anime.significanthobbies.com/anime/28.md): Yakitate!! Japan — anime catalog detail
-- [Zipang](https://anime.significanthobbies.com/anime/29.md): Zipang — anime catalog detail
-- [Shinseiki Evangelion](https://anime.significanthobbies.com/anime/30.md): Shinseiki Evangelion — anime catalog detail
-- [Shinseiki Evangelion Movie: Shi to Shinsei](https://anime.significanthobbies.com/anime/31.md): Shinseiki Evangelion Movie: Shi to Shinsei — anime catalog detail
-- [Shinseiki Evangelion Movie: Air/Magokoro wo, Kimi ni](https://anime.significanthobbies.com/anime/32.md): Shinseiki Evangelion Movie: Air/Magokoro wo, Kimi ni — anime catalog detail
-- [Kenpuu Denki Berserk](https://anime.significanthobbies.com/anime/33.md): Kenpuu Denki Berserk — anime catalog detail
-- [Koukaku Kidoutai](https://anime.significanthobbies.com/anime/43.md): Koukaku Kidoutai — anime catalog detail
-- [Rurouni Kenshin: Meiji Kenkaku Romantan - Tsuioku-hen](https://anime.significanthobbies.com/anime/44.md): Rurouni Kenshin: Meiji Kenkaku Romantan - Tsuioku-hen — anime catalog detail
-- [Rurouni Kenshin: Meiji Kenkaku Romantan](https://anime.significanthobbies.com/anime/45.md): Rurouni Kenshin: Meiji Kenkaku Romantan — anime catalog detail
-- [Rurouni Kenshin: Meiji Kenkaku Romantan - Ishinshishi e no Chinkonka](https://anime.significanthobbies.com/anime/46.md): Rurouni Kenshin: Meiji Kenkaku Romantan - Ishinshishi e no Chinkonka — anime catalog detail
-- [Akira](https://anime.significanthobbies.com/anime/47.md): Akira — anime catalog detail
-- [.hack//Sign](https://anime.significanthobbies.com/anime/48.md): .hack//Sign — anime catalog detail
-- [Aa! Megami-sama!](https://anime.significanthobbies.com/anime/49.md): Aa! Megami-sama! — anime catalog detail
-- [Aa! Megami-sama! (TV)](https://anime.significanthobbies.com/anime/50.md): Aa! Megami-sama! (TV) — anime catalog detail
-- [Tenshi Kinryouku](https://anime.significanthobbies.com/anime/51.md): Tenshi Kinryouku — anime catalog detail
-- [Kidou Tenshi Angelic Layer](https://anime.significanthobbies.com/anime/52.md): Kidou Tenshi Angelic Layer — anime catalog detail
-- [Ai Yori Aoshi](https://anime.significanthobbies.com/anime/53.md): Ai Yori Aoshi — anime catalog detail
-- [Appleseed (Movie)](https://anime.significanthobbies.com/anime/54.md): Appleseed (Movie) — anime catalog detail
-- [Beck](https://anime.significanthobbies.com/anime/57.md): Beck — anime catalog detail
-- [Blue Gender](https://anime.significanthobbies.com/anime/58.md): Blue Gender — anime catalog detail
-- [Chobits](https://anime.significanthobbies.com/anime/59.md): Chobits — anime catalog detail
-- [Chrno Crusade](https://anime.significanthobbies.com/anime/60.md): Chrno Crusade — anime catalog detail
+- [Anime and manga title catalog](https://anime.significanthobbies.com/catalog.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 1](https://anime.significanthobbies.com/catalog/anime/1.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 2](https://anime.significanthobbies.com/catalog/anime/2.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 3](https://anime.significanthobbies.com/catalog/anime/3.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 4](https://anime.significanthobbies.com/catalog/anime/4.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 5](https://anime.significanthobbies.com/catalog/anime/5.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 6](https://anime.significanthobbies.com/catalog/anime/6.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 7](https://anime.significanthobbies.com/catalog/anime/7.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 8](https://anime.significanthobbies.com/catalog/anime/8.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 9](https://anime.significanthobbies.com/catalog/anime/9.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 10](https://anime.significanthobbies.com/catalog/anime/10.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 11](https://anime.significanthobbies.com/catalog/anime/11.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 12](https://anime.significanthobbies.com/catalog/anime/12.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 13](https://anime.significanthobbies.com/catalog/anime/13.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 14](https://anime.significanthobbies.com/catalog/anime/14.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 15](https://anime.significanthobbies.com/catalog/anime/15.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 16](https://anime.significanthobbies.com/catalog/anime/16.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 17](https://anime.significanthobbies.com/catalog/anime/17.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 18](https://anime.significanthobbies.com/catalog/anime/18.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 19](https://anime.significanthobbies.com/catalog/anime/19.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 20](https://anime.significanthobbies.com/catalog/anime/20.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 21](https://anime.significanthobbies.com/catalog/anime/21.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 22](https://anime.significanthobbies.com/catalog/anime/22.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 23](https://anime.significanthobbies.com/catalog/anime/23.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 24](https://anime.significanthobbies.com/catalog/anime/24.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 25](https://anime.significanthobbies.com/catalog/anime/25.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 26](https://anime.significanthobbies.com/catalog/anime/26.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 27](https://anime.significanthobbies.com/catalog/anime/27.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 28](https://anime.significanthobbies.com/catalog/anime/28.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 29](https://anime.significanthobbies.com/catalog/anime/29.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 30](https://anime.significanthobbies.com/catalog/anime/30.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 31](https://anime.significanthobbies.com/catalog/anime/31.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 32](https://anime.significanthobbies.com/catalog/anime/32.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 33](https://anime.significanthobbies.com/catalog/anime/33.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 34](https://anime.significanthobbies.com/catalog/anime/34.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 35](https://anime.significanthobbies.com/catalog/anime/35.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 36](https://anime.significanthobbies.com/catalog/anime/36.md): Browse source-backed public anime and manga titles.
+- [Anime title catalog — page 37](https://anime.significanthobbies.com/catalog/anime/37.md): Browse source-backed public anime and manga titles.
 
-Showing 50 of 7606 pages; the catalog lists all public routes.
+Showing 50 of 27587 pages; the catalog lists all public routes.
 
 ## Machine-readable
 

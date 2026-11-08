@@ -10,6 +10,7 @@ overrides:
   body-parser@>=2.0.0 <2.4.0: 2.4.0
   brace-expansion@>=4.0.0 <5.0.12: 5.0.12
   fast-uri@<3.1.6: 3.1.7
+  follow-redirects@<1.16.2: 1.16.2
   hono@<4.12.34: 4.13.3
   ip-address@<10.3.1: 10.3.1
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
@@ -18,7 +19,7 @@ overrides:
   qs@>=6.11.1 <=6.15.1: 6.15.3
   shell-quote: 1.11.0
   undici@>=7.0.0 <7.30.1: 7.30.1
-  seroval@<1.6.3: 1.6.3
+  seroval@<1.6.8: 1.6.8
   source-map-js@<1.2.2: 1.2.2
   proxy-addr@<2.0.8: 2.0.8
   dompurify@<3.4.17: 3.4.17
@@ -2665,8 +2666,8 @@ packages:
     resolution: {integrity: sha512-S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA==}
     engines: {node: '>= 18.0.0'}
 
-  follow-redirects@1.16.1:
-    resolution: {integrity: sha512-FNvFGzoMLWmE6Yj9spb/zjd7yiNCHiAW9/Tg9CXrQ8wuu32HtlJOwWO11OJafl5FfY3DxTdQ0vj42zU1kvv5jg==}
+  follow-redirects@1.16.2:
+    resolution: {integrity: sha512-/kVP2U8z596Ia0gwFrwyIeo74ta5aVmSeU1FfAUMAmcEP5EP7zydmag3SLiN64NaRKef3lxsq7i/g7ltJQDGow==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'
@@ -3493,10 +3494,10 @@ packages:
     resolution: {integrity: sha512-HXuLAX2pu/UByPpaeo/TaMfvMIi+1QqIoPJYCcAtU8QkVNwgR6MPlGuCQTErV1JwraaMbYaWVIBX7mppzGLATQ==}
     engines: {node: '>=10'}
     peerDependencies:
-      seroval: 1.6.3
+      seroval: 1.6.8
 
-  seroval@1.6.3:
-    resolution: {integrity: sha512-5PwLbVPpT4DEki1hYVSSsoxWY6xCNMVucAVLK/CH0mXSDfp/I4KaAex72q80GNt5hpn7CCMGdSpIg4YGqH/wXQ==}
+  seroval@1.6.8:
+    resolution: {integrity: sha512-HlSgSAkTk4EqHcje1ptJjfZi1YDv5KbhVJ/d3P7T/nAXua2VmDu+AKDX5VTdFfZf48nDkWB2TKYt0DrCSa+3wg==}
     engines: {node: '>=10'}
 
   serve-static@2.2.1:
@@ -5673,8 +5674,8 @@ snapshots:
     dependencies:
       '@tanstack/history': 1.162.0
       cookie-es: 3.1.1
-      seroval: 1.6.3
-      seroval-plugins: 1.5.6(seroval@1.6.3)
+      seroval: 1.6.8
+      seroval-plugins: 1.5.6(seroval@1.6.8)
 
   '@tanstack/store@0.11.2': {}
 
@@ -5879,7 +5880,7 @@ snapshots:
 
   axios@1.20.0:
     dependencies:
-      follow-redirects: 1.16.1
+      follow-redirects: 1.16.2
       form-data: 4.0.6
       https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
@@ -6241,7 +6242,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  follow-redirects@1.16.1: {}
+  follow-redirects@1.16.2: {}
 
   form-data@4.0.6:
     dependencies:
@@ -7095,11 +7096,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  seroval-plugins@1.5.6(seroval@1.6.3):
+  seroval-plugins@1.5.6(seroval@1.6.8):
     dependencies:
-      seroval: 1.6.3
+      seroval: 1.6.8
 
-  seroval@1.6.3: {}
+  seroval@1.6.8: {}
 
   serve-static@2.2.1:
     dependencies:

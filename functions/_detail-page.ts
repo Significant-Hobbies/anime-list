@@ -29,6 +29,7 @@ export async function detailPage(
       status: 404,
       headers: {
         'content-type': 'text/html; charset=utf-8',
+        'x-robots-tag': 'noindex',
         'cache-control': 'public, max-age=300, s-maxage=3600',
       },
     });
