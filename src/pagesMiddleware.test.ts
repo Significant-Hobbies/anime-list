@@ -1,3 +1,5 @@
+import { webcrypto } from 'node:crypto';
+import { execFileSync as buildSeoAssets } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -5,6 +7,16 @@ import { onRequest } from '../functions/_middleware';
 import { onRequestGet as mangaDetail } from '../functions/manga/[malId]';
 
 vi.mock('../functions/_seo-dataset', () => ({ getMangaEntry: vi.fn(() => undefined) }));
+
+Object.defineProperty(globalThis, 'crypto', { configurable: true, value: webcrypto });
+buildSeoAssets(process.execPath, ['scripts/build-seo-assets.mjs', '--assets']);
+function seoAsset(input: Request | URL | string) {
+  const pathname = new URL(input instanceof Request ? input.url : input.toString()).pathname;
+  if (!pathname.startsWith('/catalog-data/')) return null;
+  return new Response(readFileSync('dist' + pathname), {
+    headers: { 'content-type': 'application/json' },
+  });
+}
 
 const shell = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
 
@@ -20,7 +32,11 @@ function context(path: string, method = 'GET', accept = 'text/html') {
       method,
       headers: { accept },
     }),
-    env: { ASSETS: { fetch: vi.fn(async () => new Response('markdown')) } },
+    env: {
+      ASSETS: {
+        fetch: vi.fn(async (input: Request) => seoAsset(input) ?? new Response('markdown')),
+      },
+    },
     next,
     params: {},
     data: {},

@@ -1,3 +1,5 @@
+import { webcrypto } from 'node:crypto';
+import { execFileSync as buildSeoAssets } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleReadability, publicRoutes } from '../functions/_readability';
@@ -8,10 +10,21 @@ import manga from './data/seo-manga.json';
 import catalog from './data/catalog-pages.json';
 const routeCount = 12 + anime.length + manga.length + catalog.length;
 
+Object.defineProperty(globalThis, 'crypto', { configurable: true, value: webcrypto });
+buildSeoAssets(process.execPath, ['scripts/build-seo-assets.mjs', '--assets']);
+function seoAsset(input: Request | URL | string) {
+  const pathname = new URL(input instanceof Request ? input.url : input.toString()).pathname;
+  if (!pathname.startsWith('/catalog-data/')) return null;
+  return new Response(readFileSync('dist' + pathname), {
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
 const origin = 'https://anime.significanthobbies.com';
 const assets = {
   fetch: vi.fn(
-    async () =>
+    async (input: Request) =>
+      seoAsset(input) ??
       new Response(readFileSync('public/llms-full.txt', 'utf8'), {
         headers: { 'Content-Type': 'text/plain' },
       })

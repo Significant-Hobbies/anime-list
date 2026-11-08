@@ -1,7 +1,6 @@
 import surfaces from '../src/data/public-surfaces.json';
 import catalog from '../src/data/catalog-pages.json';
-import anime from '../src/data/seo-anime.json';
-import manga from '../src/data/seo-manga.json';
+import seoIndex from '../src/data/seo-index.json';
 import identity from '../src/data/agent-identity.json';
 import { renderPublicMarkdown } from '../src/publicMarkdown';
 import { createAgentSurfaceManifest } from '../lib/agent-readability/manifest.mjs';
@@ -28,8 +27,8 @@ export const publicRoutes = [
   })),
   ...(
     [
-      ['anime', anime],
-      ['manga', manga],
+      ['anime', seoIndex.collections.anime.titles],
+      ['manga', seoIndex.collections.manga.titles],
     ] as const
   ).flatMap(([kind, entries]) =>
     entries.map((entry) => ({
@@ -77,7 +76,7 @@ export async function handleReadability(request: Request, assets: Fetcher) {
   const handler = createAgentSurfaceHandler({
     manifest,
     listMarkdownRoutes: () => publicRoutes,
-    loadMarkdown: renderPublicMarkdown,
+    loadMarkdown: (path: string) => renderPublicMarkdown(path, assets),
     loadFullMarkdown: async () => {
       const response = await assets.fetch(new Request(identity.url + '/llms-full.txt'));
       if (!response.ok || !response.headers.get('Content-Type')?.includes('text/plain'))
