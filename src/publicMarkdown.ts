@@ -77,16 +77,19 @@ function titleLinks(items: unknown, heading: string, kind: string) {
   return `\n## ${heading}\n\n${lines.join('\n')}\n`;
 }
 
-async function renderPublicDetail(path: string) {
+async function renderPublicDetail(path: string, assets?: Fetcher) {
   const match = /^\/(anime|manga)\/(\d+)$/.exec(path);
   if (!match) throw new Error('Invalid public detail path');
   const kind = match[1];
+  const snapshot = assets
+    ? await (kind === 'anime' ? getAnimeEntry : getMangaEntry)(Number(match[2]), assets)
+    : null;
   let data: PublicRecord;
   try {
     data = await publicJson(path);
   } catch {
     // Every admitted title remains readable during a catalog API outage.
-    const entry = (kind === 'anime' ? getAnimeEntry : getMangaEntry)(Number(match[2]));
+    const entry = snapshot;
     if (!entry) return null;
     return (
       `# ${label(entry.title)}\n\nCanonical: ${ORIGIN}${path}\n\n` +
@@ -152,8 +155,8 @@ async function searchMarkdown(kind: 'anime' | 'manga') {
   return `\n## Default public results\n\n${data.totalFiltered} matching titles; first ${DEFAULT_ANIME_PAGE_SIZE}, sorted by score, at least ${min} members. Query parameters and personal filters are excluded.\n\n${data.filteredList.map((entry: PublicRecord) => searchEntry(entry, kind)).join('\n')}`;
 }
 
-export async function renderPublicMarkdown(path: string) {
-  if (/^\/(anime|manga)\/\d+$/.test(path)) return renderPublicDetail(path);
+export async function renderPublicMarkdown(path: string, assets?: Fetcher) {
+  if (/^\/(anime|manga)\/\d+$/.test(path)) return renderPublicDetail(path, assets);
   let body = (pages as Record<string, string>)[path];
   if (!body) return null;
   if (path === '/search' || path === '/manga')

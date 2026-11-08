@@ -1,3 +1,5 @@
+import { webcrypto } from 'node:crypto';
+import { execFileSync as buildSeoAssets } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
@@ -11,6 +13,16 @@ import { getAnimeEntry } from './seoCatalog';
 
 const source = JSON.parse(readFileSync('cleaned_anime_data.json', 'utf8'))[0];
 const shell = readFileSync('index.html', 'utf8');
+Object.defineProperty(globalThis, 'crypto', { configurable: true, value: webcrypto });
+buildSeoAssets(process.execPath, ['scripts/build-seo-assets.mjs', '--assets']);
+function seoAsset(input: Request | URL | string) {
+  const pathname = new URL(input instanceof Request ? input.url : input.toString()).pathname;
+  if (!pathname.startsWith('/catalog-data/')) return null;
+  return new Response(readFileSync('dist' + pathname), {
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
 const origin = 'https://anime.significanthobbies.com';
 
 describe('source-backed catalog admission and publication', () => {
@@ -72,7 +84,7 @@ describe('source-backed catalog admission and publication', () => {
     const context = (id: string) => ({
       request: new Request(origin + '/anime/' + id),
       params: { malId: id },
-      env: { ASSETS: { fetch: async () => new Response(shell) } },
+      env: { ASSETS: { fetch: async (input: Request) => seoAsset(input) ?? new Response(shell) } },
     });
     const known = await detailPage(context('1') as never, 'anime', getAnimeEntry);
     expect(known.status).toBe(200);
