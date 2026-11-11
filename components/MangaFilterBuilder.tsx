@@ -20,7 +20,12 @@ import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { catalogErrorMessage } from '@/lib/apiErrors';
 import FilterRow from './FilterRow';
 import MangaResultsGrid, { MangaResultsGridSkeleton } from './MangaResultsGrid';
-import { MANGA_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
+import {
+  MANGA_SORT_OPTIONS,
+  normalizeTimeSort,
+  POPULARITY_PRESETS,
+  QUICK_GENRES,
+} from './discover/constants';
 import {
   ActiveFilterChip,
   DiscoverClearButton,
@@ -194,7 +199,7 @@ export default function MangaFilterBuilder() {
       opts: {
         pagesize,
         offset,
-        sortBy: sortBy === 'year' ? 'time' : sortBy || undefined,
+        sortBy: normalizeTimeSort(sortBy) || undefined,
         hideWatched,
       },
     };
@@ -310,7 +315,7 @@ export default function MangaFilterBuilder() {
           />
           <DiscoverSelect
             label="Sort"
-            value={sortBy}
+            value={normalizeTimeSort(sortBy)}
             onValueChange={(value) => {
               setSortBy(value);
               resetPage();

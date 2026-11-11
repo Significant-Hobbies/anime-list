@@ -24,6 +24,7 @@ const mapMangaRow = (row: Record<string, unknown>): MangaItem => ({
   favorites: (row.favorites as number) || undefined,
   synopsis: (row.synopsis as string) || undefined,
   year: (row.year as number) || undefined,
+  created_at: (row.created_at as string) || undefined,
   image: (row.image as string) || undefined,
   has_colored: row.has_colored ? Boolean(row.has_colored) : undefined,
   is_completed: row.is_completed ? Boolean(row.is_completed) : undefined,

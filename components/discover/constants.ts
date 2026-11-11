@@ -24,7 +24,8 @@ export const POPULARITY_PRESETS = [
 export const ANIME_SORT_OPTIONS = [
   { value: 'score', label: 'Score' },
   { value: 'members', label: 'Popularity' },
-  { value: 'year', label: 'Time' },
+  { value: 'released_at', label: 'Release time' },
+  { value: 'created_at', label: 'Catalog added time' },
   { value: 'favorites', label: 'Favorites' },
   { value: 'relevance', label: 'Relevance' },
 ] as const;
@@ -32,8 +33,12 @@ export const ANIME_SORT_OPTIONS = [
 export const MANGA_SORT_OPTIONS = [
   { value: 'score', label: 'Score' },
   { value: 'members', label: 'Popularity' },
-  { value: 'year', label: 'Time' },
+  { value: 'released_at', label: 'Release time' },
+  { value: 'created_at', label: 'Catalog added time' },
   { value: 'favorites', label: 'Favorites' },
   { value: 'chapters', label: 'Chapters' },
   { value: 'volumes', label: 'Volumes' },
 ] as const;
+
+export const normalizeTimeSort = (value: string): string =>
+  value === 'year' || value === 'time' ? 'released_at' : value;

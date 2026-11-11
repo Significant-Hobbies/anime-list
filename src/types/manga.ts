@@ -18,6 +18,7 @@ export interface BaseMangaItem {
   favorites?: number;
   synopsis?: string;
   year?: number;
+  created_at?: string;
   image?: string;
   has_colored?: boolean;
   is_completed?: boolean;

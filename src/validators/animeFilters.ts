@@ -109,7 +109,7 @@ export const filterRequestSchema = z
     offset: z.number().int().min(0).default(0),
     sortBy: z.preprocess(
       (value) => (value === 'time' ? 'year' : value),
-      numericFieldSchema.optional()
+      z.union([numericFieldSchema, z.enum(['released_at', 'created_at'])]).optional()
     ),
     airing: airingSchema.default('any'),
   })
