@@ -59,12 +59,12 @@ afterEach(() => {
 
 describe('catalog time sorting', () => {
   it.each([filterRequestSchema, mangaFilterRequestSchema])(
-    'accepts separate time sorts and maps the legacy time alias to catalog addition',
+    'accepts separate time sorts and preserves the legacy time alias as release year',
     (schema) => {
       for (const sortBy of ['released_at', 'created_at', 'year']) {
         expect(schema.parse({ filters: [], sortBy }).sortBy).toBe(sortBy);
       }
-      expect(schema.parse({ filters: [], sortBy: 'time' }).sortBy).toBe('created_at');
+      expect(schema.parse({ filters: [], sortBy: 'time' }).sortBy).toBe('year');
     }
   );
 

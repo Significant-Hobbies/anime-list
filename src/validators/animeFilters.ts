@@ -108,7 +108,7 @@ export const filterRequestSchema = z
     pagesize: z.number().int().min(1).default(40),
     offset: z.number().int().min(0).default(0),
     sortBy: z.preprocess(
-      (value) => (value === 'time' ? 'created_at' : value),
+      (value) => (value === 'time' ? 'year' : value),
       z.union([numericFieldSchema, z.enum(['released_at', 'created_at'])]).optional()
     ),
     airing: airingSchema.default('any'),

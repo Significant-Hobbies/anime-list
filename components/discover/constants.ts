@@ -41,4 +41,4 @@ export const MANGA_SORT_OPTIONS = [
 ] as const;
 
 export const normalizeTimeSort = (value: string): string =>
-  value === 'year' ? 'released_at' : value === 'time' ? 'created_at' : value;
+  value === 'year' || value === 'time' ? 'released_at' : value;
