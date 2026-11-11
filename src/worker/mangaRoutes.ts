@@ -17,6 +17,7 @@ import type { MangaFilterRequestBody } from '../validators/mangaFilters';
 import type { MangaItem } from '../types/manga';
 import { boundedReadPage, compareWatchlistIds, pageReadItems } from './readPagination';
 import { withStatsCache } from '../lib/stats-cache';
+import { getCatalogTime, isTimeSortField } from '../utils/catalogTime';
 
 type AuthMiddleware = (
   c: {
@@ -42,6 +43,14 @@ function truncateSynopsis(text?: string, max = 180): string | undefined {
 function sortMangaList(list: MangaItem[], sortBy: MangaFilterRequestBody['sortBy']) {
   if (!sortBy) return list;
   return [...list].sort((a, b) => {
+    if (isTimeSortField(sortBy)) {
+      const aTime = getCatalogTime(a, sortBy);
+      const bTime = getCatalogTime(b, sortBy);
+      if (aTime === undefined || bTime === undefined) {
+        return aTime === bTime ? a.mal_id - b.mal_id : aTime === undefined ? 1 : -1;
+      }
+      return bTime - aTime || a.mal_id - b.mal_id;
+    }
     const aValue = (getMangaFieldValue(a, sortBy) as number) || 0;
     const bValue = (getMangaFieldValue(b, sortBy) as number) || 0;
     return bValue - aValue || a.mal_id - b.mal_id;

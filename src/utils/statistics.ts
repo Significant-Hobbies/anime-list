@@ -1,12 +1,14 @@
 import { AnimeField } from '../config';
 import {
   type AnimeItem,
+  type AnimeSortField,
   type Filter,
   isNumericField,
   type NumericField,
   type ScoreMultiplier,
 } from '../types/anime';
 import type { Distribution, FieldCount, Percentiles, TypeDistribution } from '../types/statistics';
+import { getCatalogTime, isTimeSortField } from './catalogTime';
 
 const getNumericValue = (item: AnimeItem, field: AnimeField): number | undefined => {
   switch (field) {
@@ -323,7 +325,7 @@ const partialSortDescending = (items: ScoredAnime[], limit: number): ScoredAnime
 export const getScoreSortedList = (
   animeList: AnimeItem[],
   filters: Filter[],
-  sortBy?: NumericField,
+  sortBy?: AnimeSortField,
   limit?: number
 ): ScoredAnime[] => {
   const filtersWithScoreRange: FiltersWithScoreRange[] = filters.map((filter) => {
@@ -338,7 +340,11 @@ export const getScoreSortedList = (
   // Avoid spreading every anime into a new object; mutate-once with type cast
   // keeps allocations down on hot paths over the full 14k catalogue.
   const scored = animeList.map((anime) => {
-    const fieldValue = sortBy ? (anime[sortBy] as number | undefined) : undefined;
+    const fieldValue = sortBy
+      ? isTimeSortField(sortBy)
+        ? getCatalogTime(anime, sortBy)
+        : anime[sortBy]
+      : undefined;
     const hasSortValue = typeof fieldValue === 'number';
     const points = hasSortValue
       ? fieldValue

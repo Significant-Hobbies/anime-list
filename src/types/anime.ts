@@ -1,4 +1,5 @@
 import { AnimeField, FilterAction } from '../config';
+import type { TimeSortField } from '../utils/catalogTime';
 
 export interface BaseAnimeItem {
   mal_id: number;
@@ -19,6 +20,7 @@ export interface BaseAnimeItem {
   year?: number;
   season?: string;
   image?: string;
+  created_at?: string;
 }
 
 export interface AnimeItem extends BaseAnimeItem {
@@ -54,6 +56,7 @@ export type NumericField =
   | AnimeField.Episodes;
 
 export type ArrayField = AnimeField.Genres | AnimeField.Themes | AnimeField.Demographics;
+export type AnimeSortField = NumericField | TimeSortField;
 
 export type StringField =
   | AnimeField.Title

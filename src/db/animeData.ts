@@ -1,7 +1,8 @@
 import { getDb } from './client';
 import type { AnimeItem, BaseAnimeItem } from '../types/anime';
 import { AnimeField, FilterAction } from '../config';
-import type { ArrayField, Filter, NumericField, StringField } from '../types/anime';
+import type { AnimeSortField, ArrayField, Filter, NumericField, StringField } from '../types/anime';
+import { ANIME_TIME_SORT_SQL, getCatalogTime, isTimeSortField } from '../utils/catalogTime';
 
 const mapBaseAnimeRow = (row: Record<string, unknown>): BaseAnimeItem => ({
   mal_id: row.mal_id as number,
@@ -27,6 +28,7 @@ const mapBaseAnimeRow = (row: Record<string, unknown>): BaseAnimeItem => ({
   year: (row.year as number) || undefined,
   season: (row.season as string) || undefined,
   image: (row.image as string) || undefined,
+  created_at: (row.created_at as string) || undefined,
 });
 
 const mapAnimeRow = (row: Record<string, unknown>): AnimeItem => ({
@@ -396,14 +398,16 @@ export async function getSimpleAnimeSearchPage({
   offset,
 }: {
   filters: Filter[];
-  sortBy?: NumericField;
+  sortBy?: AnimeSortField;
   airing: 'yes' | 'no' | 'any';
   pagesize: number;
   offset: number;
 }): Promise<{ totalFiltered: number; page: Array<AnimeItem & { points: number }> } | null> {
   if (!sortBy) return null;
 
-  const sortColumn = NUMERIC_COLUMN_BY_FIELD[sortBy];
+  const sortColumn = isTimeSortField(sortBy)
+    ? ANIME_TIME_SORT_SQL[sortBy]
+    : NUMERIC_COLUMN_BY_FIELD[sortBy];
   if (!sortColumn) return null;
 
   const searchWhere = buildAnimeSearchWhere(filters, airing);
@@ -435,7 +439,7 @@ export async function getSimpleAnimeSearchPage({
       const anime = mapAnimeRow(row as unknown as Record<string, unknown>);
       return {
         ...anime,
-        points: (anime[sortBy] as number | undefined) ?? 0,
+        points: (isTimeSortField(sortBy) ? getCatalogTime(anime, sortBy) : anime[sortBy]) ?? 0,
       };
     }),
   };

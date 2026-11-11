@@ -57,11 +57,9 @@ export const mangaFilterRequestSchema = z.object({
   pagesize: z.number().int().min(1).default(50),
   offset: z.number().int().min(0).default(0),
   sortBy: z.preprocess(
-    (value) => (value === 'time' ? 'year' : value),
-    numericFieldSchema.optional()
+    (value) => (value === 'time' ? 'created_at' : value),
+    z.union([numericFieldSchema, z.enum(['released_at', 'created_at'])]).optional()
   ),
 });
 
-export type MangaFilterRequestBody = z.infer<typeof mangaFilterRequestSchema> & {
-  sortBy?: MangaNumericField;
-};
+export type MangaFilterRequestBody = z.infer<typeof mangaFilterRequestSchema>;

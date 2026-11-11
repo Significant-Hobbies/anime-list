@@ -29,7 +29,12 @@ import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { catalogErrorMessage } from '@/lib/apiErrors';
 import FilterRow from './FilterRow';
 import ResultsGrid, { ResultsGridSkeleton } from './ResultsGrid';
-import { ANIME_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
+import {
+  ANIME_SORT_OPTIONS,
+  normalizeTimeSort,
+  POPULARITY_PRESETS,
+  QUICK_GENRES,
+} from './discover/constants';
 import {
   ActiveFilterChip,
   DiscoverClearButton,
@@ -280,11 +285,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
         pagesize,
         offset,
         sortBy:
-          sortBy === RELEVANCE_SORT_VALUE
-            ? undefined
-            : sortBy === 'year'
-              ? 'time'
-              : sortBy || undefined,
+          sortBy === RELEVANCE_SORT_VALUE ? undefined : normalizeTimeSort(sortBy) || undefined,
         airing,
         hideWatched: watchlistMode === 'hide' ? hideWatched : [],
         includeWatched: watchlistMode === 'show' ? hideWatched : [],
@@ -449,7 +450,8 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
               <div className="rounded-lg bg-white/[0.04] p-3">
                 <p className="text-xs text-muted-foreground">Sort</p>
                 <p className="mt-1 font-medium text-foreground">
-                  {ANIME_SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? 'Score'}
+                  {ANIME_SORT_OPTIONS.find((o) => o.value === normalizeTimeSort(sortBy))?.label ??
+                    'Score'}
                 </p>
               </div>
               <div className="rounded-lg bg-white/[0.04] p-3">
@@ -480,7 +482,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
           />
           <DiscoverSelect
             label="Sort"
-            value={sortBy || RELEVANCE_SORT_VALUE}
+            value={normalizeTimeSort(sortBy) || RELEVANCE_SORT_VALUE}
             onValueChange={(value) => {
               setSortBy(value);
               resetPage();

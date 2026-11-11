@@ -4,7 +4,7 @@ import { getAnimeWatchlist } from '../db/watchlist';
 import { getScoreSortedList } from '../utils/statistics';
 import { getSimpleAnimeSearchPage } from '../db/animeData';
 import { hideWatchedItems, includeOnlyWatchedItems, takePage } from './helpers';
-import type { AnimeItem, Filter, NumericField } from '../types/anime';
+import type { AnimeItem, AnimeSortField, Filter } from '../types/anime';
 
 const SEARCH_SYNOPSIS_MAX = 220;
 
@@ -58,7 +58,7 @@ export type SearchResult = {
 
 export interface SearchParams {
   filters: Filter[];
-  sortBy: NumericField | undefined;
+  sortBy: AnimeSortField | undefined;
   airing: 'yes' | 'no' | 'any';
   hideWatched: string[];
   includeWatched: string[];
