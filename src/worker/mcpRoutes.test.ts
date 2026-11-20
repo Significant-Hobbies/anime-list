@@ -16,7 +16,7 @@ async function mcpCall(
     },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params ?? {} }),
   });
-  return handleMcpRequest(request, authHeader ?? null, federated);
+  return handleMcpRequest(request, fetch, authHeader ?? null, federated);
 }
 
 describe('handleMcpRequest', () => {

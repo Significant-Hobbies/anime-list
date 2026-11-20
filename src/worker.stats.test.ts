@@ -94,6 +94,35 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it('serves MCP catalog stats through the Worker API without a network self-request', async () => {
+  const response = await worker.fetch(
+    new Request('https://anime.example/api/mcp', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json, text/event-stream',
+        'Content-Type': 'application/json',
+        Cookie: 'mal_auth_token=ignored',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'get_anime_stats', arguments: {} },
+      }),
+    }),
+    {
+      DB: { prepare: vi.fn() } as unknown as D1Database,
+      JWT_SECRET,
+      GOOGLE_CLIENT_ID: 'test-google-client',
+    },
+    { waitUntil: vi.fn() } as unknown as ExecutionContext
+  );
+  expect(await response.json()).toMatchObject({
+    result: { structuredContent: { ok: true, data: { totalAnime: 2 } } },
+  });
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
 describe.each(['/api/stats', '/api/manga/stats'])('%s edge cache and stages', (route) => {
   it('caches a MISS and serves a HIT without loading or computing again', async () => {
     const miss = await call(route, { key: 'test-key', rate: '1', colo: 'BOM' });

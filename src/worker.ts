@@ -1247,7 +1247,13 @@ app.all('/api/mcp', async (c) => {
     }
     federated = true;
   }
-  return handleMcpRequest(c.req.raw, authHeader, federated);
+  // Dispatch through the same router and auth middleware without a Worker self-fetch.
+  return handleMcpRequest(
+    c.req.raw,
+    (url, init) => app.fetch(new Request(url, init), c.env, c.executionCtx),
+    authHeader,
+    federated
+  );
 });
 
 // ── Personal Access Tokens ─────────────────────────────────────────────

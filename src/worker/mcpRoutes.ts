@@ -3,7 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { z } from 'zod';
 
 // MCP server: a thin protocol adapter over the existing /api/* endpoints.
-// Each tool subrequests the corresponding endpoint and returns the body.
+// Each tool dispatches to the corresponding endpoint and returns the body.
 // Public tools send no auth header; watchlist tools forward the caller's
 // PAT Authorization header or a product-verified federated bearer so the
 // existing requireAuth middleware handles authentication. Browser-session
@@ -13,6 +13,7 @@ const AUTH_ERROR_MESSAGE =
   'Authentication required: provide a valid Personal Access Token (anime_list_...) via the Authorization header. Create a token at /mcp.';
 const MAX_RESPONSE_BYTES = 1_000_000;
 const REQUEST_TIMEOUT_MS = 10_000;
+type DispatchApi = (url: string, init: RequestInit) => Response | Promise<Response>;
 const watchlistPageInput = {
   limit: z.number().int().min(1).max(50).default(50),
   offset: z.number().int().min(0).max(1_000_000).default(0),
@@ -262,14 +263,29 @@ function addCanonicalUrls(value: unknown, toolName: string): unknown {
   return record;
 }
 
-async function boundedFetch(url: string, init: RequestInit): Promise<Response> {
+async function dispatchWithTimeout(dispatch: DispatchApi, url: string, init: RequestInit) {
+  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  let abort: () => void = () => {};
+  const timeout = new Promise<never>((_, reject) => {
+    abort = () => reject(signal.reason);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+  try {
+    return await Promise.race([dispatch(url, { ...init, signal }), timeout]);
+  } finally {
+    signal.removeEventListener('abort', abort);
+  }
+}
+
+async function boundedFetch(
+  dispatch: DispatchApi,
+  url: string,
+  init: RequestInit
+): Promise<Response> {
   let lastResponse: Response | undefined;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const response = await fetch(url, {
-        ...init,
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
+      const response = await dispatchWithTimeout(dispatch, url, init);
       if ((response.status === 429 || response.status >= 500) && attempt === 0) {
         lastResponse = response;
         continue;
@@ -420,7 +436,12 @@ function addCatalogPageInfo(
   };
 }
 
-function buildToolHandler(origin: string, tool: ToolDef, readCredential: string | null) {
+function buildToolHandler(
+  dispatch: DispatchApi,
+  origin: string,
+  tool: ToolDef,
+  readCredential: string | null
+) {
   return async (args: Record<string, unknown>) => {
     const url = tool.buildUrl ? tool.buildUrl(origin, args) : `${origin}${tool.path}`;
     if (tool.auth && !readCredential) {
@@ -429,7 +450,7 @@ function buildToolHandler(origin: string, tool: ToolDef, readCredential: string 
 
     let res: Response;
     try {
-      res = await boundedFetch(url, buildRequestInit(tool, args, readCredential));
+      res = await boundedFetch(dispatch, url, buildRequestInit(tool, args, readCredential));
     } catch (error) {
       return fetchErrorResult(tool, error);
     }
@@ -469,7 +490,12 @@ function buildToolHandler(origin: string, tool: ToolDef, readCredential: string 
   };
 }
 
-function buildServer(origin: string, authHeader: string | null, federated = false): McpServer {
+function buildServer(
+  dispatch: DispatchApi,
+  origin: string,
+  authHeader: string | null,
+  federated: boolean
+): McpServer {
   const readCredential =
     /^Bearer anime_list_[A-Za-z0-9_-]+$/.test(authHeader ?? '') || federated ? authHeader : null;
   const server = new McpServer(
@@ -495,7 +521,7 @@ function buildServer(origin: string, authHeader: string | null, federated = fals
           openWorldHint: !tool.auth,
         },
       },
-      buildToolHandler(origin, tool, readCredential)
+      buildToolHandler(dispatch, origin, tool, readCredential)
     );
   }
 
@@ -504,6 +530,7 @@ function buildServer(origin: string, authHeader: string | null, federated = fals
 
 export async function handleMcpRequest(
   request: Request,
+  dispatch: DispatchApi,
   authHeader: string | null,
   federated = false
 ): Promise<Response> {
@@ -514,7 +541,7 @@ export async function handleMcpRequest(
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
-  const server = buildServer(origin, authHeader, federated);
+  const server = buildServer(dispatch, origin, authHeader, federated);
   await server.connect(transport);
   const response = await transport.handleRequest(request);
   await server.close();
