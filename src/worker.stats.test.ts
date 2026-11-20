@@ -3,10 +3,12 @@
 import { SignJWT } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from './worker';
+import * as auth0 from './auth0Mcp';
 import { animeStore } from './store/animeStore';
 import { mangaStore } from './store/mangaStore';
 import * as statistics from './statistics';
 import * as apiTokens from './db/apiTokens';
+import * as users from './db/users';
 import * as watchlists from './db/watchlist';
 
 const JWT_SECRET = 'worker-stats-test-secret';
@@ -146,6 +148,25 @@ it('uses only the MCP bearer to scope watchlist reads through the Worker API', a
     result: { structuredContent: { ok: true, data: { total: 2 } } },
   });
   expect(resolveToken).toHaveBeenCalledExactlyOnceWith(token);
+  expect(watchlists.getAnimeWatchlist).toHaveBeenCalledExactlyOnceWith('private-user');
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('uses the verified OAuth subject to scope an MCP watchlist read', async () => {
+  const token = `${Buffer.from(JSON.stringify({ alg: 'RS256' })).toString('base64url')}.fixture.fixture`;
+  vi.spyOn(auth0, 'verifyAnimeAuth0Subject').mockResolvedValue('google-fixture');
+  const lookup = vi.spyOn(users, 'findUserByGoogleId').mockResolvedValue({
+    id: 'private-user',
+    google_id: 'google-fixture',
+    email: 'private@example.invalid',
+    name: 'Fixture',
+    created_at: '2026-01-01',
+  });
+
+  expect(await callMcp('list_watchlist', { Authorization: `Bearer ${token}` })).toMatchObject({
+    result: { structuredContent: { ok: true, data: { total: 2 } } },
+  });
+  expect(lookup).toHaveBeenCalledWith('google-fixture');
   expect(watchlists.getAnimeWatchlist).toHaveBeenCalledExactlyOnceWith('private-user');
   expect(fetchMock).not.toHaveBeenCalled();
 });

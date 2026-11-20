@@ -123,7 +123,7 @@ describe('handleMcpRequest', () => {
       },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'nonexistent/method' }),
     });
-    const res = await handleMcpRequest(request, null);
+    const res = await handleMcpRequest(request, fetch, null);
     expect(res.status).toBeLessThan(500);
   });
 
@@ -167,6 +167,20 @@ describe('handleMcpRequest', () => {
       retryable: true,
     });
     expect(JSON.stringify(body)).not.toContain('busy');
+  });
+
+  it('retries a transient dispatch failure once', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('connection interrupted'))
+      .mockResolvedValueOnce(Response.json({ totalAnime: 2 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await mcpCall('tools/call', { name: 'get_anime_stats', arguments: {} });
+    expect(await res.json()).toMatchObject({
+      result: { structuredContent: { ok: true, data: { totalAnime: 2 } } },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('classifies timeout and malformed JSON without leaking upstream details', async () => {
