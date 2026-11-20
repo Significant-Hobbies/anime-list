@@ -16,7 +16,7 @@ async function mcpCall(
     },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params ?? {} }),
   });
-  return handleMcpRequest(request, authHeader ?? null, federated);
+  return handleMcpRequest(request, fetch, authHeader ?? null, federated);
 }
 
 describe('handleMcpRequest', () => {
@@ -123,7 +123,7 @@ describe('handleMcpRequest', () => {
       },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'nonexistent/method' }),
     });
-    const res = await handleMcpRequest(request, null);
+    const res = await handleMcpRequest(request, fetch, null);
     expect(res.status).toBeLessThan(500);
   });
 
@@ -169,17 +169,34 @@ describe('handleMcpRequest', () => {
     expect(JSON.stringify(body)).not.toContain('busy');
   });
 
-  it('classifies timeout and malformed JSON without leaking upstream details', async () => {
-    const timeoutFetch = vi
+  it('retries a transient dispatch failure once', async () => {
+    const fetchMock = vi
       .fn()
-      .mockRejectedValue(new DOMException('private timeout', 'TimeoutError'));
+      .mockRejectedValueOnce(new TypeError('connection interrupted'))
+      .mockResolvedValueOnce(Response.json({ totalAnime: 2 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await mcpCall('tools/call', { name: 'get_anime_stats', arguments: {} });
+    expect(await res.json()).toMatchObject({
+      result: { structuredContent: { ok: true, data: { totalAnime: 2 } } },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('classifies timeout and malformed JSON without leaking upstream details', async () => {
+    const controller = new AbortController();
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValueOnce(controller.signal);
+    const timeoutFetch = vi.fn(() => {
+      controller.abort(new DOMException('private timeout', 'TimeoutError'));
+      return new Promise<Response>(() => {});
+    });
     vi.stubGlobal('fetch', timeoutFetch);
     const timeoutRes = await mcpCall('tools/call', {
       name: 'get_anime_stats',
       arguments: {},
     });
     const timeoutBody = await timeoutRes.json();
-    expect(timeoutFetch).toHaveBeenCalledTimes(2);
+    expect(timeoutFetch).toHaveBeenCalledTimes(1);
     expect(timeoutBody.result.structuredContent.error.code).toBe('timeout');
     expect(JSON.stringify(timeoutBody)).not.toContain('private timeout');
 
