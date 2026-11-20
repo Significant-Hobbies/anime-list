@@ -292,7 +292,8 @@ async function boundedFetch(
       }
       return response;
     } catch (error) {
-      if (attempt === 0) continue;
+      // A timed-out in-process handler may still be completing its read.
+      if (attempt === 0 && !isTimeout(error)) continue;
       throw error;
     }
   }
@@ -363,9 +364,14 @@ function buildRequestInit(
   return init;
 }
 
+function isTimeout(error: unknown) {
+  return (
+    error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')
+  );
+}
+
 function fetchErrorResult(tool: ToolDef, error: unknown) {
-  const timedOut =
-    error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError');
+  const timedOut = isTimeout(error);
   return stableError(
     tool,
     timedOut ? 'timeout' : 'upstream_unavailable',

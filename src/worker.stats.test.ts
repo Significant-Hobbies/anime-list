@@ -6,6 +6,7 @@ import worker from './worker';
 import { animeStore } from './store/animeStore';
 import { mangaStore } from './store/mangaStore';
 import * as statistics from './statistics';
+import * as apiTokens from './db/apiTokens';
 import * as watchlists from './db/watchlist';
 
 const JWT_SECRET = 'worker-stats-test-secret';
@@ -94,20 +95,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('serves MCP catalog stats through the Worker API without a network self-request', async () => {
+async function callMcp(name: string, headers: Record<string, string> = {}) {
   const response = await worker.fetch(
     new Request('https://anime.example/api/mcp', {
       method: 'POST',
       headers: {
         Accept: 'application/json, text/event-stream',
         'Content-Type': 'application/json',
-        Cookie: 'mal_auth_token=ignored',
+        ...headers,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
         method: 'tools/call',
-        params: { name: 'get_anime_stats', arguments: {} },
+        params: { name, arguments: {} },
       }),
     }),
     {
@@ -117,9 +118,35 @@ it('serves MCP catalog stats through the Worker API without a network self-reque
     },
     { waitUntil: vi.fn() } as unknown as ExecutionContext
   );
-  expect(await response.json()).toMatchObject({
+  return response.json();
+}
+
+it('serves MCP catalog stats through the Worker API without a network self-request', async () => {
+  expect(await callMcp('get_anime_stats')).toMatchObject({
     result: { structuredContent: { ok: true, data: { totalAnime: 2 } } },
   });
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('uses only the MCP bearer to scope watchlist reads through the Worker API', async () => {
+  const token = 'anime_list_fixture';
+  const resolveToken = vi
+    .spyOn(apiTokens, 'resolveApiToken')
+    .mockResolvedValue({ userId: 'private-user', tokenId: 'fixture' });
+  vi.spyOn(apiTokens, 'touchApiTokenLastUsed').mockResolvedValue();
+
+  expect(
+    await callMcp('list_watchlist', { Cookie: `mal_auth_token=${await signedToken()}` })
+  ).toMatchObject({
+    result: { structuredContent: { ok: false, error: { code: 'unauthorized' } } },
+  });
+  expect(watchlists.getAnimeWatchlist).not.toHaveBeenCalled();
+
+  expect(await callMcp('list_watchlist', { Authorization: `Bearer ${token}` })).toMatchObject({
+    result: { structuredContent: { ok: true, data: { total: 2 } } },
+  });
+  expect(resolveToken).toHaveBeenCalledExactlyOnceWith(token);
+  expect(watchlists.getAnimeWatchlist).toHaveBeenCalledExactlyOnceWith('private-user');
   expect(fetchMock).not.toHaveBeenCalled();
 });
 

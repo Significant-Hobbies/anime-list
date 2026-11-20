@@ -170,16 +170,19 @@ describe('handleMcpRequest', () => {
   });
 
   it('classifies timeout and malformed JSON without leaking upstream details', async () => {
-    const timeoutFetch = vi
-      .fn()
-      .mockRejectedValue(new DOMException('private timeout', 'TimeoutError'));
+    const controller = new AbortController();
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValueOnce(controller.signal);
+    const timeoutFetch = vi.fn(() => {
+      controller.abort(new DOMException('private timeout', 'TimeoutError'));
+      return new Promise<Response>(() => {});
+    });
     vi.stubGlobal('fetch', timeoutFetch);
     const timeoutRes = await mcpCall('tools/call', {
       name: 'get_anime_stats',
       arguments: {},
     });
     const timeoutBody = await timeoutRes.json();
-    expect(timeoutFetch).toHaveBeenCalledTimes(2);
+    expect(timeoutFetch).toHaveBeenCalledTimes(1);
     expect(timeoutBody.result.structuredContent.error.code).toBe('timeout');
     expect(JSON.stringify(timeoutBody)).not.toContain('private timeout');
 
