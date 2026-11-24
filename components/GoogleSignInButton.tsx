@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { RotateCw } from 'lucide-react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
 
@@ -44,6 +46,12 @@ declare global {
 
 type GoogleIdentityApi = NonNullable<Window['google']>['accounts']['id'];
 
+type IdentityState = { status: 'loading' | 'error' } | { status: 'ready'; api: GoogleIdentityApi };
+const loadingIdentity: IdentityState = { status: 'loading' };
+const identityListeners = new Set<() => void>();
+let identityState: IdentityState = loadingIdentity;
+let pendingScript: HTMLScriptElement | undefined;
+let deadline: number | undefined;
 let initializedIdentityApi: GoogleIdentityApi | null = null;
 let activeLogin: ((credential: string) => Promise<void>) | null = null;
 
@@ -70,73 +78,122 @@ function initializeGoogleIdentity(api: GoogleIdentityApi, clientId: string): voi
   initializedIdentityApi = api;
 }
 
+function subscribeIdentity(listener: () => void): () => void {
+  identityListeners.add(listener);
+  return () => identityListeners.delete(listener);
+}
+
+function publishIdentity(state: IdentityState): void {
+  identityState = state;
+  for (const listener of identityListeners) listener();
+}
+
+function requestIdentity(): void {
+  window.clearTimeout(deadline);
+  if (window.google) {
+    publishIdentity({ status: 'ready', api: window.google.accounts.id });
+    return;
+  }
+  publishIdentity(loadingIdentity);
+  // Keep an in-flight script after the UI deadline so late success can recover automatically.
+  deadline = window.setTimeout(() => publishIdentity({ status: 'error' }), 12_000);
+  if (pendingScript) return;
+
+  const script = document.createElement('script');
+  const finish = (api?: GoogleIdentityApi) => {
+    window.clearTimeout(deadline);
+    pendingScript = undefined;
+    script.onload = null;
+    script.onerror = null;
+    if (api) {
+      publishIdentity({ status: 'ready', api });
+    } else {
+      script.remove();
+      publishIdentity({ status: 'error' });
+    }
+  };
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.async = true;
+  script.defer = true;
+  script.dataset.gsiLoader = 'true';
+  script.onload = () => finish(window.google?.accounts.id);
+  script.onerror = () => finish();
+  pendingScript = script;
+  document.head.appendChild(script);
+}
+
 export default function GoogleSignInButton({ compact = false }: { compact?: boolean }) {
   const { login } = useAuth();
+  const controlRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const [ready, setReady] = useState(false);
+  const identity = useSyncExternalStore(
+    subscribeIdentity,
+    () => identityState,
+    () => loadingIdentity
+  );
+  const api = identity.status === 'ready' ? identity.api : undefined;
+
+  useEffect(() => {
+    if (identityState.status === 'loading' && !pendingScript) requestIdentity();
+  }, []);
 
   useEffect(() => {
     const clientId = getGoogleClientId();
-    if (!clientId) return;
+    if (!clientId || !api || !buttonRef.current || initializedRef.current) return;
 
-    const initGoogle = () => {
-      if (!window.google || !buttonRef.current || initializedRef.current) return;
-      initializedRef.current = true;
-      activeLogin = login;
-      const identityApi = window.google.accounts.id;
-      initializeGoogleIdentity(identityApi, clientId);
-      identityApi.renderButton(buttonRef.current, {
-        type: compact ? 'icon' : 'standard',
-        theme: 'outline_dark',
-        size: compact ? 'large' : 'medium',
-        shape: compact ? 'circle' : 'pill',
-        text: 'continue_with',
-        logo_alignment: 'left',
-        ...(compact ? {} : { width: 220 }),
-      });
-      setReady(true);
-    };
-
-    if (window.google) {
-      initGoogle();
-      return;
-    }
-
-    // Inject the GSI script on demand. Previously this lived in the root
-    // layout (`Script src=accounts.google.com/gsi/client lazyOnload`) which
-    // pulled 186 KiB on every page including the landing, where most
-    // visitors never sign in. Loading from here keeps the home LCP clean
-    // and only pays the cost on routes that actually render the button.
-    const existing = document.querySelector<HTMLScriptElement>('script[data-gsi-loader="true"]');
-    const script = existing ?? document.createElement('script');
-    if (!existing) {
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.dataset.gsiLoader = 'true';
-      document.head.appendChild(script);
-    }
-    const onLoad = () => initGoogle();
-    script.addEventListener('load', onLoad);
-    return () => script.removeEventListener('load', onLoad);
-  }, [login, compact]);
+    initializedRef.current = true;
+    activeLogin = login;
+    initializeGoogleIdentity(api, clientId);
+    api.renderButton(buttonRef.current, {
+      type: compact ? 'icon' : 'standard',
+      theme: 'outline_dark',
+      size: compact ? 'large' : 'medium',
+      shape: compact ? 'circle' : 'pill',
+      text: 'continue_with',
+      logo_alignment: 'left',
+      ...(compact ? {} : { width: 220 }),
+    });
+    setReady(true);
+  }, [api, login, compact]);
 
   return (
     <div
+      ref={controlRef}
+      tabIndex={-1}
       className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[220px]'}
-      aria-busy={!ready || undefined}
+      aria-busy={(!ready && identity.status !== 'error') || undefined}
     >
-      {!ready && (
+      {identity.status === 'error' && !ready ? (
+        <Button
+          type="button"
+          variant="outline"
+          size={compact ? 'icon' : 'sm'}
+          className={compact ? 'h-full w-full rounded-full' : 'w-full'}
+          aria-label="Retry Google sign-in"
+          title="Retry Google sign-in"
+          onClick={() => {
+            controlRef.current?.focus();
+            requestIdentity();
+          }}
+        >
+          {compact ? <RotateCw aria-hidden="true" /> : 'Retry Google sign-in'}
+        </Button>
+      ) : (
         <>
-          <Skeleton className="absolute inset-0 rounded-sm" />
-          <LoadingStatus label="Loading Google sign-in" />
+          {!ready && (
+            <>
+              <Skeleton className="absolute inset-0 rounded-sm" />
+              <LoadingStatus label="Loading Google sign-in" />
+            </>
+          )}
+          <div
+            ref={buttonRef}
+            className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[220px] rounded-full'}
+          />
         </>
       )}
-      <div
-        ref={buttonRef}
-        className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[220px] rounded-full'}
-      />
     </div>
   );
 }
