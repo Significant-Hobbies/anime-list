@@ -1,26 +1,66 @@
 import { ResourceBoundary } from '@saas-maker/ui/blocks/resource-boundary';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
 import StatsCharts from '@/components/StatsCharts';
+import { Button } from '@/components/ui/button';
 import { getStats, getWatchlistTags } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { resolveTagColor, toRgba } from '@/lib/watchStatus';
 import { StatsGridSkeleton } from '@/components/ui/loading-state';
 
+function WatchlistTagFeedback({
+  loading,
+  failed,
+  tagCount,
+  onRetry,
+}: {
+  loading: boolean;
+  failed: boolean;
+  tagCount: number | undefined;
+  onRetry: () => void;
+}) {
+  const empty =
+    tagCount === 0 ? <span className="text-xs text-muted-foreground">No tags yet</span> : null;
+  if (failed) {
+    return (
+      <>
+        {empty}
+        <span className="text-xs text-destructive" role="alert">
+          {tagCount === undefined
+            ? 'Could not load watchlist tags.'
+            : 'Could not refresh watchlist tags.'}
+        </span>
+        <Button variant="outline" size="sm" type="button" onClick={onRetry}>
+          Retry tags
+        </Button>
+      </>
+    );
+  }
+  if (loading) {
+    return (
+      <span className="text-xs text-muted-foreground" role="status">
+        Loading watchlist tags…
+      </span>
+    );
+  }
+  return empty;
+}
+
 export default function StatsPage() {
   const { user, loading: authLoading } = useAuth();
   const [includeStatuses, setIncludeStatuses] = useState<string[]>([]);
+  const filtersRef = useRef<HTMLDivElement>(null);
 
-  const { data: tagsData } = useQuery({
+  const tags = useQuery({
     queryKey: ['watchlist', 'tags'],
     queryFn: ({ signal }) => getWatchlistTags(signal),
     enabled: !!user,
   });
 
-  const availableTags = tagsData?.tags ?? [];
+  const availableTags = tags.data?.tags ?? [];
 
   const resource = useQuery({
     queryKey: ['stats', includeStatuses],
@@ -50,7 +90,13 @@ export default function StatsPage() {
       </div>
 
       {!authLoading && user && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          ref={filtersRef}
+          tabIndex={-1}
+          role="group"
+          aria-label="Watchlist filters"
+          className="flex flex-wrap items-center gap-2"
+        >
           <span className="text-xs text-muted-foreground">Include only from:</span>
           {availableTags.map((tag) => {
             const active = includeStatuses.includes(tag.tag);
@@ -80,9 +126,15 @@ export default function StatsPage() {
               </button>
             );
           })}
-          {availableTags.length === 0 && (
-            <span className="text-xs text-muted-foreground">No tags yet</span>
-          )}
+          <WatchlistTagFeedback
+            loading={tags.isLoading}
+            failed={tags.isError}
+            tagCount={tags.data?.tags?.length}
+            onRetry={() => {
+              filtersRef.current?.focus();
+              void tags.retry();
+            }}
+          />
           {includeStatuses.length > 0 && (
             <button
               onClick={() => setIncludeStatuses([])}
