@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { login } = vi.hoisted(() => ({ login: vi.fn() }));
@@ -69,9 +69,11 @@ describe('GoogleSignInButton', () => {
     expect(retry).toHaveLength(2);
     expect(first.isConnected).toBe(false);
 
+    const control = retry[0]!.parentElement;
     fireEvent.click(retry[0]!);
     const second = await waitFor(currentScript);
     expect(second).not.toBe(first);
+    expect(document.activeElement).toBe(control);
     const initialize = vi.fn();
     const renderButton = vi.fn();
     window.google = { accounts: { id: { initialize, renderButton } } };
@@ -80,5 +82,34 @@ describe('GoogleSignInButton', () => {
     expect(initialize).toHaveBeenCalledOnce();
     expect(screen.queryByRole('button', { name: 'Retry Google sign-in' })).toBeNull();
     second.remove();
+  });
+
+  it('recovers when a slow Google script eventually loads without adding a second copy', async () => {
+    const { default: GoogleSignInButton } = await import('../GoogleSignInButton');
+    vi.useFakeTimers();
+    try {
+      render(<GoogleSignInButton />);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      const script = document.querySelector('script[data-gsi-loader]')!;
+      expect(script).not.toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(12_000));
+      fireEvent.click(screen.getByRole('button', { name: 'Retry Google sign-in' }));
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(document.querySelectorAll('script[data-gsi-loader]')).toHaveLength(1);
+      expect(script.isConnected).toBe(true);
+
+      const initialize = vi.fn();
+      const renderButton = vi.fn();
+      window.google = { accounts: { id: { initialize, renderButton } } };
+      await act(async () => {
+        fireEvent.load(script);
+      });
+      expect(renderButton).toHaveBeenCalledOnce();
+      expect(initialize).toHaveBeenCalledOnce();
+      expect(screen.queryByRole('button', { name: 'Retry Google sign-in' })).toBeNull();
+      script.remove();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

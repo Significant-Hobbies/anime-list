@@ -1,6 +1,6 @@
 'use client';
 
-import { useResource } from '@saas-maker/ui/lib/use-resource';
+import { createResourceClient, useResource } from '@saas-maker/ui/lib/use-resource';
 import { RotateCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,9 @@ declare global {
 
 type GoogleIdentityApi = NonNullable<Window['google']>['accounts']['id'];
 
+const IDENTITY_RESOURCE = 'anime-list:google-identity';
+const identityClient = createResourceClient();
+let pendingScript: Promise<GoogleIdentityApi> | undefined;
 let initializedIdentityApi: GoogleIdentityApi | null = null;
 let activeLogin: ((credential: string) => Promise<void>) | null = null;
 
@@ -73,32 +76,24 @@ function initializeGoogleIdentity(api: GoogleIdentityApi, clientId: string): voi
   initializedIdentityApi = api;
 }
 
-function loadIdentity(signal: AbortSignal): Promise<GoogleIdentityApi> {
-  if (window.google) return Promise.resolve(window.google.accounts.id);
+function requestIdentity(): Promise<GoogleIdentityApi> {
+  if (pendingScript) return pendingScript;
 
-  // This resource shares one request across the header and signed-out panels.
-  return new Promise((resolve, reject) => {
+  pendingScript = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     const finish = (api?: GoogleIdentityApi) => {
-      window.clearTimeout(deadline);
-      signal.removeEventListener('abort', onAbort);
+      pendingScript = undefined;
       script.onload = null;
       script.onerror = null;
       if (api) {
         resolve(api);
+        // Also recover automatically if the UI stopped waiting before the script loaded.
+        identityClient.mutate(IDENTITY_RESOURCE, api);
       } else {
         script.remove();
         reject(new Error('Google sign-in is unavailable'));
       }
     };
-    const onAbort = () => finish();
-    const deadline = window.setTimeout(onAbort, 12_000);
-    signal.addEventListener('abort', onAbort, { once: true });
-    if (signal.aborted) {
-      onAbort();
-      return;
-    }
-
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
@@ -107,14 +102,49 @@ function loadIdentity(signal: AbortSignal): Promise<GoogleIdentityApi> {
     script.onerror = () => finish();
     document.head.appendChild(script);
   });
+  return pendingScript;
+}
+
+function loadIdentity(signal: AbortSignal): Promise<GoogleIdentityApi> {
+  if (window.google) return Promise.resolve(window.google.accounts.id);
+
+  // Stop waiting in the UI without injecting a second copy of a still-running script.
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      cleanUp();
+      reject(new Error('Google sign-in is unavailable'));
+    };
+    const deadline = window.setTimeout(onAbort, 12_000);
+    const cleanUp = () => {
+      window.clearTimeout(deadline);
+      signal.removeEventListener('abort', onAbort);
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    void requestIdentity().then(
+      (api) => {
+        cleanUp();
+        resolve(api);
+      },
+      (error) => {
+        cleanUp();
+        reject(error);
+      }
+    );
+  });
 }
 
 export default function GoogleSignInButton({ compact = false }: { compact?: boolean }) {
   const { login } = useAuth();
+  const controlRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const [ready, setReady] = useState(false);
-  const identity = useResource('anime-list:google-identity', loadIdentity, {
+  const identity = useResource(IDENTITY_RESOURCE, loadIdentity, {
+    client: identityClient,
     staleTime: 60 * 60 * 1000,
     retries: 0,
     revalidateOnFocus: false,
@@ -143,6 +173,8 @@ export default function GoogleSignInButton({ compact = false }: { compact?: bool
 
   return (
     <div
+      ref={controlRef}
+      tabIndex={-1}
       className={compact ? 'relative h-10 w-10' : 'relative h-8 w-[220px]'}
       aria-busy={(!ready && identity.status !== 'error') || undefined}
     >
@@ -154,7 +186,10 @@ export default function GoogleSignInButton({ compact = false }: { compact?: bool
           className={compact ? 'h-full w-full rounded-full' : 'w-full'}
           aria-label="Retry Google sign-in"
           title="Retry Google sign-in"
-          onClick={() => void identity.retry()}
+          onClick={() => {
+            controlRef.current?.focus();
+            void identity.retry();
+          }}
         >
           {compact ? <RotateCw aria-hidden="true" /> : 'Retry Google sign-in'}
         </Button>
