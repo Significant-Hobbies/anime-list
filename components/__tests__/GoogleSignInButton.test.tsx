@@ -52,12 +52,7 @@ describe('GoogleSignInButton', () => {
 
   it('retries a failed Google script once for both visible sign-in controls', async () => {
     const { default: GoogleSignInButton } = await import('../GoogleSignInButton');
-    render(
-      <>
-        <GoogleSignInButton compact />
-        <GoogleSignInButton />
-      </>
-    );
+    const controls = render(<GoogleSignInButton compact />);
     const currentScript = () => {
       const scripts = document.querySelectorAll('script[data-gsi-loader]');
       expect(scripts).toHaveLength(1);
@@ -65,9 +60,16 @@ describe('GoogleSignInButton', () => {
     };
     const first = await waitFor(currentScript);
     fireEvent.error(first);
+    controls.rerender(
+      <>
+        <GoogleSignInButton compact />
+        <GoogleSignInButton />
+      </>
+    );
     const retry = await screen.findAllByRole('button', { name: 'Retry Google sign-in' });
     expect(retry).toHaveLength(2);
     expect(first.isConnected).toBe(false);
+    expect(document.querySelector('script[data-gsi-loader]')).toBeNull();
 
     const control = retry[0]!.parentElement;
     fireEvent.click(retry[0]!);

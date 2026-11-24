@@ -1,8 +1,7 @@
 'use client';
 
-import { createResourceClient, useResource } from '@saas-maker/ui/lib/use-resource';
 import { RotateCw } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
@@ -47,9 +46,12 @@ declare global {
 
 type GoogleIdentityApi = NonNullable<Window['google']>['accounts']['id'];
 
-const IDENTITY_RESOURCE = 'anime-list:google-identity';
-const identityClient = createResourceClient();
-let pendingScript: Promise<GoogleIdentityApi> | undefined;
+type IdentityState = { status: 'loading' | 'error' } | { status: 'ready'; api: GoogleIdentityApi };
+const loadingIdentity: IdentityState = { status: 'loading' };
+const identityListeners = new Set<() => void>();
+let identityState: IdentityState = loadingIdentity;
+let pendingScript: HTMLScriptElement | undefined;
+let deadline: number | undefined;
 let initializedIdentityApi: GoogleIdentityApi | null = null;
 let activeLogin: ((credential: string) => Promise<void>) | null = null;
 
@@ -76,65 +78,48 @@ function initializeGoogleIdentity(api: GoogleIdentityApi, clientId: string): voi
   initializedIdentityApi = api;
 }
 
-function requestIdentity(): Promise<GoogleIdentityApi> {
-  if (pendingScript) return pendingScript;
-
-  pendingScript = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    const finish = (api?: GoogleIdentityApi) => {
-      pendingScript = undefined;
-      script.onload = null;
-      script.onerror = null;
-      if (api) {
-        resolve(api);
-        // Also recover automatically if the UI stopped waiting before the script loaded.
-        identityClient.mutate(IDENTITY_RESOURCE, api);
-      } else {
-        script.remove();
-        reject(new Error('Google sign-in is unavailable'));
-      }
-    };
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.dataset.gsiLoader = 'true';
-    script.onload = () => finish(window.google?.accounts.id);
-    script.onerror = () => finish();
-    document.head.appendChild(script);
-  });
-  return pendingScript;
+function subscribeIdentity(listener: () => void): () => void {
+  identityListeners.add(listener);
+  return () => identityListeners.delete(listener);
 }
 
-function loadIdentity(signal: AbortSignal): Promise<GoogleIdentityApi> {
-  if (window.google) return Promise.resolve(window.google.accounts.id);
+function publishIdentity(state: IdentityState): void {
+  identityState = state;
+  for (const listener of identityListeners) listener();
+}
 
-  // Stop waiting in the UI without injecting a second copy of a still-running script.
-  return new Promise((resolve, reject) => {
-    const onAbort = () => {
-      cleanUp();
-      reject(new Error('Google sign-in is unavailable'));
-    };
-    const deadline = window.setTimeout(onAbort, 12_000);
-    const cleanUp = () => {
-      window.clearTimeout(deadline);
-      signal.removeEventListener('abort', onAbort);
-    };
-    signal.addEventListener('abort', onAbort, { once: true });
-    if (signal.aborted) {
-      onAbort();
-      return;
+function requestIdentity(): void {
+  window.clearTimeout(deadline);
+  if (window.google) {
+    publishIdentity({ status: 'ready', api: window.google.accounts.id });
+    return;
+  }
+  publishIdentity(loadingIdentity);
+  // Keep an in-flight script after the UI deadline so late success can recover automatically.
+  deadline = window.setTimeout(() => publishIdentity({ status: 'error' }), 12_000);
+  if (pendingScript) return;
+
+  const script = document.createElement('script');
+  const finish = (api?: GoogleIdentityApi) => {
+    window.clearTimeout(deadline);
+    pendingScript = undefined;
+    script.onload = null;
+    script.onerror = null;
+    if (api) {
+      publishIdentity({ status: 'ready', api });
+    } else {
+      script.remove();
+      publishIdentity({ status: 'error' });
     }
-    void requestIdentity().then(
-      (api) => {
-        cleanUp();
-        resolve(api);
-      },
-      (error) => {
-        cleanUp();
-        reject(error);
-      }
-    );
-  });
+  };
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.async = true;
+  script.defer = true;
+  script.dataset.gsiLoader = 'true';
+  script.onload = () => finish(window.google?.accounts.id);
+  script.onerror = () => finish();
+  pendingScript = script;
+  document.head.appendChild(script);
 }
 
 export default function GoogleSignInButton({ compact = false }: { compact?: boolean }) {
@@ -143,14 +128,16 @@ export default function GoogleSignInButton({ compact = false }: { compact?: bool
   const buttonRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const [ready, setReady] = useState(false);
-  const identity = useResource(IDENTITY_RESOURCE, loadIdentity, {
-    client: identityClient,
-    staleTime: 60 * 60 * 1000,
-    retries: 0,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-  });
-  const api = identity.data;
+  const identity = useSyncExternalStore(
+    subscribeIdentity,
+    () => identityState,
+    () => loadingIdentity
+  );
+  const api = identity.status === 'ready' ? identity.api : undefined;
+
+  useEffect(() => {
+    if (identityState.status === 'loading' && !pendingScript) requestIdentity();
+  }, []);
 
   useEffect(() => {
     const clientId = getGoogleClientId();
@@ -188,7 +175,7 @@ export default function GoogleSignInButton({ compact = false }: { compact?: bool
           title="Retry Google sign-in"
           onClick={() => {
             controlRef.current?.focus();
-            void identity.retry();
+            requestIdentity();
           }}
         >
           {compact ? <RotateCw aria-hidden="true" /> : 'Retry Google sign-in'}
