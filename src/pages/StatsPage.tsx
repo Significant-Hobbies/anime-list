@@ -14,19 +14,24 @@ import { StatsGridSkeleton } from '@/components/ui/loading-state';
 function WatchlistTagFeedback({
   loading,
   failed,
-  empty,
+  tagCount,
   onRetry,
 }: {
   loading: boolean;
   failed: boolean;
-  empty: boolean;
+  tagCount: number | undefined;
   onRetry: () => void;
 }) {
+  const empty =
+    tagCount === 0 ? <span className="text-xs text-muted-foreground">No tags yet</span> : null;
   if (failed) {
     return (
       <>
+        {empty}
         <span className="text-xs text-destructive" role="alert">
-          Could not load watchlist tags.
+          {tagCount === undefined
+            ? 'Could not load watchlist tags.'
+            : 'Could not refresh watchlist tags.'}
         </span>
         <Button variant="outline" size="sm" type="button" onClick={onRetry}>
           Retry tags
@@ -41,7 +46,7 @@ function WatchlistTagFeedback({
       </span>
     );
   }
-  return empty ? <span className="text-xs text-muted-foreground">No tags yet</span> : null;
+  return empty;
 }
 
 export default function StatsPage() {
@@ -124,7 +129,7 @@ export default function StatsPage() {
           <WatchlistTagFeedback
             loading={tags.isLoading}
             failed={tags.isError}
-            empty={tags.data?.tags?.length === 0}
+            tagCount={tags.data?.tags?.length}
             onRetry={() => {
               filtersRef.current?.focus();
               void tags.retry();

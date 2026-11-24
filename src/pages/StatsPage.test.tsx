@@ -32,13 +32,20 @@ afterEach(() => {
 
 it('recovers failed tags and retains the verified empty result during a background read', async () => {
   let rejectTags: (reason: Error) => void = () => {};
+  let rejectRefresh: (reason: Error) => void = () => {};
   const initialRead = new Promise((_, reject) => {
     rejectTags = reject;
   });
   getWatchlistTags
     .mockReturnValueOnce(initialRead)
     .mockResolvedValueOnce({ tags: [] })
-    .mockImplementation(() => new Promise(() => {}));
+    .mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          rejectRefresh = reject;
+        })
+    )
+    .mockResolvedValueOnce({ tags: [] });
   let now = Date.now();
   vi.spyOn(Date, 'now').mockImplementation(() => now);
 
@@ -68,4 +75,14 @@ it('recovers failed tags and retains the verified empty result during a backgrou
   await waitFor(() => expect(getWatchlistTags).toHaveBeenCalledTimes(3));
   expect(screen.getByText('No tags yet')).toBeVisible();
   expect(screen.queryByText('Loading watchlist tags…')).not.toBeInTheDocument();
+  await act(async () => {
+    rejectRefresh(Object.assign(new Error('Refresh failed'), { status: 400 }));
+  });
+  const retryRefresh = await screen.findByRole('button', { name: 'Retry tags' });
+  expect(screen.getByText('No tags yet')).toBeVisible();
+  expect(screen.getByRole('alert')).toHaveTextContent('Could not refresh watchlist tags.');
+
+  fireEvent.click(retryRefresh);
+  await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  expect(screen.getByText('No tags yet')).toBeVisible();
 });
