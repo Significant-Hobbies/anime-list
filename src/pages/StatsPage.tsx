@@ -122,7 +122,7 @@ export default function StatsPage() {
             );
           })}
           <WatchlistTagFeedback
-            loading={tags.isFetching && availableTags.length === 0}
+            loading={tags.isLoading}
             failed={tags.isError}
             empty={tags.data?.tags?.length === 0}
             onRetry={() => {
