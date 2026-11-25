@@ -82,11 +82,11 @@ function HeroSection({ quizAboveFold }: { quizAboveFold: boolean }) {
             Filter the catalog
           </Link>
           <Link
-            to="/schedule"
-            onClick={() => trackHomeSurfaceClick('schedule', 'hero')}
+            to="/stats"
+            onClick={() => trackHomeSurfaceClick('stats', 'hero')}
             className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Browse the schedule
+            Explore catalog stats
           </Link>
           {quizAboveFold && (
             <Link

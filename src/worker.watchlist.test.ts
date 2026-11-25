@@ -541,6 +541,42 @@ describe('watchlist handlers', () => {
     });
   });
 
+  it('puts a tracked exact title ahead of unseen franchise matches before paging', async () => {
+    db = new FakeD1([
+      animeRow(1, { title: 'ナルト', title_english: 'Naruto', genres: '{"Action":1}', score: 7 }),
+      animeRow(2, { title: 'Naruto: Shippuden', genres: '{"Action":1}', score: 9 }),
+      animeRow(3, { title: 'Naruto the Movie', genres: '{"Action":1}', score: 8 }),
+      animeRow(4, { title: 'Unrelated', genres: '{"Action":1}', score: 10 }),
+    ]);
+    const token = await tokenFor('naruto-viewer');
+    expect((await addStatus(token, 'Completed')).status).toBe(200);
+    const search = async (offset: number, hideWatched: string[] = []) => {
+      const response = await call('/api/search', {
+        method: 'POST',
+        token,
+        body: {
+          filters: [{ field: 'title', action: 'CONTAINS', value: '  nARuTo ' }],
+          sortBy: 'recommended',
+          pagesize: 1,
+          offset,
+          hideWatched,
+        },
+      });
+      expect(response.status).toBe(200);
+      return response.json();
+    };
+    expect(await search(0)).toMatchObject({
+      totalFiltered: 3,
+      filteredList: [{ id: 1, points: 0 }],
+    });
+    expect(await search(1)).toMatchObject({ totalFiltered: 3, filteredList: [{ id: 2 }] });
+    expect(await search(2)).toMatchObject({ totalFiltered: 3, filteredList: [{ id: 3 }] });
+    expect(await search(0, ['Completed'])).toMatchObject({
+      totalFiltered: 2,
+      filteredList: [{ id: 2 }],
+    });
+  });
+
   it('persists status and note changes across later reads for the same account', async () => {
     const alice = await tokenFor('alice');
 

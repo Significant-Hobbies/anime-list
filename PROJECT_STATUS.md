@@ -218,6 +218,7 @@ production API and Google client allowlists.
 - `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
 - `/search` — advanced anime filter search with URL-encoded state (nuqs).
 - `/discover` — privacy-safe anime taste quiz with a link to filtered search.
+- Search and Watchlist show recent browser API requests, their outcomes, and durations.
 - `/anime/$malId`, `/manga/$malId` — detail pages with related titles.
 - `/genre/$genre`, `/random` — discovery pickers.
 - `/schedule` — episode pacing schedule.
@@ -229,7 +230,7 @@ production API and Google client allowlists.
 
 - Auth: `POST /api/auth/google`, `POST /api/auth/logout`.
 - Catalog: `POST /api/search`, `GET /api/stats`, `GET /api/anime/random`, `GET /api/anime/:malId`, `GET /api/fields`, `GET /api/filters`, `GET /api/last-updated`, `GET /api/changelog`.
-- Watchlist: full CRUD, tags, request activity, enriched view, import preview/apply (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
+- Watchlist: full CRUD, tags, enriched view, import preview/apply (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
 - Schedule: timeline, add/update/remove/reorder.
 - Discover: `GET /api/discover/queue` (taste-weighted seasonal + manga interleave 1:5), `POST /api/discover/dismiss`.
 - Manga: parallel search/stats/random/watchlist/detail routes under `/api/manga/*`.

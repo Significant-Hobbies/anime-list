@@ -1,3 +1,5 @@
+import { NUMERIC_FIELDS, type NumericField } from '@/src/types/anime';
+
 export const QUICK_GENRES = [
   'Action',
   'Comedy',
@@ -23,13 +25,27 @@ export const POPULARITY_PRESETS = [
 
 export const RECOMMENDED_SORT = 'recommended';
 
+export const normalizeTimeSort = (value: string): string =>
+  value === 'year' || value === 'time' ? 'released_at' : value;
+
+const NUMERIC_SORT_LABELS: Record<NumericField, string> = {
+  score: 'Score',
+  scored_by: 'Number of ratings',
+  rank: 'Rank',
+  popularity: 'Popularity rank',
+  members: 'Popularity',
+  favorites: 'Favorites',
+  year: 'Release time',
+  episodes: 'Episodes',
+};
+
 export const ANIME_SORT_OPTIONS = [
   { value: RECOMMENDED_SORT, label: 'Recommended for you' },
-  { value: 'score', label: 'Score' },
-  { value: 'members', label: 'Popularity' },
-  { value: 'released_at', label: 'Release time' },
+  ...NUMERIC_FIELDS.map((field) => ({
+    value: normalizeTimeSort(field),
+    label: NUMERIC_SORT_LABELS[field],
+  })),
   { value: 'created_at', label: 'Catalog added time' },
-  { value: 'favorites', label: 'Favorites' },
   { value: 'relevance', label: 'Relevance' },
 ] as const;
 
@@ -42,6 +58,3 @@ export const MANGA_SORT_OPTIONS = [
   { value: 'chapters', label: 'Chapters' },
   { value: 'volumes', label: 'Volumes' },
 ] as const;
-
-export const normalizeTimeSort = (value: string): string =>
-  value === 'year' || value === 'time' ? 'released_at' : value;

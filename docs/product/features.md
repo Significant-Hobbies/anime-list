@@ -9,6 +9,7 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 - `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
 - `/search` — advanced anime filter search with URL-encoded state (nuqs).
 - `/discover` — privacy-safe anime taste quiz with a link to filtered search.
+- Search and Watchlist show recent browser API requests, their outcomes, and durations.
 - `/anime/$malId`, `/manga/$malId` — detail pages with title metadata and related entries.
 - `/genre/$genre`, `/random` — discovery pickers.
 - `/schedule` — episode pacing schedule.
@@ -25,7 +26,7 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 - **Catalog:** `POST /api/search`, `GET /api/stats`, `GET /api/anime/random`,
   `GET /api/anime/:malId`, `GET /api/fields`, `GET /api/filters`,
   `GET /api/last-updated`, `GET /api/changelog`.
-- **Watchlist:** full CRUD, tags, request activity, enriched view, import preview/apply
+- **Watchlist:** full CRUD, tags, enriched view, import preview/apply
   (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
 - **Schedule:** timeline, add/update/remove/reorder.
 - **Discover:** `GET /api/discover/queue` (taste-weighted seasonal + manga

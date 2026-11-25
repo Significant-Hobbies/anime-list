@@ -94,7 +94,8 @@ function collectTasteSignals(catalog: AnimeItem[], watchlist: WatchlistData | nu
 export function sortSearchByTaste(
   catalog: AnimeItem[],
   filtered: AnimeItem[],
-  watchlist: WatchlistData | null
+  watchlist: WatchlistData | null,
+  exactTitles: ReadonlySet<string>
 ) {
   const { watchedIds, genreWeights, themeWeights, typeWeights } = collectTasteSignals(
     catalog,
@@ -103,12 +104,18 @@ export function sortSearchByTaste(
   return filtered
     .map((anime) => ({
       anime,
+      exactTitle: Boolean(
+        exactTitles.size &&
+          (exactTitles.has(anime.title.trim().toLowerCase()) ||
+            (anime.title_english && exactTitles.has(anime.title_english.trim().toLowerCase())))
+      ),
       points: watchedIds.has(String(anime.mal_id))
         ? 0
         : Math.max(0, scoreAnimeTaste(anime, genreWeights, themeWeights, typeWeights)),
     }))
     .sort(
       (a, b) =>
+        Number(b.exactTitle) - Number(a.exactTitle) ||
         b.points - a.points ||
         (b.anime.score ?? 0) - (a.anime.score ?? 0) ||
         a.anime.mal_id - b.anime.mal_id

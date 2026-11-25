@@ -1,4 +1,5 @@
 import { trace } from '../telemetry';
+import { AnimeField, FilterAction } from '../config';
 import { filterAnimeList } from '../filterEngine';
 import { animeStore } from '../store/animeStore';
 import { sortSearchByTaste } from '../recommendations';
@@ -69,6 +70,24 @@ export interface SearchParams {
   userId?: string;
 }
 
+function prepareTitleSearch(filters: Filter[], sortBy: SearchParams['sortBy']) {
+  const exactTitles = new Set<string>();
+  if (sortBy !== 'recommended') return { filters, exactTitles };
+  const normalized = filters.map((filter) => {
+    if (
+      (filter.field !== AnimeField.Title && filter.field !== AnimeField.TitleEnglish) ||
+      filter.action !== FilterAction.Contains ||
+      typeof filter.value !== 'string'
+    )
+      return filter;
+    const value = filter.value.trim();
+    if (!value) return filter;
+    exactTitles.add(value.toLowerCase());
+    return { ...filter, value };
+  });
+  return { filters: normalized, exactTitles };
+}
+
 export async function executeSearch(params: SearchParams): Promise<SearchResult> {
   const { filters, sortBy, airing, hideWatched, includeWatched, pagesize, offset, userId } = params;
   const canUseD1Search = hideWatched.length === 0 && includeWatched.length === 0;
@@ -91,7 +110,8 @@ export async function executeSearch(params: SearchParams): Promise<SearchResult>
   }
 
   const catalog = await trace('db:search', () => animeStore.getAnimeList(), { project: 'mal-api' });
-  let filtered = filterAnimeList(catalog, filters);
+  const titleSearch = prepareTitleSearch(filters, sortBy);
+  let filtered = filterAnimeList(catalog, titleSearch.filters);
 
   if (airing !== 'any') {
     filtered = filtered.filter((anime) => {
@@ -121,7 +141,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchResult>
   }
 
   if (sortBy === 'recommended') {
-    const ranked = sortSearchByTaste(catalog, filtered, watchlist);
+    const ranked = sortSearchByTaste(catalog, filtered, watchlist, titleSearch.exactTitles);
     return {
       totalFiltered: ranked.length,
       filteredList: takePage(ranked, pagesize, offset).map(({ anime, points }) =>

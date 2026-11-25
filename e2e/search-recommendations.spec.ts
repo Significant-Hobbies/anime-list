@@ -124,3 +124,24 @@ test('search activity shows a pending request, its HTTP failure and a successful
     pending.resolve();
   }
 });
+
+test('shared rank sort survives filtering and changing numeric sorts', async ({ page }) => {
+  const searches = await serveSearch(page);
+  await page.goto('/search?sort=rank');
+  const sort = page.getByRole('combobox', { name: 'Sort', exact: true });
+  await expect(sort).toHaveText('Rank');
+  await expect(page.getByRole('heading', { name: 'Result 1 (rank)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Drama', exact: true }).click();
+  await expect
+    .poll(() => searches.at(-1))
+    .toMatchObject({
+      sortBy: 'rank',
+      filters: expect.arrayContaining([
+        { field: 'genres', action: 'INCLUDES_ALL', value: ['Drama'] },
+      ]),
+    });
+  await sort.click();
+  await page.getByRole('option', { name: 'Episodes', exact: true }).click();
+  await expect(page).toHaveURL(/sort=episodes/);
+  await expect(page.getByRole('heading', { name: 'Result 1 (episodes)' })).toBeVisible();
+});

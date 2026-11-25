@@ -30,4 +30,14 @@ jobs:
       - run: pnpm db:migrate:local
       - run: pnpm db:rehearse
       - run: pnpm quality
+      - name: Verify search and watchlist browser flows
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4173
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort &
+          preview_pid=$!
+          trap 'kill "$preview_pid"' EXIT
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 "$E2E_BASE_URL/search" --output /dev/null
+          pnpm exec playwright test --project desktop e2e/search-recommendations.spec.ts e2e/personal-flows.spec.ts
       - run: pnpm exec wrangler deploy --dry-run --config wrangler.local.toml --outdir .wrangler/dry-run

@@ -14,7 +14,7 @@ Canonical: https://anime.significanthobbies.com/
 
 Filter anime and manga titles from MyAnimeList by score, genre, year, and members. Free, no sign-up to search, private watchlist if you want one.
 
-[Filter the catalog](https://anime.significanthobbies.com/search) [Browse the schedule](https://anime.significanthobbies.com/schedule)
+[Filter the catalog](https://anime.significanthobbies.com/search) [Explore catalog stats](https://anime.significanthobbies.com/stats)
 
 Illustrative catalog query
 
