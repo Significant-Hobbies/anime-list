@@ -114,9 +114,8 @@ function animeStatements(id: number, at: string, data: FullAnime): DatabaseState
   return [
     {
       sql: `INSERT INTO assistant_release_events(mal_id,observed_at,previous_status,status,previous_start,scheduled_start)
-          SELECT ?,?,d.status,?,d.aired_from,? FROM (SELECT 1) one
-          LEFT JOIN assistant_anime_details d ON d.mal_id=?
-          WHERE d.mal_id IS NULL OR (d.updated_at<=? AND (d.status IS NOT ? OR d.aired_from IS NOT ?))`,
+          SELECT ?,?,d.status,?,d.aired_from,? FROM assistant_anime_details d
+          WHERE d.mal_id=? AND d.updated_at<=? AND (d.status IS NOT ? OR d.aired_from IS NOT ?)`,
       args: [
         id,
         at,
@@ -227,13 +226,47 @@ export function franchiseSnapshotStatements(
     return animeStatements(id, at, z.object({ data: full }).parse(payload).data);
   return mangaStatements(id, at, z.object({ data: manga }).parse(payload).data);
 }
-async function refresh(media: FranchiseMedia, id: number) {
+// The claim and both limits are evaluated by the same SQLite write. Competing
+// Worker isolates cannot race a prior SELECT and dispatch duplicate upstream reads.
+async function claimPublicAttempt(media: FranchiseMedia, id: number, now: Date) {
+  const table = media === 'anime' ? 'assistant_provider_attempts' : 'assistant_manga_attempts';
+  const at = now.getTime();
+  const lastMinute = new Date(at - 60000).toISOString();
+  const claimed = await getDb().execute({
+    sql: `WITH recent(t) AS (
+        SELECT attempted_at FROM assistant_provider_attempts WHERE attempted_at>?
+        UNION ALL SELECT attempted_at FROM assistant_manga_attempts WHERE attempted_at>?
+      ) INSERT INTO ${table}(mal_id,attempted_at)
+      SELECT ?,? FROM (SELECT COUNT(*) per_minute,COUNT(CASE WHEN t>? THEN 1 END) per_second FROM recent)
+      WHERE per_minute<90 AND per_second<3
+      ON CONFLICT(mal_id) DO UPDATE SET attempted_at=excluded.attempted_at
+      WHERE attempted_at<? RETURNING mal_id`,
+    args: [
+      lastMinute,
+      lastMinute,
+      id,
+      now.toISOString(),
+      new Date(at - 1000).toISOString(),
+      new Date(at - 300000).toISOString(),
+    ],
+  });
+  if (!claimed.rows.length)
+    throw new AssistantError(
+      'rate_limited',
+      'Catalog source refresh is cooling down. Retry later.'
+    );
+}
+async function refresh(media: FranchiseMedia, id: number, publicRead = false) {
   const db = getDb();
-  const at = new Date().toISOString();
-  await db.execute(attemptStatement(media, id, at));
+  const now = new Date();
+  const at = now.toISOString();
+  if (publicRead) await claimPublicAttempt(media, id, now);
+  else await db.execute(attemptStatement(media, id, at));
   const payload = await readProvider('/' + media + '/' + id + '/full', z.unknown());
   const statements = franchiseSnapshotStatements(media, id, at, payload);
   await db.batch(statements, 'write');
 }
 export const refreshTitle = (id: number) => refresh('anime', id);
 export const refreshManga = (id: number) => refresh('manga', id);
+
+export const refreshPublicTitle = (media: FranchiseMedia, id: number) => refresh(media, id, true);

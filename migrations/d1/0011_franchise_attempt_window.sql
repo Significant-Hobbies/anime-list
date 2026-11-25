@@ -1,0 +1,2 @@
+CREATE INDEX assistant_anime_attempt_window ON assistant_provider_attempts(attempted_at);
+CREATE INDEX assistant_manga_attempt_window ON assistant_manga_attempts(attempted_at);

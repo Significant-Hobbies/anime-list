@@ -1,5 +1,5 @@
 import { getDb } from '../db/client';
-import { refreshManga, refreshTitle } from './franchiseProvider';
+import { refreshPublicTitle } from './franchiseProvider';
 import { AssistantError } from './tool';
 
 const graph = `WITH RECURSIVE members(media,id) AS (
@@ -65,11 +65,7 @@ export async function completeGraph(media: Media, id: number) {
   );
   if (pending.length) {
     const updates = await Promise.allSettled(
-      pending
-        .slice(0, 3)
-        .map((row) =>
-          row.media === 'anime' ? refreshTitle(Number(row.id)) : refreshManga(Number(row.id))
-        )
+      pending.slice(0, 3).map((row) => refreshPublicTitle(row.media as Media, Number(row.id)))
     );
     if (
       !result.members[0]?.title &&

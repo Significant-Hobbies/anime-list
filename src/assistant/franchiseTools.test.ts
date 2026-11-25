@@ -41,6 +41,7 @@ beforeEach(() => {
   ]);
   db.exec(readFileSync('migrations/d1/0006_assistant_franchises.sql', 'utf8'));
   db.exec(readFileSync('migrations/d1/0010_franchise_release_observations.sql', 'utf8'));
+  db.exec(readFileSync('migrations/d1/0011_franchise_attempt_window.sql', 'utf8'));
   db.exec('CREATE TABLE assistant_library(user_id TEXT,media TEXT,mal_id TEXT,status TEXT)');
   setDbClient({ execute: exec, batch: async (stmts) => Promise.all(stmts.map(exec)) });
   for (const [id, from, status] of [
@@ -234,9 +235,9 @@ describe('ID-backed franchise reads', () => {
     await call('set_franchise_monitor', { mal_id: 3, enabled: true });
     expect(await refreshFranchiseIndex(1)).toMatchObject({ selected: 1, refreshed: 1 });
     const first = await call('get_franchise_updates', {});
-    expect(first.items).toMatchObject([{ mal_id: 3, status, previous_status: null }]);
+    expect(first.items).toEqual([]);
     await refreshTitle(3);
-    expect((await call('get_franchise_updates', { after_id: first.last_id })).items).toEqual([]);
+    expect((await call('get_franchise_updates', {})).items).toEqual([]);
     status = 'Currently Airing';
     await refreshTitle(3);
     const updated = await call('get_franchise_updates', { after_id: first.last_id });
@@ -251,5 +252,48 @@ describe('ID-backed franchise reads', () => {
     expect(calls).toBe(3);
     await call('set_franchise_monitor', { mal_id: 3, enabled: false });
     expect((await call('get_franchise_updates', {})).items).toEqual([]);
+  });
+  it('reuses cooldowns across public tools and limits outbound calls across media on fresh IDs', async () => {
+    const response = vi.fn(async () => new Response(null, { status: 503 }));
+    vi.stubGlobal('fetch', response);
+    await expect(call('get_streaming_links', { mal_id: 700 })).rejects.toMatchObject({
+      code: 'upstream_unavailable',
+    });
+    await expect(call('get_streaming_links', { mal_id: 700 })).rejects.toMatchObject({
+      code: 'rate_limited',
+    });
+    await expect(call('get_franchise', { mal_id: 700 })).rejects.toMatchObject({
+      code: 'upstream_unavailable',
+    });
+    expect(response).toHaveBeenCalledTimes(1);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(Date.now() + 360000));
+    const reads = Array.from({ length: 8 }, (_, i) =>
+      i % 2
+        ? call('get_franchise', { media: 'manga', mal_id: 701 + i })
+        : call('get_streaming_links', { mal_id: 701 + i })
+    );
+    const results = await Promise.allSettled(reads);
+    expect(
+      results.filter((r) => r.status === 'rejected' && r.reason.code === 'rate_limited')
+    ).toHaveLength(5);
+    expect(response).toHaveBeenCalledTimes(4);
+    vi.setSystemTime(new Date(Date.now() + 60000));
+    await expect(call('get_streaming_links', { mal_id: 700 })).rejects.toMatchObject({
+      code: 'upstream_unavailable',
+    });
+    expect(response).toHaveBeenCalledTimes(5);
+  });
+
+  it('enforces a rolling minute budget across anime and manga', async () => {
+    const timestamp = new Date(Date.now() - 30000).toISOString();
+    for (let i = 1; i <= 45; i++) {
+      db.prepare('INSERT INTO assistant_provider_attempts VALUES(?,?)').run(i, timestamp);
+      db.prepare('INSERT INTO assistant_manga_attempts VALUES(?,?)').run(i, timestamp);
+    }
+    await expect(call('get_streaming_links', { mal_id: 701 })).rejects.toMatchObject({
+      code: 'rate_limited',
+    });
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

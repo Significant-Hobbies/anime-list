@@ -4,7 +4,7 @@ import { getDb } from '../db/client';
 import { defineTool } from './tool';
 import { completeGraph } from './franchiseGraph';
 import { releaseChanges, sequelRows } from './franchiseCatalog';
-import { readSeason, refreshTitle } from './franchiseProvider';
+import { readSeason, refreshPublicTitle } from './franchiseProvider';
 
 const medium = z.enum(['anime', 'manga']);
 const id = z.number().int().positive();
@@ -319,7 +319,7 @@ const streaming = defineTool({
     const staleBefore = Date.now() - 86400000;
     if (!row || Date.parse(String(row.updated_at)) < staleBefore) {
       try {
-        await refreshTitle(mal_id);
+        await refreshPublicTitle('anime', mal_id);
         row = (await db.execute(statement)).rows[0];
       } catch (error) {
         if (!row) throw error;
