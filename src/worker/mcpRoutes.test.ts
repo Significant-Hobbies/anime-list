@@ -368,7 +368,9 @@ describe('handleMcpRequest', () => {
   ])('follows %s nextCall across 100 rows through the terminal page', async (name, sizeKey) => {
     const rows = Array.from({ length: 223 }, (_, index) => ({
       id: name === 'list_watchlist_tags' ? String(index + 1) : index + 1,
-      name: 'tag',
+      tag: 'Watching',
+      count: 4,
+      color: '#102030',
     }));
     const fetchMock = vi.fn((url: string, init: RequestInit) => {
       const search = init.method === 'POST';

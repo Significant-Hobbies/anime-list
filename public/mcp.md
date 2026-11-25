@@ -72,7 +72,7 @@ Endpoint:  https://anime.significanthobbies.com/api/mcp
 
 ## Client configuration
 
-Add the server to your AI tool. For watchlist tools, create a token below and replace <paste-token-here> with it.
+Add the server to your AI tool. For watchlist tools, create a token below and replace <paste-token-here> with it. Older tokens have read-only access, including through the REST API. For writes, create a token with write permission.
 
 For ChatGPT, connect with OAuth at  https://anime-mcp.significanthobbies.com/anime-list/mcp . Grant write access to change your list or preferences.
 

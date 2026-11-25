@@ -35,6 +35,7 @@ const STATUS_WEIGHTS = new Map<string, number>([
   ['brr', 1.15],
   ['avoiding', -1.6],
   ['deferred', -0.8],
+  ['delaying', -0.8],
   ['dropped', -1.2],
 ]);
 

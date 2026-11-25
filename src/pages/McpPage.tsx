@@ -193,7 +193,9 @@ function TokenManager() {
       <h2 className="text-base font-semibold">Personal Access Tokens</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Create a token and paste it into your AI tool's MCP config. The token authenticates the
-        watchlist tools below. Tokens are hashed at rest and shown only once — copy it now.
+        watchlist tools below. Older tokens now give read-only access, including through the REST
+        API. To make changes, create a token with write permission. Copy each new token when it
+        appears.
       </p>
 
       <form
@@ -365,7 +367,8 @@ export default function McpPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Add the server to your AI tool. For watchlist tools, create a token below and replace
           <code className="mx-1 font-mono">{'<paste-token-here>'}</code>
-          with it.
+          with it. Older tokens have read-only access, including through the REST API. For writes,
+          create a token with write permission.
         </p>
         <p className="my-3 text-sm">
           For ChatGPT, connect with OAuth at{' '}

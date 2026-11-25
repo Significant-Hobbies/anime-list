@@ -1,22 +1,30 @@
 import { getDb, type DatabaseStatement, type DatabaseValue } from '../db/client';
+import { defaultTagColor } from '../db/watchlist';
 import { AssistantError } from './tool';
 import { asEntry } from './library';
 import type { EntryInput, EntryKey } from './librarySchemas';
 
 const now = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
-async function validateStatus(userId: string, status?: string) {
-  const db = getDb();
-  if (status && !['Done', 'Watching', 'Delaying', 'Dropped'].includes(status)) {
-    const existing = await db.execute({
-      sql: 'SELECT 1 FROM user_tags WHERE user_id=? AND name=?',
-      args: [userId, status],
-    });
-    if (!existing.rows.length)
-      throw new AssistantError(
-        'invalid_argument',
-        'Choose Done, Watching, Delaying, Dropped, or an existing watch status.'
-      );
-  }
+const statusAliases: Record<string, string[]> = {
+  Done: ['Done', 'Completed'],
+  Watching: ['Watching', 'Reading'],
+  Delaying: ['Delaying', 'Deferred', 'On-Hold'],
+  Dropped: ['Dropped', 'Avoiding'],
+};
+
+async function resolveStatus(userId: string, status?: string) {
+  if (!status) return undefined;
+  const aliases = Object.hasOwn(statusAliases, status) ? statusAliases[status] : [status];
+  const result = await getDb().execute({
+    sql: `SELECT t.name FROM json_each(?) a JOIN user_tags t ON t.user_id=? AND t.name=a.value COLLATE NOCASE ORDER BY a.key LIMIT 1`,
+    args: [JSON.stringify(aliases), userId],
+  });
+  if (result.rows.length) return String(result.rows[0].name);
+  if (Object.hasOwn(statusAliases, status)) return status;
+  throw new AssistantError(
+    'invalid_argument',
+    'Choose Done, Watching, Delaying, Dropped, or an existing watch status.'
+  );
 }
 
 export async function upsertLibraryEntry(userId: string, input: EntryInput) {
@@ -25,17 +33,27 @@ export async function upsertLibraryEntry(userId: string, input: EntryInput) {
   const key = [userId, media, id];
   const parent = media + '_watchlist';
   const db = getDb();
-  await validateStatus(userId, status);
+  const tag = await resolveStatus(userId, status);
   const statements: DatabaseStatement[] = [];
   // Reading existence inside the write batch keeps simultaneous creates/removes ordered.
-  if (status) {
+  if (tag && status) {
     statements.push(
       {
-        sql: `INSERT INTO user_tags (id,user_id,name) SELECT ?,?,?
+        sql: `INSERT INTO user_tags (id,user_id,name,color) SELECT ?,?,?,?
             WHERE (EXISTS(SELECT 1 FROM ${media}_data WHERE mal_id=?) OR EXISTS(SELECT 1 FROM ${parent} WHERE user_id=? AND mal_id=?))
             AND NOT EXISTS(SELECT 1 FROM assistant_library WHERE user_id=? AND media=? AND mal_id=? AND status=? COLLATE NOCASE)
             ON CONFLICT(user_id,name) DO NOTHING`,
-        args: [crypto.randomUUID(), userId, status, id, userId, id, ...key, status],
+        args: [
+          crypto.randomUUID(),
+          userId,
+          tag,
+          defaultTagColor(tag),
+          id,
+          userId,
+          id,
+          ...key,
+          status,
+        ],
       },
       {
         sql: `INSERT INTO ${parent} (user_id,mal_id,tag_id)
@@ -44,7 +62,7 @@ export async function upsertLibraryEntry(userId: string, input: EntryInput) {
             ON CONFLICT(user_id,mal_id) DO UPDATE SET tag_id=excluded.tag_id
             WHERE ${parent}.tag_id IS NOT excluded.tag_id AND NOT EXISTS
               (SELECT 1 FROM assistant_library WHERE user_id=? AND media=? AND mal_id=? AND status=? COLLATE NOCASE)`,
-        args: [userId, id, userId, status, id, userId, id, ...key, status],
+        args: [userId, id, userId, tag, id, userId, id, ...key, status],
       }
     );
   }

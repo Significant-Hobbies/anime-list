@@ -205,3 +205,8 @@ it('reports later storage failure without losing earlier successes and re-reads 
   });
   expect(JSON.stringify(response)).not.toContain('private storage message');
 });
+it('reuses the existing website status when adding a new title with its assistant status', async () => {
+  const result = await upsertLibraryEntry('a', { ...manga, watch_status: 'Done' });
+  expect(result).toMatchObject({ watch_status: 'Done', legacy_status: 'Completed' });
+  expect(db.prepare("SELECT count(*) AS n FROM user_tags WHERE user_id='a'").get()?.n).toBe(1);
+});

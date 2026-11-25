@@ -83,7 +83,14 @@ export const catalogOutputs: Record<string, z.ZodType> = {
   list_watchlist: listPage,
   list_manga_watchlist: listPage,
   list_watchlist_tags: listPage.extend({
-    items: z.array(z.looseObject({ id: z.string(), name: z.string() })),
+    items: z.array(
+      z.looseObject({
+        id: z.string(),
+        tag: z.string(),
+        count: z.number(),
+        color: z.string().nullish(),
+      })
+    ),
   }),
   get_watchlist_enriched: listPage,
   get_manga_watchlist_enriched: listPage,

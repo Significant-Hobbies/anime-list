@@ -42,7 +42,7 @@ const normalizeTagColor = (color?: string): string | null => {
   return trimmed.toLowerCase();
 };
 
-const defaultTagColor = (tag: string): string => {
+export const defaultTagColor = (tag: string): string => {
   const mapped = DEFAULT_TAG_COLOR_MAP.get(tag);
   if (mapped) return mapped;
 

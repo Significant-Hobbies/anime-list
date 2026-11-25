@@ -1339,6 +1339,7 @@ export default {
     bindD1Database(env.DB);
     console.log('Cron: refreshing anime and manga caches from D1');
     await Promise.all([animeStore.setAnimeList(), mangaStore.setMangaList()]);
+    if (isWriteFrozenRequest('POST', env.WRITE_FREEZE)) return;
     await refreshFranchiseIndex();
     console.log('Cron: caches and franchise index refreshed');
   },
