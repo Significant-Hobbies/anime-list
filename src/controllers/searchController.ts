@@ -70,9 +70,8 @@ export interface SearchParams {
   userId?: string;
 }
 
-function prepareTitleSearch(filters: Filter[], sortBy: SearchParams['sortBy']) {
+function prepareTitleSearch(filters: Filter[]) {
   const exactTitles = new Set<string>();
-  if (sortBy !== 'recommended') return { filters, exactTitles };
   const normalized = filters.map((filter) => {
     if (
       (filter.field !== AnimeField.Title && filter.field !== AnimeField.TitleEnglish) ||
@@ -89,7 +88,8 @@ function prepareTitleSearch(filters: Filter[], sortBy: SearchParams['sortBy']) {
 }
 
 export async function executeSearch(params: SearchParams): Promise<SearchResult> {
-  const { filters, sortBy, airing, hideWatched, includeWatched, pagesize, offset, userId } = params;
+  const { sortBy, airing, hideWatched, includeWatched, pagesize, offset, userId } = params;
+  const { filters, exactTitles } = prepareTitleSearch(params.filters);
   const canUseD1Search = hideWatched.length === 0 && includeWatched.length === 0;
 
   const simpleSearchPage =
@@ -110,8 +110,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchResult>
   }
 
   const catalog = await trace('db:search', () => animeStore.getAnimeList(), { project: 'mal-api' });
-  const titleSearch = prepareTitleSearch(filters, sortBy);
-  let filtered = filterAnimeList(catalog, titleSearch.filters);
+  let filtered = filterAnimeList(catalog, filters);
 
   if (airing !== 'any') {
     filtered = filtered.filter((anime) => {
@@ -141,7 +140,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchResult>
   }
 
   if (sortBy === 'recommended') {
-    const ranked = sortSearchByTaste(catalog, filtered, watchlist, titleSearch.exactTitles);
+    const ranked = sortSearchByTaste(catalog, filtered, watchlist, exactTitles);
     return {
       totalFiltered: ranked.length,
       filteredList: takePage(ranked, pagesize, offset).map(({ anime, points }) =>

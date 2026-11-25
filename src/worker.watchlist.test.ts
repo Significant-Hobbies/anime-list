@@ -550,13 +550,13 @@ describe('watchlist handlers', () => {
     ]);
     const token = await tokenFor('naruto-viewer');
     expect((await addStatus(token, 'Completed')).status).toBe(200);
-    const search = async (offset: number, hideWatched: string[] = []) => {
+    const search = async (offset: number, hideWatched: string[] = [], sortBy = 'recommended') => {
       const response = await call('/api/search', {
         method: 'POST',
         token,
         body: {
           filters: [{ field: 'title', action: 'CONTAINS', value: '  nARuTo ' }],
-          sortBy: 'recommended',
+          sortBy,
           pagesize: 1,
           offset,
           hideWatched,
@@ -571,6 +571,10 @@ describe('watchlist handlers', () => {
     });
     expect(await search(1)).toMatchObject({ totalFiltered: 3, filteredList: [{ id: 2 }] });
     expect(await search(2)).toMatchObject({ totalFiltered: 3, filteredList: [{ id: 3 }] });
+    expect(await search(0, ['Completed'], 'score')).toMatchObject({
+      totalFiltered: 2,
+      filteredList: [{ id: 2 }],
+    });
     expect(await search(0, ['Completed'])).toMatchObject({
       totalFiltered: 2,
       filteredList: [{ id: 2 }],

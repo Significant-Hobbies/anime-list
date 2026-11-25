@@ -129,7 +129,7 @@ test('shared rank sort survives filtering and changing numeric sorts', async ({ 
   const searches = await serveSearch(page);
   await page.goto('/search?sort=rank');
   const sort = page.getByRole('combobox', { name: 'Sort', exact: true });
-  await expect(sort).toHaveText('Rank');
+  await expect(sort).toHaveText('Rank number (high to low)');
   await expect(page.getByRole('heading', { name: 'Result 1 (rank)' })).toBeVisible();
   await page.getByRole('button', { name: 'Drama', exact: true }).click();
   await expect

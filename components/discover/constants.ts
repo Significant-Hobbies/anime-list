@@ -31,8 +31,8 @@ export const normalizeTimeSort = (value: string): string =>
 const NUMERIC_SORT_LABELS: Record<NumericField, string> = {
   score: 'Score',
   scored_by: 'Number of ratings',
-  rank: 'Rank',
-  popularity: 'Popularity rank',
+  rank: 'Rank number (high to low)',
+  popularity: 'Popularity rank (high to low)',
   members: 'Popularity',
   favorites: 'Favorites',
   year: 'Release time',
