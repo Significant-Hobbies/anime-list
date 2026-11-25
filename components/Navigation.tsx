@@ -1,29 +1,36 @@
 'use client';
 
 import { Link, useRouterState } from '@tanstack/react-router';
-import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { PRODUCT_NAME, PUBLISHER_NAME } from '@/lib/brand';
 import { LoadingStatus, Skeleton } from '@/components/ui/loading-state';
 import { Button } from '@/components/ui/button';
 import GoogleSignInButton from './GoogleSignInButton';
-import { Menu } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
-const animeLinks = [
-  { href: '/discover', label: 'Taste quiz' },
-  { href: '/search', label: 'Search' },
-  { href: '/stats', label: 'Stats' },
-  { href: '/watchlist', label: 'Watchlist' },
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/catalog-updates', label: 'Catalog updates' },
-];
+const animeLinks = {
+  primary: [
+    { href: '/search', label: 'Search' },
+    { href: '/watchlist', label: 'Watchlist' },
+    { href: '/schedule', label: 'Schedule' },
+  ],
+  more: [
+    { href: '/discover', label: 'Taste quiz' },
+    { href: '/stats', label: 'Stats' },
+    { href: '/catalog-updates', label: 'Catalog updates' },
+  ],
+};
 
-const mangaLinks = [
-  { href: '/manga', label: 'Discover' },
-  { href: '/manga/stats', label: 'Stats' },
-  { href: '/manga/watchlist', label: 'Watchlist' },
-  { href: '/catalog-updates', label: 'Catalog updates' },
-];
+const mangaLinks = {
+  primary: [
+    { href: '/manga', label: 'Discover' },
+    { href: '/manga/watchlist', label: 'Watchlist' },
+  ],
+  more: [
+    { href: '/manga/stats', label: 'Stats' },
+    { href: '/catalog-updates', label: 'Catalog updates' },
+  ],
+};
 
 function isMangaPath(pathname: string) {
   return pathname === '/manga' || pathname.startsWith('/manga/');
@@ -37,7 +44,7 @@ function isActiveLink(pathname: string, href: string) {
 }
 
 function sectionClassName(active: boolean): string {
-  return `px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+  return `px-2 sm:px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
     active
       ? 'bg-background text-foreground shadow-sm'
       : 'text-muted-foreground hover:text-foreground'
@@ -49,13 +56,14 @@ function closeDetails(event: React.MouseEvent<HTMLElement>) {
 }
 
 function closeDetailsOnEscape(event: React.KeyboardEvent<HTMLElement>) {
-  if (event.key === 'Escape') event.currentTarget.removeAttribute('open');
+  if (event.key !== 'Escape') return;
+  event.currentTarget.removeAttribute('open');
+  event.currentTarget.querySelector('summary')?.focus();
 }
 
 export default function Navigation() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, loading, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mangaMode = isMangaPath(pathname);
   const links = mangaMode ? mangaLinks : animeLinks;
   // Site brand link goes to the marketing landing; section toggle goes to the
@@ -65,12 +73,15 @@ export default function Navigation() {
   const mangaSectionHref = '/manga';
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-3 sm:gap-6">
+    <nav
+      aria-label="Main navigation"
+      className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center gap-x-2 sm:gap-x-6 lg:h-14 lg:flex-nowrap">
         <Link
           to={homeHref}
           aria-label="Anime List"
-          className="flex min-w-0 shrink-0 flex-col items-start justify-center gap-0.5 whitespace-nowrap text-foreground"
+          className="flex h-12 min-w-0 shrink-0 flex-col items-start justify-center gap-0.5 whitespace-nowrap text-foreground"
         >
           <span className="text-sm font-semibold leading-none tracking-tight sm:text-base">
             {PRODUCT_NAME}
@@ -80,7 +91,7 @@ export default function Navigation() {
           </span>
         </Link>
 
-        <div className="hidden sm:flex items-center gap-1 rounded-lg bg-muted/60 p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-muted/60 p-1">
           <Link to={animeSectionHref} className={sectionClassName(!mangaMode)}>
             Anime
           </Link>
@@ -89,90 +100,51 @@ export default function Navigation() {
           </Link>
         </div>
 
-        <div className="hidden xl:flex items-center gap-1 flex-1">
-          {links.map((link) => {
-            const active = isActiveLink(pathname, link.href);
-            return (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
-
-        <details
-          open={mobileMenuOpen}
-          className="group relative flex-1 xl:hidden"
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') setMobileMenuOpen(false);
-          }}
-        >
-          <summary
-            role="button"
-            aria-controls="primary-mobile-navigation"
-            aria-expanded={mobileMenuOpen}
-            aria-haspopup="menu"
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-            onClick={(event) => {
-              event.preventDefault();
-              setMobileMenuOpen((open) => !open);
+        <div className="order-last flex w-full items-center gap-1 border-t border-border/60 lg:order-none lg:w-auto lg:flex-1 lg:border-0">
+          {links.primary.map((link) => (
+            <Link
+              key={link.href}
+              to={link.href}
+              aria-current={isActiveLink(pathname, link.href) ? 'page' : undefined}
+              className="flex min-h-11 items-center rounded-md px-1.5 text-sm font-medium text-muted-foreground hover:text-foreground aria-[current=page]:text-primary sm:px-3"
+            >
+              {link.label}
+            </Link>
+          ))}
+          <details
+            key={pathname}
+            className="group relative ml-auto lg:ml-0"
+            onKeyDown={closeDetailsOnEscape}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                event.currentTarget.removeAttribute('open');
+              }
             }}
-            className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-md transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
           >
-            <Menu className="h-5 w-5" />
-          </summary>
-          <div
-            id="primary-mobile-navigation"
-            role="menu"
-            className="absolute left-0 top-full z-50 mt-2 min-w-48 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
-          >
-            <Link
-              to={animeSectionHref}
-              onClick={() => setMobileMenuOpen(false)}
-              role="menuitem"
-              className={`flex min-h-11 items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent sm:hidden ${
-                !mangaMode ? 'text-primary' : ''
-              }`}
-            >
-              Anime
-            </Link>
-            <Link
-              to={mangaSectionHref}
-              onClick={() => setMobileMenuOpen(false)}
-              role="menuitem"
-              className={`flex min-h-11 items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent sm:hidden ${
-                mangaMode ? 'text-primary' : ''
-              }`}
-            >
-              Manga
-            </Link>
-            {links.map((link) => {
-              const active = isActiveLink(pathname, link.href);
-              return (
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-md px-1.5 text-sm font-medium text-muted-foreground hover:text-foreground sm:px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+              More{' '}
+              <ChevronDown
+                aria-hidden="true"
+                className="size-3.5 transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="absolute right-0 top-full z-50 mt-1 min-w-40 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md lg:left-0 lg:right-auto">
+              {links.more.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  role="menuitem"
-                  aria-current={active ? 'page' : undefined}
-                  className={`flex min-h-11 items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
-                    active ? 'text-primary' : ''
-                  }`}
+                  onClick={closeDetails}
+                  aria-current={isActiveLink(pathname, link.href) ? 'page' : undefined}
+                  className="flex min-h-11 items-center rounded-sm px-3 text-sm hover:bg-accent aria-[current=page]:text-primary"
                 >
                   {link.label}
                 </Link>
-              );
-            })}
-          </div>
-        </details>
+              ))}
+            </div>
+          </details>
+        </div>
 
-        <div className="flex min-w-10 items-center justify-end gap-3 sm:min-w-28">
+        <div className="ml-auto flex min-w-10 items-center justify-end gap-3 sm:min-w-28">
           {loading ? (
             <div aria-busy="true" className="flex items-center gap-2 px-2">
               <LoadingStatus label="Checking sign-in status" />

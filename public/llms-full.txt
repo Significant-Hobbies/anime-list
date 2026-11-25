@@ -88,7 +88,7 @@ A daily sync at midnight UTC refreshes the current and previous anime seasons pl
 
 Do I need an account?
 
-No — search, stats, and the schedule work fully signed-out. Sign in with Google only if you want a personal watchlist.
+Search, stats, and the taste quiz are public. Sign in to keep a watchlist and see your Watching titles in Schedule.
 
 How many titles does Anime List cover?
 

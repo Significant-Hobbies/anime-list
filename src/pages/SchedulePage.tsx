@@ -6,7 +6,7 @@ export default function SchedulePage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Schedule</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Plan your anime watching calendar day by day
+          Titles marked Watching appear here automatically.
         </p>
       </div>
       <ScheduleView />

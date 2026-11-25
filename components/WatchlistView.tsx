@@ -60,8 +60,7 @@ function SignedInWatchlist() {
 
 function WatchlistContent({ track }: { track: ReturnType<typeof useRequestActivity>['track'] }) {
   const [activeTab, setActiveTab] = useState('');
-  const [showListSettings, setShowListSettings] = useState(false);
-  const [showSyncTools, setShowSyncTools] = useState(false);
+  const [managePanel, setManagePanel] = useState<'tags' | 'sync' | null>(null);
   const [syncSource, setSyncSource] = useState<'mal' | 'anilist' | 'shelf'>('mal');
   const [importMode, setImportMode] = useState<'merge' | 'replace' | 'skip'>('merge');
   const [importPreview, setImportPreview] = useState<{
@@ -319,24 +318,45 @@ function WatchlistContent({ track }: { track: ReturnType<typeof useRequestActivi
             )}
           </div>
           <button
-            onClick={() => setShowListSettings((prev) => !prev)}
-            className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
+            type="button"
+            aria-expanded={managePanel !== null}
+            aria-controls="watchlist-management"
+            onClick={() => setManagePanel(managePanel === null ? 'tags' : null)}
+            className="min-h-9 rounded-md px-3 text-sm border border-border hover:bg-accent"
           >
-            {showListSettings ? 'Close Settings' : 'List Settings'}
-          </button>
-          <button
-            onClick={() => setShowSyncTools((prev) => !prev)}
-            className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
-          >
-            {showSyncTools ? 'Close Sync' : 'Import / Export'}
+            Manage watchlist
           </button>
         </div>
 
-        {showSyncTools && (
+        <div id="watchlist-management" hidden={managePanel === null}>
+          <div
+            role="group"
+            aria-label="Watchlist tools"
+            className="inline-flex rounded-lg bg-muted/60 p-1"
+          >
+            <button
+              type="button"
+              aria-pressed={managePanel === 'tags'}
+              onClick={() => setManagePanel('tags')}
+              className="min-h-9 rounded-md px-3 text-sm text-muted-foreground aria-pressed:bg-background aria-pressed:text-foreground"
+            >
+              Tag settings
+            </button>
+            <button
+              type="button"
+              aria-pressed={managePanel === 'sync'}
+              onClick={() => setManagePanel('sync')}
+              className="min-h-9 rounded-md px-3 text-sm text-muted-foreground aria-pressed:bg-background aria-pressed:text-foreground"
+            >
+              Import / Export
+            </button>
+          </div>
+        </div>
+
+        {managePanel === 'sync' && (
           <Card className="space-y-3 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-sm font-medium text-foreground">Import / Export</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Export Anime List JSON/CSV backups, or import MAL XML, MAL CSV, AniList JSON, or
                   Anime List JSON.
@@ -440,9 +460,8 @@ function WatchlistContent({ track }: { track: ReturnType<typeof useRequestActivi
           </Card>
         )}
 
-        {showListSettings && (
+        {managePanel === 'tags' && (
           <div className="rounded-lg border border-border p-3 space-y-3">
-            <h3 className="text-sm font-medium text-foreground">Manage Lists</h3>
             <div className="flex flex-wrap items-center gap-2">
               <input
                 value={newTagName}

@@ -35,6 +35,7 @@ it('tracks list mode and tag changes with fixed event names only', () => {
     wrapper: withNuqsTestingAdapter({ searchParams: '?wt=Done&wm=hide' }),
   });
 
+  fireEvent.click(screen.getByRole('button', { name: /More filters/i }));
   fireEvent.click(screen.getByRole('button', { name: 'Show only selected tags' }));
   fireEvent.click(screen.getByRole('button', { name: 'Done', pressed: true }));
 

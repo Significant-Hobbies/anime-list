@@ -5,7 +5,7 @@ import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { useResourceQuery as useQuery } from '@/lib/use-resource-query';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
@@ -14,7 +14,7 @@ import {
   addToSchedule,
   addToWatchlist,
   getEnrichedWatchlist,
-  getScheduleTimeline,
+  getScheduleItems,
   removeFromSchedule,
   updateScheduleItem,
   reorderSchedule,
@@ -25,11 +25,15 @@ import { Badge } from '@/components/ui/badge';
 import { cn, getAnimeDetailHref } from '@/lib/utils';
 import { RefreshIndicator, Skeleton } from '@/components/ui/loading-state';
 
+const SCHEDULE_KEY = ['watchlist', 'schedule'] as const;
+const TIMELINE_PREVIEW_DAYS = 7;
+
 // ── Client-side timeline computation (uses local timezone) ─────────────
 
 function buildTimeline(
   items: ScheduleItem[],
-  epd: number
+  epd: number,
+  visibleDays: number
 ): {
   timeline: ScheduleTimelineDay[];
   stats: { total_episodes: number; total_days: number; start_date: string; finish_date: string };
@@ -52,7 +56,7 @@ function buildTimeline(
   };
 
   const getOrCreateDay = (day: number): ScheduleTimelineDay => {
-    let entry = timeline.find((t) => t.day === day);
+    let entry = timeline[day];
     if (!entry) {
       entry = { day, date: dateForDay(day), entries: [] };
       timeline.push(entry);
@@ -69,9 +73,10 @@ function buildTimeline(
     let epsRemaining = remaining;
     let currentEp = watched + 1;
 
-    while (epsRemaining > 0) {
+    while (epsRemaining > 0 && currentDay < visibleDays) {
       if (dayCapacityLeft === 0) {
         currentDay++;
+        if (currentDay === visibleDays) break;
         dayCapacityLeft = epd;
       }
       const epsThisDay = Math.min(dayCapacityLeft, epsRemaining);
@@ -90,9 +95,9 @@ function buildTimeline(
     }
   }
 
-  const totalDays = timeline.length;
+  const totalDays = Math.ceil(totalEpisodes / epd);
   const startDate = dateForDay(0);
-  const finishDate = totalDays > 0 ? timeline[timeline.length - 1].date : startDate;
+  const finishDate = dateForDay(Math.max(0, totalDays - 1));
 
   return {
     timeline,
@@ -151,21 +156,70 @@ function DayLabel({ day, date }: { day: number; date: string }) {
   );
 }
 
+function EpisodeProgress({ item }: { item: ScheduleItem }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: (watched: number) => updateScheduleItem(item.mal_id, { episodes_watched: watched }),
+    onSuccess: (_result, watched) => {
+      queryClient.setQueryData<{ items: ScheduleItem[] }>(
+        SCHEDULE_KEY,
+        (old) =>
+          old && {
+            ...old,
+            items: old.items.map((row) =>
+              row.mal_id === item.mal_id ? { ...row, episodes_watched: watched } : row
+            ),
+          }
+      );
+    },
+    onSettled: () => setDraft(null),
+  });
+
+  return (
+    <>
+      <input
+        type="number"
+        min={0}
+        max={item.episodes}
+        aria-label={`Episodes watched for ${item.title}`}
+        value={draft ?? item.episodes_watched}
+        disabled={save.isPending}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={(e) => {
+          const watched = Math.max(
+            0,
+            Math.min(item.episodes ?? 0, Math.floor(Number(e.target.value) || 0))
+          );
+          if (draft !== null && watched !== item.episodes_watched) save.mutate(watched);
+          else setDraft(null);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+        }}
+        className="h-5 w-10 rounded border border-input bg-background px-0.5 text-[11px] text-center"
+      />
+      {save.isError && <span role="alert">Could not save progress.</span>}
+    </>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────────────
 
 export default function ScheduleView() {
   const { user, loading: authLoading } = useAuth();
   const [showPicker, setShowPicker] = useState(false);
+  const [visibleDays, setVisibleDays] = useState(TIMELINE_PREVIEW_DAYS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [epd, setEpd] = useState(() => {
     if (typeof window === 'undefined') return 3;
     const saved = localStorage.getItem('mal_schedule_epd');
-    return saved ? Math.max(1, Number(saved) || 3) : 3;
+    return Math.max(1, Math.min(100, Math.floor(Number(saved) || 3)));
   });
   const queryClient = useQueryClient();
 
   const updateEpd = (val: number) => {
-    const clamped = Math.max(1, Math.min(100, val));
+    const clamped = Math.max(1, Math.min(100, Math.floor(val)));
     setEpd(clamped);
     localStorage.setItem('mal_schedule_epd', String(clamped));
   };
@@ -174,23 +228,9 @@ export default function ScheduleView() {
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  // Debounce watched updates -- optimistic UI is instant, API call is debounced
-  const watchedTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const debouncedWatchedUpdate = useCallback((malId: string, watched: number) => {
-    const existing = watchedTimers.current.get(malId);
-    if (existing) clearTimeout(existing);
-    watchedTimers.current.set(
-      malId,
-      setTimeout(() => {
-        watchedTimers.current.delete(malId);
-        updateScheduleItem(malId, { episodes_watched: watched });
-      }, 500)
-    );
-  }, []);
-
   const resource = useQuery({
-    queryKey: ['schedule', 'timeline'],
-    queryFn: ({ signal }) => getScheduleTimeline(signal),
+    queryKey: SCHEDULE_KEY,
+    queryFn: ({ signal }) => getScheduleItems(signal),
     enabled: !!user,
   });
   const { data, isLoading, error, refetch, isFetching } = resource;
@@ -204,31 +244,11 @@ export default function ScheduleView() {
   const addMutation = useMutation({
     mutationFn: (malIds: number[]) => addToSchedule(malIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: SCHEDULE_KEY });
       setSelectedIds(new Set());
       setShowPicker(false);
     },
   });
-
-  const SCHEDULE_KEY = ['schedule', 'timeline'];
-
-  const setWatched = useCallback(
-    (malId: string, watched: number) => {
-      // Optimistic: update cache instantly
-      queryClient.setQueryData(SCHEDULE_KEY, (old: typeof data) => {
-        if (!old) return old;
-        return {
-          ...old,
-          items: old.items.map((i: ScheduleItem) =>
-            i.mal_id === malId ? { ...i, episodes_watched: watched } : i
-          ),
-        };
-      });
-      // Debounced: sync to server
-      debouncedWatchedUpdate(malId, watched);
-    },
-    [queryClient, debouncedWatchedUpdate, SCHEDULE_KEY]
-  );
 
   const removeMutation = useMutation({
     mutationFn: (malIds: number[]) => removeFromSchedule(malIds),
@@ -294,16 +314,17 @@ export default function ScheduleView() {
       if (context?.previous) queryClient.setQueryData(SCHEDULE_KEY, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: SCHEDULE_KEY });
       queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'enriched'] });
     },
   });
 
   const items: ScheduleItem[] = data?.items ?? [];
 
   // Compute timeline client-side for correct local timezone
-  const { timeline, stats } = useMemo(() => buildTimeline(items, epd), [items, epd]);
+  const { timeline, stats } = useMemo(
+    () => buildTimeline(items, epd, visibleDays),
+    [items, epd, visibleDays]
+  );
 
   const scheduledIds = new Set(items.map((i) => i.mal_id));
   const availableWatchlist: EnrichedWatchlistItem[] = (watchlistData?.items ?? []).filter(
@@ -514,7 +535,7 @@ export default function ScheduleView() {
         {items.length === 0 ? (
           <EmptyState
             title="no anime scheduled yet"
-            description="add anime from your watchlist to start planning"
+            description="Mark an anime as Watching to start your schedule, or add one from your watchlist."
           />
         ) : (
           <div className="space-y-1.5">
@@ -584,21 +605,7 @@ export default function ScheduleView() {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       {item.episodes != null && (
                         <span className="inline-flex items-center gap-1">
-                          <input
-                            type="number"
-                            min={0}
-                            max={item.episodes}
-                            value={item.episodes_watched ?? 0}
-                            onChange={(e) => {
-                              const val = Math.max(
-                                0,
-                                Math.min(item.episodes ?? 0, Number(e.target.value) || 0)
-                              );
-                              setWatched(item.mal_id, val);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-5 w-10 rounded border border-input bg-background px-0.5 text-[11px] text-center"
-                          />
+                          <EpisodeProgress item={item} />
                           <span>/ {item.episodes}</span>
                         </span>
                       )}
@@ -646,7 +653,7 @@ export default function ScheduleView() {
                   <div className="w-28 shrink-0 pt-1.5">
                     <DayLabel day={day.day} date={day.date} />
                   </div>
-                  <div className="flex-1 space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1">
                     {day.entries.map((entry, i) => (
                       <div
                         key={`${entry.mal_id}-${i}`}
@@ -691,6 +698,15 @@ export default function ScheduleView() {
                 </div>
               ))}
             </div>
+            {visibleDays < stats.total_days && (
+              <button
+                type="button"
+                className="rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+                onClick={() => setVisibleDays((days) => days + TIMELINE_PREVIEW_DAYS)}
+              >
+                Show {Math.min(TIMELINE_PREVIEW_DAYS, stats.total_days - visibleDays)} more days
+              </button>
+            )}
           </>
         )}
       </div>

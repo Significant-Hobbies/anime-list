@@ -423,67 +423,12 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   const totalPages = totalFiltered > 0 ? Math.ceil(totalFiltered / pagesize) : 0;
   const hasNext = currentPage < totalPages;
   const hasPrev = currentPage > 1;
-  const browsingMode = selectedSeasonLabel === 'Any season' ? 'All seasons' : selectedSeasonLabel;
-  const resultLabel = data
-    ? `${totalFiltered.toLocaleString()} matching anime titles`
-    : 'Catalog ready';
-
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-[radial-gradient(circle_at_top_left,rgba(129,140,248,0.24),transparent_34%),linear-gradient(135deg,rgba(24,24,27,0.96),rgba(9,9,11,0.98))] p-5 shadow-sm md:p-7">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-              Anime List
-            </p>
-            <h1 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight text-foreground md:text-5xl">
-              Find the next anime worth your time.
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-              Pick a genre and season, then open More filters to set a minimum score or choose a
-              format. Lower Popularity to include lesser-known titles. Search without an account;
-              share your filters by copying the page URL.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-background/60 p-4 backdrop-blur">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Now browsing
-                </p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{resultLabel}</p>
-              </div>
-              <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                {isFetching ? 'Updating' : 'Live'}
-              </span>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg bg-white/[0.04] p-3">
-                <p className="text-xs text-muted-foreground">Sort</p>
-                <p className="mt-1 font-medium text-foreground">{sort.label}</p>
-              </div>
-              <div className="rounded-lg bg-white/[0.04] p-3">
-                <p className="text-xs text-muted-foreground">Season</p>
-                <p className="mt-1 font-medium text-foreground">{browsingMode}</p>
-              </div>
-              <div className="rounded-lg bg-white/[0.04] p-3">
-                <p className="text-xs text-muted-foreground">Popularity</p>
-                <p className="mt-1 font-medium text-foreground">{popularityLabel ?? 'Custom'}</p>
-              </div>
-              <div className="rounded-lg bg-white/[0.04] p-3">
-                <p className="text-xs text-muted-foreground">Genres</p>
-                <p className="mt-1 font-medium text-foreground">
-                  {selectedGenres.length > 0 ? selectedGenres.slice(0, 2).join(', ') : 'Any genre'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div className="space-y-5">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Anime search</h1>
 
       <DiscoverPanel className="bg-card/80">
-        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-end">
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:flex lg:items-end [&>:first-child]:col-span-full">
           <DiscoverSearchInput
             value={inputValue}
             onChange={handleInputChange}
@@ -497,6 +442,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
               resetPage();
             }}
             options={sortOptions}
+            className="col-span-full min-w-0 sm:col-span-1 lg:min-w-[140px]"
           />
           <DiscoverSelect
             label="Season"
@@ -506,7 +452,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
               resetPage();
             }}
             options={seasonSelectOptions}
-            className="min-w-[160px]"
+            className="min-w-0 lg:min-w-[160px]"
           />
           <DiscoverSelect
             label="Popularity"
@@ -516,9 +462,9 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
               resetPage();
             }}
             options={popularityOptions}
-            className="min-w-[160px]"
+            className="min-w-0 lg:min-w-[160px]"
           />
-          <div className="flex gap-2 lg:pb-0.5">
+          <div className="col-span-full flex gap-2 lg:pb-0.5">
             <DiscoverToggleButton
               active={showAdvanced}
               count={activeAdvancedFilters.length}
@@ -544,7 +490,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
             />
           </FilterSection>
 
-          {user && watchlistTags.length > 0 && (
+          {showAdvanced && user && watchlistTags.length > 0 && (
             <FilterSection label="List">
               <p className="mb-2 text-xs text-muted-foreground">
                 {watchlistMode === 'hide'

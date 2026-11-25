@@ -7,6 +7,7 @@ const APPLICATION_TABLES = new Set([
   'manga_watchlist',
   'anime_dismissals',
   'anime_schedule',
+  'watching_schedule_preferences',
   'anime_data',
   'manga_data',
   'anime_relations_cache',
@@ -90,9 +91,38 @@ export function normalizeUnistrCalls(sql) {
   });
 }
 
+function chunkStatements(statements, maxBytes) {
+  const chunks = [];
+  let current = HEADER;
+  for (const statement of statements) {
+    const next = `${statement.sql}\n`;
+    if (current !== HEADER && Buffer.byteLength(current) + Buffer.byteLength(next) > maxBytes) {
+      chunks.push(current);
+      current = HEADER;
+    }
+    current += next;
+  }
+  if (current !== HEADER) chunks.push(current);
+
+  return chunks;
+}
+
+function replayInsert(sourceStatement, table) {
+  const prefix = /^INSERT(?:\s+OR\s+REPLACE)?\s+INTO/i;
+  if (table !== 'anime_watchlist') return sourceStatement.replace(prefix, 'INSERT OR REPLACE INTO');
+
+  // REPLACE deletes the old parent row, cascading to schedule preferences
+  // even when a legacy backup or a single replayed chunk has no preferences.
+  const insert = sourceStatement.replace(prefix, 'INSERT INTO').replace(/;$/, '');
+  return `${insert} ON CONFLICT(user_id, mal_id) DO UPDATE SET
+    tag_id=excluded.tag_id, title=excluded.title, type=excluded.type,
+    episodes=excluded.episodes, note=excluded.note;`;
+}
+
 export function prepareD1Import(sourceSql, options = {}) {
   const maxBytes = options.maxBytes ?? 4 * 1024 * 1024;
   const statements = [];
+  const preferences = [];
   const tableStatementCounts = {};
 
   for (const rawSourceStatement of splitStatements(sourceSql)) {
@@ -106,36 +136,25 @@ export function prepareD1Import(sourceSql, options = {}) {
       throw new Error(`Unexpected source table in dump: ${table}`);
     }
 
-    const statement = sourceStatement.replace(
-      /^INSERT(?:\s+OR\s+REPLACE)?\s+INTO/i,
-      'INSERT OR REPLACE INTO'
-    );
+    const statement = replayInsert(sourceStatement, table);
     if (Buffer.byteLength(`${HEADER}${statement}\n`) > maxBytes) {
       throw new Error(`Source statement for ${table} exceeds the ${maxBytes}-byte chunk limit`);
     }
 
-    statements.push({ table, sql: statement });
+    const target = table === 'watching_schedule_preferences' ? preferences : statements;
+    target.push({ table, sql: statement });
     tableStatementCounts[table] = (tableStatementCounts[table] ?? 0) + 1;
   }
 
-  const chunks = [];
-  let current = HEADER;
-  for (const statement of statements) {
-    const next = `${statement.sql}\n`;
-    if (current !== HEADER && Buffer.byteLength(current) + Buffer.byteLength(next) > maxBytes) {
-      chunks.push(current);
-      current = HEADER;
-    }
-    current += next;
-  }
-  if (current !== HEADER) chunks.push(current);
+  // Restore child preferences after their parents regardless of dump order.
+  const chunks = chunkStatements(statements.concat(preferences), maxBytes);
 
   return {
     chunks,
     manifest: {
       schemaVersion: 'anime-list-d1-import.v1',
       sourceSha256: createHash('sha256').update(sourceSql).digest('hex'),
-      statementCount: statements.length,
+      statementCount: statements.length + preferences.length,
       chunkCount: chunks.length,
       maxChunkBytes: Math.max(0, ...chunks.map((chunk) => Buffer.byteLength(chunk))),
       tableStatementCounts,

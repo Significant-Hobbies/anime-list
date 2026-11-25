@@ -11,7 +11,12 @@ import { getDb } from '../src/db/client';
 import { createCollection, getCollectionBySlug } from '../src/db/collections';
 import { upsertMangaBatch } from '../src/db/mangaData';
 import { configureOperatorDatabase } from '../src/db/operatorClient';
-import { getSchedule, upsertScheduleItems } from '../src/db/schedule';
+import {
+  getSchedule,
+  removeScheduleItems,
+  updateScheduleItem,
+  upsertScheduleItems,
+} from '../src/db/schedule';
 import {
   getAnimeWatchlistEntry,
   seedDefaultUserTags,
@@ -88,8 +93,11 @@ try {
     },
   ]);
 
-  await upsertAnimeWatchlist([String(animeId)], 'Watching', userId);
   await upsertScheduleItems(userId, [{ malId: String(animeId), episodesPerDay: 2 }]);
+  await upsertAnimeWatchlist([String(animeId), '3', '4'], 'Watching', userId);
+  await updateScheduleItem(userId, String(animeId), { episodesWatched: 2 });
+  await removeScheduleItems(userId, ['3']);
+  await updateScheduleItem(userId, '4', { episodesWatched: 5 });
   const collection = await createCollection(userId, {
     title: 'D1 Rehearsal',
     items: [{ mal_id: String(animeId) }],
@@ -132,7 +140,10 @@ try {
   const invariants = {
     watchlist: watchlist?.status === 'Watching',
     watchlistIsolation: !otherAccountEntry && !otherAccountEdit,
-    schedule: schedule.length === 1,
+    schedule:
+      schedule.length === 2 &&
+      schedule[0].episodes_watched === 2 &&
+      schedule[1].episodes_watched === 5,
     collectionOwnership: ownedCollection?.user_id === userId,
     tokenOwnership: resolvedToken?.userId === userId,
     tokenRevocation: revoked.revoked,
@@ -211,6 +222,16 @@ try {
     restoredEntry.note !== 'Synthetic persistence note'
   ) {
     throw new Error('Watchlist status and note did not persist through database reload');
+  }
+  const restoredSchedule = await getSchedule(userId);
+  if (
+    restoredSchedule.length !== 2 ||
+    restoredSchedule[0].mal_id !== String(animeId) ||
+    restoredSchedule[0].episodes_watched !== 2 ||
+    restoredSchedule[1].mal_id !== '4' ||
+    restoredSchedule[1].episodes_watched !== 5
+  ) {
+    throw new Error('Watching schedule removal or progress did not survive export/import');
   }
   const targetCounts = await targetDb.execute(`
     SELECT

@@ -44,7 +44,8 @@ export function computeTimeline(
   let totalEpisodes = 0;
 
   for (const item of items) {
-    const totalEps = item.episodes ?? 0;
+    const watched = item.episodes_watched;
+    const totalEps = Math.max(0, (item.episodes ?? 0) - watched);
     if (totalEps === 0) continue;
     totalEpisodes += totalEps;
     const epd = item.episodes_per_day;
@@ -52,30 +53,25 @@ export function computeTimeline(
 
     for (let d = 0; d < days; d++) {
       const episodesThisDay = Math.min(epd, totalEps - d * epd);
-      const startEp = d * epd + 1;
+      const startEp = watched + d * epd + 1;
       const endEp = startEp + episodesThisDay - 1;
       const date = new Date(startDate);
       date.setDate(date.getDate() + currentDay);
 
-      let dayEntry = timeline.find((t) => t.day === currentDay);
-      if (!dayEntry) {
-        dayEntry = {
-          day: currentDay,
-          date: date.toISOString().split('T')[0],
-          entries: [],
-        };
-        timeline.push(dayEntry);
-      }
-
-      dayEntry.entries.push({
-        mal_id: item.mal_id,
-        title: item.title,
-        image: item.image,
-        episodes_today: episodesThisDay,
-        episode_range: [startEp, endEp],
-        is_final_day: d === days - 1,
+      timeline.push({
+        day: currentDay,
+        date: date.toISOString().split('T')[0],
+        entries: [
+          {
+            mal_id: item.mal_id,
+            title: item.title,
+            image: item.image,
+            episodes_today: episodesThisDay,
+            episode_range: [startEp, endEp],
+            is_final_day: d === days - 1,
+          },
+        ],
       });
-
       currentDay++;
     }
   }

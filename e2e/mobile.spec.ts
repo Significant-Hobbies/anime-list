@@ -42,7 +42,7 @@ test.describe('anime_list mobile primary flow', () => {
   test('title search input is reachable on mobile', async ({ page }) => {
     await page.goto('/search');
 
-    const search = page.getByPlaceholder(/title search/i);
+    const search = page.getByRole('textbox', { name: /Search anime titles/i });
     await expect(search).toBeVisible();
 
     // Touch target: the search box should be a comfortable height.
