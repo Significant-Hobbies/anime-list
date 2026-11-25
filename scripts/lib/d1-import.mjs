@@ -7,6 +7,7 @@ const APPLICATION_TABLES = new Set([
   'manga_watchlist',
   'anime_dismissals',
   'anime_schedule',
+  'watching_schedule_preferences',
   'anime_data',
   'manga_data',
   'anime_relations_cache',
@@ -90,6 +91,22 @@ export function normalizeUnistrCalls(sql) {
   });
 }
 
+function chunkStatements(statements, maxBytes) {
+  const chunks = [];
+  let current = HEADER;
+  for (const statement of statements) {
+    const next = `${statement.sql}\n`;
+    if (current !== HEADER && Buffer.byteLength(current) + Buffer.byteLength(next) > maxBytes) {
+      chunks.push(current);
+      current = HEADER;
+    }
+    current += next;
+  }
+  if (current !== HEADER) chunks.push(current);
+
+  return chunks;
+}
+
 export function prepareD1Import(sourceSql, options = {}) {
   const maxBytes = options.maxBytes ?? 4 * 1024 * 1024;
   const statements = [];
@@ -118,17 +135,7 @@ export function prepareD1Import(sourceSql, options = {}) {
     tableStatementCounts[table] = (tableStatementCounts[table] ?? 0) + 1;
   }
 
-  const chunks = [];
-  let current = HEADER;
-  for (const statement of statements) {
-    const next = `${statement.sql}\n`;
-    if (current !== HEADER && Buffer.byteLength(current) + Buffer.byteLength(next) > maxBytes) {
-      chunks.push(current);
-      current = HEADER;
-    }
-    current += next;
-  }
-  if (current !== HEADER) chunks.push(current);
+  const chunks = chunkStatements(statements, maxBytes);
 
   return {
     chunks,

@@ -30,11 +30,16 @@ for (const pathname of ['/', '/search']) {
     expect(before.rootHeight).toBeGreaterThanOrEqual(before.viewportHeight);
     expect(before.aboutTop).toBeGreaterThanOrEqual(before.viewportHeight);
 
-    // Simulate RootLayout's existing min-h-dvh boundary resolving later.
+    // React replaces the boot shell with RootLayout and the same loading skeleton.
     const after = await page.evaluate(() => {
       const app = document.createElement('div');
       app.style.minHeight = '100dvh';
-      document.getElementById('root')!.append(app);
+      const boot = document.getElementById('boot-shell')!;
+      if (location.pathname !== '/') {
+        app.setAttribute('data-app-shell', '');
+        app.append(...Array.from(boot.children));
+      }
+      boot.replaceWith(app);
       return {
         bodyTop: document.body.getBoundingClientRect().top,
         rootHeight: document.getElementById('root')!.getBoundingClientRect().height,

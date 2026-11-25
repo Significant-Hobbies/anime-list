@@ -44,7 +44,7 @@ const FAQ = [
   },
   {
     q: 'Do I need an account?',
-    a: 'No — search, stats, and the schedule work fully signed-out. Sign in with Google only if you want a personal watchlist.',
+    a: 'Search, stats, and the taste quiz are public. Sign in to keep a watchlist and see your Watching titles in Schedule.',
   },
   {
     q: 'How many titles does Anime List cover?',

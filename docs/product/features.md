@@ -12,7 +12,7 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 - Search and Watchlist show recent browser API requests, their outcomes, and durations.
 - `/anime/$malId`, `/manga/$malId` — detail pages with title metadata and related entries.
 - `/genre/$genre`, `/random` — discovery pickers.
-- `/schedule` — episode pacing schedule.
+- `/schedule` — episode pacing for Watching titles and manually added plans. Removing an automatic entry hides it from Schedule while preserving its watchlist status.
 - `/watchlist` — anime watchlist + import/export.
 - `/stats`, `/manga`, `/manga/stats`, `/manga/watchlist` — manga surfaces.
 - `/quiz` — legacy entry into the unified `/discover` quiz panel.
@@ -65,7 +65,7 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 - Watchlist statuses: `Watching`, `Completed`, `Deferred`, `Avoiding`, `BRR`
   + custom tags.
 - Signed-in anime search defaults to Recommended for you. Ranking uses watchlist genres and themes across the filtered result set before pagination.
-- Quiz: 4 questions → 4 anime archetypes → prefilled search URLs;
+- Quiz: four questions, one at a time. Story and episode-length choices become editable Search filters. The result also describes the viewer’s archetype;
   privacy-safe, no persistence. Expansion deferred pending engagement data
   (see [`../archive/2026-06-04-character-identity-quiz-brief.md`](../archive/2026-06-04-character-identity-quiz-brief.md)).
 

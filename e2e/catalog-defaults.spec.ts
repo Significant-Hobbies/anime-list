@@ -65,11 +65,6 @@ for (const width of [390, 768, 1440]) {
     const chip = page.getByRole('button', { name: 'Remove 100k+ members', exact: true });
     await expect(chip).toBeVisible();
     await expect(
-      page
-        .getByText(`${popularTotal.toLocaleString()} matching anime titles`, { exact: true })
-        .first()
-    ).toBeVisible();
-    await expect(
       page.getByText(
         `${popularTotal.toLocaleString()} matching anime titles · ${animeTotal.toLocaleString()} anime in the unfiltered catalog`,
         { exact: true }
@@ -80,16 +75,18 @@ for (const width of [390, 768, 1440]) {
     await expect(page).toHaveURL(/min=0/);
     await expect(chip).toHaveCount(0);
     await expect(
-      page
-        .getByText(`${animeTotal.toLocaleString()} matching anime titles`, { exact: true })
-        .first()
+      page.getByText(
+        `${animeTotal.toLocaleString()} matching anime titles · ${animeTotal.toLocaleString()} anime in the unfiltered catalog`,
+        { exact: true }
+      )
     ).toBeVisible();
     await page.reload();
     await expect(chip).toHaveCount(0);
     await expect(
-      page
-        .getByText(`${animeTotal.toLocaleString()} matching anime titles`, { exact: true })
-        .first()
+      page.getByText(
+        `${animeTotal.toLocaleString()} matching anime titles · ${animeTotal.toLocaleString()} anime in the unfiltered catalog`,
+        { exact: true }
+      )
     ).toBeVisible();
     await page.goto('/search?min=50000&page=2');
     await page.getByRole('button', { name: 'Clear all', exact: true }).click();

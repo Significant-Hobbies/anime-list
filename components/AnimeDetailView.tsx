@@ -203,7 +203,7 @@ export default function AnimeDetailView({
       if (identityKey !== identityRef.current) return;
       setScheduled(true);
       setShowMenu(false);
-      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist', 'schedule'] });
     },
   });
 

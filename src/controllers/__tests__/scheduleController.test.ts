@@ -1,122 +1,82 @@
-import { beforeEach, describe, it, vi } from 'vitest';
-import { getAnimeWatchlist, upsertAnimeWatchlist } from '../../db/watchlist';
-import { getSchedule, upsertScheduleItems } from '../../db/schedule';
-import { animeStore } from '../../store/animeStore';
-import type { AnimeItem } from '../../types/anime';
+// @vitest-environment node
+import { readFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { setDbClient, type DatabaseStatement } from '../../db/client';
+import {
+  getSchedule,
+  removeScheduleItems,
+  reorderSchedule,
+  updateScheduleItem,
+} from '../../db/schedule';
 import { addScheduleItems, buildScheduleTimelineResponse } from '../../services/scheduleService';
 
-vi.mock('../../db/watchlist', () => ({
-  getAnimeWatchlist: vi.fn(),
-  upsertAnimeWatchlist: vi.fn(),
-}));
+let db: DatabaseSync;
+function migrate(name: string) {
+  db.exec(readFileSync(new URL(`../../../migrations/d1/${name}.sql`, import.meta.url), 'utf8'));
+}
+function status(user: string, id: string, tag: string) {
+  db.prepare(`INSERT INTO anime_watchlist (user_id, mal_id, tag_id, title, episodes)
+    VALUES (?, ?, ?, ?, 12) ON CONFLICT(user_id, mal_id) DO UPDATE SET tag_id=excluded.tag_id`).run(
+    user,
+    id,
+    tag,
+    `Imported title ${id}`
+  );
+}
+beforeEach(() => {
+  db = new DatabaseSync(':memory:');
+  migrate('0001_initial');
+  db.exec(`INSERT INTO user_tags (id, user_id, name) VALUES ('w','a','Watching'),('c','a','Completed'),('b-w','b','watching');
+    INSERT INTO anime_schedule (user_id, mal_id, sort_order, episodes_watched) VALUES ('a','1',0,4);
+    INSERT INTO anime_data (mal_id,title,url,episodes) VALUES (1,'Manual title','/anime/1',26);`);
+  status('a', '1', 'w');
+  status('a', '3', 'w');
+  status('a', '2', 'w');
+  status('b', '4', 'b-w');
+  migrate('0003_watching_schedule');
+  async function execute(statement: DatabaseStatement) {
+    const { sql, args = [] } = typeof statement === 'string' ? { sql: statement } : statement;
+    return { rows: db.prepare(sql).all(...(args as (string | number | null)[])), rowsAffected: 0 };
+  }
+  setDbClient({ execute, batch: (statements) => Promise.all(statements.map(execute)) });
+});
+afterEach(() => db.close());
 
-vi.mock('../../db/schedule', () => ({
-  getSchedule: vi.fn(),
-  upsertScheduleItems: vi.fn(),
-  updateScheduleItem: vi.fn(),
-  removeScheduleItems: vi.fn(),
-  reorderSchedule: vi.fn(),
-}));
-
-vi.mock('../../store/animeStore', () => ({
-  animeStore: {
-    getAnimeList: vi.fn(),
-  },
-}));
-
-const mockedGetAnimeWatchlist = vi.mocked(getAnimeWatchlist);
-const mockedUpsertAnimeWatchlist = vi.mocked(upsertAnimeWatchlist);
-const mockedGetSchedule = vi.mocked(getSchedule);
-const mockedUpsertScheduleItems = vi.mocked(upsertScheduleItems);
-const mockedGetAnimeList = vi.mocked(animeStore.getAnimeList);
-
-describe('scheduleService', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe('Watching schedule', () => {
+  it('includes existing and new Watching items in owner order and preserves manual plans', async () => {
+    const plan = await getSchedule('a');
+    expect(plan.map((i) => i.mal_id)).toEqual(['1', '2', '3']);
+    expect(plan[0]).toMatchObject({ title: 'Manual title', episodes_watched: 4 });
+    expect(plan[1]).toMatchObject({ title: 'Imported title 2', episodes: 12 });
+    expect((await getSchedule('b')).map((i) => i.mal_id)).toEqual(['4']);
+    status('a', '1', 'c');
+    status('a', '2', 'c');
+    status('a', '5', 'w');
+    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['1', '3', '5']);
+    db.exec("UPDATE user_tags SET name='On hold' WHERE id='w'");
+    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['1']);
   });
 
-  it('does not backfill schedule rows from watchlist items marked Watching', async () => {
-    mockedGetSchedule.mockResolvedValue([]);
-    mockedGetAnimeWatchlist.mockResolvedValue({
-      user: { id: 'user-1', name: 'User' },
-      anime: {
-        '1': {
-          id: '1',
-          status: 'Watching',
-        },
-      },
-    });
-    mockedGetAnimeList.mockResolvedValue([
-      {
-        mal_id: 1,
-        url: 'https://myanimelist.net/anime/1',
-        title: 'Cowboy Bebop',
-        title_english: 'Cowboy Bebop',
-        type: 'TV',
-        episodes: 26,
-        score: 8.7,
-        genres: {},
-        themes: {},
-        demographics: {},
-      },
-    ] as AnimeItem[]);
-
-    const result = await buildScheduleTimelineResponse('user-1');
-
-    expect(mockedUpsertScheduleItems).not.toHaveBeenCalled();
-    expect(result.items).toEqual([]);
-  });
-
-  it('keeps watchlist status as display-only metadata for scheduled items', async () => {
-    mockedGetSchedule.mockResolvedValue([
-      {
-        mal_id: '1',
-        episodes_per_day: 3,
-        sort_order: 0,
-        episodes_watched: 0,
-      },
-    ]);
-    mockedGetAnimeWatchlist.mockResolvedValue({
-      user: { id: 'user-1', name: 'User' },
-      anime: {
-        '1': {
-          id: '1',
-          status: 'Done',
-        },
-      },
-    });
-    mockedGetAnimeList.mockResolvedValue([
-      {
-        mal_id: 1,
-        url: 'https://myanimelist.net/anime/1',
-        title: 'Cowboy Bebop',
-        title_english: 'Cowboy Bebop',
-        type: 'TV',
-        episodes: 26,
-        score: 8.7,
-        genres: {},
-        themes: {},
-        demographics: {},
-      },
-    ] as AnimeItem[]);
-
-    const result = await buildScheduleTimelineResponse('user-1');
-
-    expect(mockedUpsertScheduleItems).not.toHaveBeenCalled();
-    expect(result.items).toEqual([
-      expect.objectContaining({
-        mal_id: '1',
-        watchStatus: 'Done',
-      }),
-    ]);
-  });
-
-  it('does not add watchlist entries when adding anime to the schedule', async () => {
-    await addScheduleItems('user-1', ['1'], 4);
-
-    expect(mockedUpsertScheduleItems).toHaveBeenCalledWith('user-1', [
-      { malId: '1', episodesPerDay: 4 },
-    ]);
-    expect(mockedUpsertAnimeWatchlist).not.toHaveBeenCalled();
+  it('saves automatic progress and order, and keeps explicit removals out of the plan', async () => {
+    await updateScheduleItem('a', '2', { episodesWatched: 3, episodesPerDay: 2 });
+    await reorderSchedule('a', ['3', '2', '1']);
+    const { items, timeline } = await buildScheduleTimelineResponse('a');
+    expect(items.map((i) => i.mal_id)).toEqual(['3', '2', '1']);
+    expect(items[1]).toMatchObject({ episodes_watched: 3, episodes_per_day: 2 });
+    expect(timeline.find((day) => day.entries[0].mal_id === '2')?.entries[0].episode_range).toEqual(
+      [4, 5]
+    );
+    await removeScheduleItems('a', ['2', '1']);
+    await updateScheduleItem('a', '2', { episodesWatched: 5 });
+    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['3']);
+    expect(
+      db.prepare('SELECT COUNT(*) AS n FROM anime_watchlist WHERE user_id=?').get('a')?.n
+    ).toBe(3);
+    await addScheduleItems('a', ['2'], 3);
+    status('a', '2', 'c');
+    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['3', '2']);
+    db.exec("DELETE FROM anime_watchlist WHERE user_id='a' AND mal_id='3'");
+    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['2']);
   });
 });

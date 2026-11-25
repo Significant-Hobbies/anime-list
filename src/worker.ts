@@ -71,6 +71,7 @@ import {
   reorderScheduleSchema,
 } from './validators/schedule';
 import {
+  getSchedule,
   updateScheduleItem as dbUpdateScheduleItem,
   removeScheduleItems,
   reorderSchedule as dbReorderSchedule,
@@ -945,6 +946,8 @@ app.post('/api/watched/remove', requireAuth, async (c) => {
 // Schedule
 app.get('/api/schedule/timeline', requireAuth, async (c) => {
   const user = c.get('user')!;
+  c.header('Cache-Control', 'private, no-store');
+  if (c.req.query('view') === 'items') return c.json({ items: await getSchedule(user.userId) });
   return c.json(await buildScheduleTimelineResponse(user.userId));
 });
 

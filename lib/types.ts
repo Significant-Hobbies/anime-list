@@ -243,17 +243,6 @@ export interface ScheduleTimelineDay {
   entries: ScheduleTimelineEntry[];
 }
 
-export interface ScheduleTimelineResponse {
-  items: ScheduleItem[];
-  timeline: ScheduleTimelineDay[];
-  stats: {
-    total_episodes: number;
-    total_days: number;
-    start_date: string;
-    finish_date: string;
-  };
-}
-
 export interface MangaWatchlistData {
   user: { id: string; name: string };
   manga: Record<string, { id: string; status: string }>;

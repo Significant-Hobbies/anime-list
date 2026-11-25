@@ -2,8 +2,8 @@ import AnimeIdentityQuiz from '@/components/AnimeIdentityQuiz';
 
 export default function DiscoverPage() {
   return (
-    <div className="mx-auto max-w-6xl py-4 sm:py-8">
-      <header className="mb-8 max-w-3xl">
+    <div className="mx-auto max-w-2xl py-4 sm:py-8">
+      <header className="mb-6">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
           Find your anime archetype
         </h1>

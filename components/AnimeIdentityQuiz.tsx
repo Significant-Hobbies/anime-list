@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import type { SearchFilter } from '@/lib/types';
-import { filtersParser } from '@/lib/filterMetadata';
+import { serializeFilters } from '@/lib/filterSerialization';
 import {
   trackQuizCompleted,
   trackQuizResultClick,
@@ -18,6 +18,8 @@ type ArchetypeId = 'steady-strategist' | 'chaotic-optimist' | 'quiet-observer' |
 interface Answer {
   label: string;
   weights: Partial<Record<ArchetypeId, number>>;
+  episodeFilter?: SearchFilter;
+  genres?: string[];
 }
 
 interface Question {
@@ -30,8 +32,6 @@ interface Archetype {
   id: ArchetypeId;
   title: string;
   tagline: string;
-  traits: string[];
-  filters: SearchFilter[];
 }
 
 const ARCHETYPES: Record<ArchetypeId, Archetype> = {
@@ -39,45 +39,21 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
     id: 'steady-strategist',
     title: 'Steady Strategist',
     tagline: 'You like sharp choices, slow reveals, and characters with a plan.',
-    traits: ['Psychological stakes', 'Adult casts', 'Consequences over spectacle'],
-    filters: [
-      { field: 'genres', action: 'INCLUDES_ANY', value: ['Drama', 'Suspense'] },
-      { field: 'demographics', action: 'INCLUDES_ANY', value: ['Seinen'] },
-      { field: 'score', action: 'GREATER_THAN_OR_EQUALS', value: 7.8 },
-    ],
   },
   'chaotic-optimist': {
     id: 'chaotic-optimist',
     title: 'Chaotic Optimist',
     tagline: 'You want big swings, loud friends, and a reason to grin after a fight.',
-    traits: ['Action momentum', 'Found family', 'Comic release'],
-    filters: [
-      { field: 'genres', action: 'INCLUDES_ANY', value: ['Action', 'Comedy', 'Adventure'] },
-      { field: 'demographics', action: 'INCLUDES_ANY', value: ['Shounen'] },
-      { field: 'score', action: 'GREATER_THAN_OR_EQUALS', value: 7.5 },
-    ],
   },
   'quiet-observer': {
     id: 'quiet-observer',
     title: 'Quiet Observer',
     tagline: 'You notice tiny emotional turns and prefer a show that breathes.',
-    traits: ['Slice of life', 'Gentle pacing', 'Character texture'],
-    filters: [
-      { field: 'genres', action: 'INCLUDES_ANY', value: ['Slice of Life', 'Drama'] },
-      { field: 'score', action: 'GREATER_THAN_OR_EQUALS', value: 7.6 },
-      { field: 'episodes', action: 'LESS_THAN_OR_EQUALS', value: 26 },
-    ],
   },
   'world-builder': {
     id: 'world-builder',
     title: 'World Builder',
     tagline: 'You want maps, rules, factions, and a setting that keeps unfolding.',
-    traits: ['Fantasy systems', 'Adventure arcs', 'Longer commitments'],
-    filters: [
-      { field: 'genres', action: 'INCLUDES_ANY', value: ['Fantasy', 'Adventure', 'Sci-Fi'] },
-      { field: 'episodes', action: 'GREATER_THAN_OR_EQUALS', value: 24 },
-      { field: 'score', action: 'GREATER_THAN_OR_EQUALS', value: 7.7 },
-    ],
   },
 };
 
@@ -98,11 +74,24 @@ const QUESTIONS: Question[] = [
     answers: [
       {
         label: 'Mind games and tradeoffs',
+        genres: ['Mystery', 'Suspense'],
         weights: { 'steady-strategist': 2, 'world-builder': 1 },
       },
-      { label: 'Rivals, training, and payoff', weights: { 'chaotic-optimist': 2 } },
-      { label: 'Small choices that quietly hurt', weights: { 'quiet-observer': 2 } },
-      { label: 'Rules, factions, and lore', weights: { 'world-builder': 2 } },
+      {
+        label: 'Rivals, training, and payoff',
+        genres: ['Action', 'Sports'],
+        weights: { 'chaotic-optimist': 2 },
+      },
+      {
+        label: 'Small choices that quietly hurt',
+        genres: ['Drama', 'Slice of Life'],
+        weights: { 'quiet-observer': 2 },
+      },
+      {
+        label: 'Rules, factions, and lore',
+        genres: ['Fantasy', 'Adventure', 'Sci-Fi'],
+        weights: { 'world-builder': 2 },
+      },
     ],
   },
   {
@@ -110,14 +99,16 @@ const QUESTIONS: Question[] = [
     prompt: 'How much commitment sounds right?',
     answers: [
       {
-        label: 'A tight 12-26 episode run',
-        weights: { 'quiet-observer': 2, 'steady-strategist': 1 },
+        label: 'Up to 13 episodes',
+        weights: {},
+        episodeFilter: { field: 'episodes', action: 'LESS_THAN_OR_EQUALS', value: 13 },
       },
       {
-        label: 'A long journey if the cast is worth it',
-        weights: { 'world-builder': 2, 'chaotic-optimist': 1 },
+        label: 'At least 24 episodes',
+        weights: {},
+        episodeFilter: { field: 'episodes', action: 'GREATER_THAN_OR_EQUALS', value: 24 },
       },
-      { label: 'Anything, as long as it is fun', weights: { 'chaotic-optimist': 2 } },
+      { label: 'Any length', weights: {} },
     ],
   },
   {
@@ -134,8 +125,13 @@ const QUESTIONS: Question[] = [
 
 export default function AnimeIdentityQuiz() {
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
-  const result = useMemo(() => scoreAnswers(answers), [answers]);
-  const complete = Object.keys(answers).length === QUESTIONS.length;
+  const [step, setStep] = useState(0);
+  const complete = step === QUESTIONS.length;
+  const question = QUESTIONS[step];
+  const heading = useRef<HTMLHeadingElement>(null);
+  const result = scoreAnswers(answers);
+  const episodeChoice = answers.pace;
+  const genres = answers.stakes?.genres ?? [];
 
   // Funnel: viewed -> started (first answer) -> completed. Refs de-dupe
   // per mount; only the derived archetype id is ever sent (never answers).
@@ -154,81 +150,99 @@ export default function AnimeIdentityQuiz() {
     }
   }, [complete, result.id]);
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="space-y-4">
-        {QUESTIONS.map((question, index) => (
-          <div key={question.id} className="rounded-xl border border-border bg-card p-5">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
-              Question {index + 1}
-            </p>
-            <h2 className="mt-2 text-lg font-semibold text-foreground">{question.prompt}</h2>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {question.answers.map((answer) => {
-                const selected = answers[question.id]?.label === answer.label;
-                return (
-                  <button
-                    key={answer.label}
-                    type="button"
-                    onClick={() => {
-                      if (!startedRef.current) {
-                        startedRef.current = true;
-                        trackQuizStarted();
-                      }
-                      setAnswers((prev) => ({ ...prev, [question.id]: answer }));
-                    }}
-                    className={[
-                      'min-h-14 rounded-lg border px-4 py-3 text-left text-sm transition-colors',
-                      selected
-                        ? 'border-primary bg-primary/10 text-foreground'
-                        : 'border-border bg-background text-muted-foreground hover:text-foreground',
-                    ].join(' ')}
-                  >
-                    {answer.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </section>
+  useEffect(() => {
+    if (startedRef.current) heading.current?.focus();
+  }, [step]);
 
-      <aside className="h-fit rounded-xl border border-border bg-card p-5">
-        <p className="text-xs font-medium uppercase text-muted-foreground">Your anime archetype</p>
-        <h2 className="mt-2 text-2xl font-semibold text-foreground">{result.title}</h2>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">{result.tagline}</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {result.traits.map((trait) => (
-            <span
-              key={trait}
-              className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground"
-            >
-              {trait}
-            </span>
-          ))}
-        </div>
-        <div className="mt-5 rounded-lg border border-dashed border-border bg-background p-4">
-          <p className="text-xs font-medium uppercase text-muted-foreground">Share card preview</p>
-          <p className="mt-2 text-lg font-semibold text-foreground">{result.title}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{result.tagline}</p>
-          <p className="mt-3 text-xs text-muted-foreground">Result URL only encodes: {result.id}</p>
-        </div>
-        <Button asChild className="mt-5 w-full" disabled={!complete}>
-          <Link
-            to={complete ? buildSearchHref(result) : '/discover'}
-            onClick={() => {
-              if (complete) trackQuizResultClick(result.id, 'search');
-            }}
-          >
-            Explore shows for this archetype
-          </Link>
-        </Button>
-        {!complete && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Answer all questions to unlock the search link.
+  function selectAnswer(answer: Answer) {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackQuizStarted();
+    }
+    setAnswers((previous) => ({ ...previous, [question.id]: answer }));
+  }
+
+  return (
+    <section className="space-y-5 rounded-xl border border-border bg-card p-5 sm:p-7">
+      {complete ? (
+        <>
+          <p className="text-sm text-muted-foreground">Your anime archetype</p>
+          <h2 ref={heading} tabIndex={-1} className="text-2xl font-semibold">
+            {result.title}
+          </h2>
+          <p>{result.tagline}</p>
+          <div className="space-y-1 text-sm">
+            <h3 className="font-medium">Your search filters</h3>
+            <p className="text-muted-foreground">
+              {genres.join(' or ')} · {episodeChoice.label}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild>
+              <Link
+                to={buildSearchHref(genres, episodeChoice)}
+                onClick={() => trackQuizResultClick(result.id, 'search')}
+              >
+                Explore in Search
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={() => setStep(0)}>
+              Edit answers
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">
+            Question {step + 1} of {QUESTIONS.length}
           </p>
-        )}
-      </aside>
+          <h2 id="quiz-question" ref={heading} tabIndex={-1} className="text-xl font-semibold">
+            {question.prompt}
+          </h2>
+          <QuizChoices
+            question={question}
+            choice={answers[question.id]}
+            selectAnswer={selectAnswer}
+          />
+          <div className="flex justify-between gap-3">
+            <Button variant="ghost" disabled={step === 0} onClick={() => setStep(step - 1)}>
+              Back
+            </Button>
+            <Button disabled={!answers[question.id]} onClick={() => setStep(step + 1)}>
+              {step === QUESTIONS.length - 1 ? 'See my result' : 'Next'}
+            </Button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function QuizChoices({
+  question,
+  choice,
+  selectAnswer,
+}: {
+  question: Question;
+  choice?: Answer;
+  selectAnswer: (answer: Answer) => void;
+}) {
+  return (
+    <div role="group" aria-labelledby="quiz-question" className="grid gap-2 sm:grid-cols-2">
+      {question.answers.map((answer) => {
+        const selected = choice === answer;
+        return (
+          <button
+            key={answer.label}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => selectAnswer(answer)}
+            className={`min-h-14 rounded-lg border px-4 py-3 text-left text-sm ${selected ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-background text-muted-foreground hover:text-foreground'}`}
+          >
+            {answer.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -247,16 +261,21 @@ function scoreAnswers(answers: Record<string, Answer>) {
     }
   }
 
-  const [winner] = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  return ARCHETYPES[winner[0] as ArchetypeId];
+  // When tastes split evenly, use the viewer's first-episode preference.
+  const opening = answers.energy?.weights;
+  const [winner] = (Object.keys(scores) as ArchetypeId[]).sort(
+    (left, right) =>
+      scores[right] - scores[left] || (opening?.[right] ?? 0) - (opening?.[left] ?? 0)
+  );
+  return ARCHETYPES[winner];
 }
 
-function buildSearchHref(archetype: Archetype) {
+function buildSearchHref(genres: string[], length: Answer) {
   const filters: SearchFilter[] = [
-    ...archetype.filters,
-    { field: 'members', action: 'GREATER_THAN_OR_EQUALS', value: 100000 },
+    { field: 'genres', action: 'INCLUDES_ANY', value: genres },
+    ...(length.episodeFilter ? [length.episodeFilter] : []),
   ];
   // Use the shared serializer (object-wrapped {f:[...]}) so the link round-trips
   // through the nuqs TanStack Router adapter; a bare af=[...] array gets corrupted.
-  return `/search?af=${encodeURIComponent(filtersParser.serialize(filters))}&sort=score`;
+  return `/search?af=${encodeURIComponent(serializeFilters(filters))}&min=0`;
 }

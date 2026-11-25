@@ -35,25 +35,21 @@ describe('Navigation', () => {
     logout.mockReset();
   });
 
-  it('opens the compact menu and closes it with Escape', () => {
+  it('keeps primary links visible and closes More with Escape', () => {
     render(<Navigation />);
-    const summary = screen.getByRole('button', { name: 'Open menu' });
-    const details = summary?.closest('details');
-
-    expect(summary).not.toBeNull();
-    expect(summary).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(summary!);
-    expect(details).toHaveAttribute('open');
-    expect(screen.getByRole('button', { name: 'Close menu' })).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    fireEvent.keyDown(summary!, { key: 'Escape' });
+    expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('href', '/search');
+    expect(screen.getByRole('link', { name: 'Watchlist' })).toHaveAttribute('href', '/watchlist');
+    expect(screen.getByRole('link', { name: 'Schedule' })).toHaveAttribute('href', '/schedule');
+    const summary = screen.getByText('More');
+    const details = summary.closest('details');
     expect(details).not.toHaveAttribute('open');
-    expect(screen.getByRole('button', { name: 'Open menu' })).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    );
+    fireEvent.click(summary);
+    expect(details).toHaveAttribute('open');
+    const quiz = screen.getByRole('link', { name: 'Taste quiz' });
+    expect(quiz).toHaveAttribute('href', '/discover');
+    fireEvent.keyDown(quiz, { key: 'Escape' });
+    expect(details).not.toHaveAttribute('open');
+    expect(summary).toHaveFocus();
   });
 
   it('shows an accessible account placeholder while auth resolves', () => {

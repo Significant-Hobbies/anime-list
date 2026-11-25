@@ -10,7 +10,7 @@ import type {
   WatchlistTag,
   WatchlistImportPreview,
   AniListExportResponse,
-  ScheduleTimelineResponse,
+  ScheduleItem,
   MangaWatchlistData,
   EnrichedMangaWatchlistResponse,
   MangaDetailResponse,
@@ -308,8 +308,8 @@ export function deleteWatchlistTag(
 
 // Schedule
 
-export function getScheduleTimeline(signal?: AbortSignal): Promise<ScheduleTimelineResponse> {
-  return fetchJson(`${BASE}/schedule/timeline`, { signal });
+export function getScheduleItems(signal?: AbortSignal): Promise<{ items: ScheduleItem[] }> {
+  return fetchJson(`${BASE}/schedule/timeline?view=items`, { signal });
 }
 
 export function addToSchedule(

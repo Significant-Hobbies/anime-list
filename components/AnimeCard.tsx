@@ -83,7 +83,7 @@ export default function AnimeCard({
     onSuccess: () => {
       setScheduled(true);
       setShowMenu(false);
-      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist', 'schedule'] });
     },
   });
 
