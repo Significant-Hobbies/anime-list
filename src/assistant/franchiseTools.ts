@@ -1,3 +1,4 @@
+import { pageSchema, pageMetadata } from './pagination';
 import { z } from 'zod';
 import { getDb } from '../db/client';
 import { defineTool } from './tool';
@@ -11,7 +12,6 @@ const pagination = {
   limit: z.number().int().min(1).max(100).default(25),
   offset: z.number().int().nonnegative().default(0),
 };
-const pageSchema = { total: z.number(), next_offset: z.number().nullable() };
 const spoiler = z.enum(['metadata_only', 'provider_synopsis']).default('metadata_only');
 const maybeString = z.string().nullable();
 const titleSchema = z.object({
@@ -57,8 +57,7 @@ function page<T>(rows: T[], offset: number, limit: number) {
   const items = rows.slice(offset, offset + limit);
   return {
     items,
-    total: rows.length,
-    next_offset: offset + items.length < rows.length ? offset + items.length : null,
+    ...pageMetadata(rows.length, offset, limit, items.length),
   };
 }
 

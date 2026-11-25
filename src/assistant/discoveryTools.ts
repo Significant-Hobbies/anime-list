@@ -1,3 +1,4 @@
+import { pageSchema } from './pagination';
 import { z } from 'zod';
 import { defineTool } from './tool';
 import { discover } from './discoverySearch';
@@ -118,8 +119,7 @@ export const discoveryTools = [
     input: z.strictObject({ media_type: media.optional(), ...pageInput }),
     output: z.object({
       results: z.array(feedbackSchema),
-      total: z.number(),
-      next_offset: z.number().nullable(),
+      ...pageSchema,
     }),
     example: { limit: 20, offset: 0 },
     run: async (args, ctx) => {

@@ -1,3 +1,4 @@
+import { pageMetadata } from './pagination';
 import { getDb } from '../db/client';
 import { AssistantError } from './tool';
 import { savedSchema, type Filters, type Preferences, type Media } from './discoverySchemas';
@@ -75,7 +76,6 @@ export async function history(userId: string, limit: number, offset: number, med
   const total = Number(count.rows[0].total);
   return {
     results: page.rows,
-    total,
-    next_offset: offset + page.rows.length < total ? offset + page.rows.length : null,
+    ...pageMetadata(total, offset, limit, page.rows.length),
   };
 }

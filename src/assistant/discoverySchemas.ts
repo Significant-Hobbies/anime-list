@@ -1,3 +1,4 @@
+import { pageSchema } from './pagination';
 import { z } from 'zod';
 
 export const media = z.enum(['anime', 'manga']);
@@ -121,8 +122,7 @@ const resultSchema = z.object({
 });
 export const searchOutput = z.object({
   results: z.array(resultSchema),
-  total: z.number(),
-  next_offset: outputNumber,
+  ...pageSchema,
   resolved_seeds: z.array(seedSchema.extend({ title: z.string() })),
   retrieval: z.object({
     model: z.string(),

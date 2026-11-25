@@ -1,3 +1,4 @@
+import { pageMetadata } from './pagination';
 import {
   accountSignals,
   franchiseLabels,
@@ -172,8 +173,7 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
   });
   return {
     results,
-    total,
-    next_offset: args.offset + page.length < total ? args.offset + page.length : null,
+    ...pageMetadata(total, args.offset, args.limit, results.length, page.length),
     resolved_seeds: seedQuery.seeds.map((s) => ({
       media_type: s.media_type,
       mal_id: s.mal_id,
