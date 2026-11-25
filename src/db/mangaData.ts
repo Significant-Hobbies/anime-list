@@ -1,15 +1,9 @@
-import { catalogWithNames, metadataStatements } from './catalogTitleMetadata';
+import { catalogIdentity, catalogWithNames, metadataStatements } from './catalogTitleMetadata';
 import { getMangaCatalogDb } from './client';
 import type { MangaItem } from '../types/manga';
 
 const mapMangaRow = (row: Record<string, unknown>): MangaItem => ({
-  mal_id: row.mal_id as number,
-  url: row.url as string,
-  title: row.title as string,
-  title_english: (row.title_english as string) || undefined,
-  aliases: JSON.parse((row.aliases as string) || '[]'),
-  studios: JSON.parse((row.studios as string) || '[]'),
-  type: (row.type as string) || undefined,
+  ...catalogIdentity(row),
   chapters: (row.chapters as number) || undefined,
   volumes: (row.volumes as number) || undefined,
   published: row.published_from

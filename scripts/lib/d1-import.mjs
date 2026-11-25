@@ -125,6 +125,14 @@ function chunkStatements(statements, maxBytes) {
 function replayInsert(sourceStatement, table) {
   const prefix = /^INSERT(?:\s+OR\s+REPLACE)?\s+INTO/i;
   const insert = sourceStatement.replace(prefix, 'INSERT INTO').replace(/;$/, '');
+  if (table === 'user_api_tokens')
+    return (
+      insert +
+      ` ON CONFLICT(id) DO UPDATE SET name=excluded.name,
+      last_used_at=nullif(max(coalesce(user_api_tokens.last_used_at,''),coalesce(excluded.last_used_at,'')),''),
+      revoked_at=coalesce(user_api_tokens.revoked_at,excluded.revoked_at)
+      WHERE user_api_tokens.user_id=excluded.user_id AND user_api_tokens.token_hash=excluded.token_hash;`
+    );
   if (table === 'library_tags' || table === 'library_entry_tags')
     return insert + ' ON CONFLICT DO NOTHING;';
   if (table === 'library_details')

@@ -43,3 +43,15 @@ export function metadataStatements(
 export function catalogWithNames(media: 'anime' | 'manga') {
   return `SELECT c.*,m.aliases,m.studios FROM ${media}_data c LEFT JOIN catalog_title_metadata m ON m.media='${media}' AND m.mal_id=c.mal_id`;
 }
+
+export function catalogIdentity(row: Record<string, unknown>) {
+  return {
+    mal_id: row.mal_id as number,
+    url: row.url as string,
+    title: row.title as string,
+    title_english: (row.title_english as string) || undefined,
+    aliases: JSON.parse((row.aliases as string) || '[]') as string[],
+    studios: JSON.parse((row.studios as string) || '[]') as string[],
+    type: (row.type as string) || undefined,
+  };
+}

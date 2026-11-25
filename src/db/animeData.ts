@@ -1,4 +1,4 @@
-import { catalogWithNames, metadataStatements } from './catalogTitleMetadata';
+import { catalogIdentity, catalogWithNames, metadataStatements } from './catalogTitleMetadata';
 import { getDb } from './client';
 import type { AnimeItem, BaseAnimeItem } from '../types/anime';
 import { AnimeField, FilterAction } from '../config';
@@ -6,13 +6,7 @@ import type { AnimeSortField, ArrayField, Filter, NumericField, StringField } fr
 import { ANIME_TIME_SORT_SQL, getCatalogTime, isTimeSortField } from '../utils/catalogTime';
 
 const mapBaseAnimeRow = (row: Record<string, unknown>): BaseAnimeItem => ({
-  mal_id: row.mal_id as number,
-  url: row.url as string,
-  title: row.title as string,
-  title_english: (row.title_english as string) || undefined,
-  aliases: JSON.parse((row.aliases as string) || '[]'),
-  studios: JSON.parse((row.studios as string) || '[]'),
-  type: (row.type as string) || undefined,
+  ...catalogIdentity(row),
   episodes: (row.episodes as number) || undefined,
   aired: row.aired_from
     ? {

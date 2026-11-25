@@ -148,3 +148,27 @@ test('restores classifications, private ratings and original dates for both medi
     db.close();
   }
 });
+
+test('replaying an older token row preserves revocation, owner and independent write grants', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    for (const name of ['0001_initial', '0007_mcp_grants']) {
+      db.exec(readFileSync(new URL(`../../migrations/d1/${name}.sql`, import.meta.url), 'utf8'));
+    }
+    db.exec(
+      "INSERT INTO user_api_tokens VALUES('id','owner','original','hash',NULL,'created','revoked')"
+    );
+    db.exec("INSERT INTO assistant_write_grants VALUES('hash')");
+    const dump =
+      "INSERT INTO user_api_tokens VALUES('id','owner','restored','hash',NULL,'created',NULL);";
+    for (const sql of prepareD1Import(dump + dump.replace("'owner'", "'other'")).chunks)
+      db.exec(sql);
+    assert.deepEqual(
+      { ...db.prepare('SELECT user_id,name,revoked_at,last_used_at FROM user_api_tokens').get() },
+      { user_id: 'owner', name: 'restored', revoked_at: 'revoked', last_used_at: null }
+    );
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM assistant_write_grants').get().count, 1);
+  } finally {
+    db.close();
+  }
+});
