@@ -1,4 +1,5 @@
 'use client';
+import { WatchlistActivity, useWatchlistActivity } from './WatchlistActivity';
 import GoogleSignInButton from './GoogleSignInButton';
 
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
@@ -90,6 +91,22 @@ function filterWatchlist(items: EnrichedWatchlistItem[], activeTab: string) {
 
 export default function WatchlistView() {
   const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <WatchlistSkeleton />;
+  if (!user) return <SignedOutWatchlist />;
+  return <SignedInWatchlist key={user.id} />;
+}
+
+function SignedInWatchlist() {
+  const { entries, track } = useWatchlistActivity();
+  return (
+    <div className="space-y-3">
+      <WatchlistActivity entries={entries} />
+      <WatchlistContent track={track} />
+    </div>
+  );
+}
+
+function WatchlistContent({ track }: { track: ReturnType<typeof useWatchlistActivity>['track'] }) {
   const [activeTab, setActiveTab] = useState('');
   const [showListSettings, setShowListSettings] = useState(false);
   const [showSyncTools, setShowSyncTools] = useState(false);
@@ -113,23 +130,23 @@ export default function WatchlistView() {
 
   const resource = useQuery({
     queryKey: ['watchlist', 'enriched'],
-    queryFn: ({ signal }) => getEnrichedWatchlist(signal),
-    enabled: !!user,
+    queryFn: ({ signal }) =>
+      track('GET /api/watchlist/enriched', () => getEnrichedWatchlist(signal)),
   });
-  const { data, isLoading, error, refetch, isFetching } = resource;
+  const { data, isFetching } = resource;
 
-  const { data: tagsData } = useQuery({
+  const tagQuery = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: ({ signal }) => getWatchlistTags(signal),
-    enabled: !!user,
+    queryFn: ({ signal }) => track('GET /api/watchlist/tags', () => getWatchlistTags(signal)),
   });
 
-  const { data: recommendationsData } = useQuery({
+  const recommendationQuery = useQuery({
     queryKey: ['watchlist', 'recommendations'],
-    queryFn: ({ signal }) => getTasteRecommendations(signal),
-    enabled: !!user,
+    queryFn: ({ signal }) =>
+      track('GET /api/watchlist/recommendations', () => getTasteRecommendations(signal)),
   });
 
+  const recommendationsData = recommendationQuery.data;
   const statusMutation = useMutation({
     mutationFn: ({
       malId,
@@ -139,25 +156,23 @@ export default function WatchlistView() {
       malId: string;
       status: string;
       tagColor?: string;
-    }) => addToWatchlist([Number(malId)], status, tagColor),
+    }) => track('POST /api/watched/add', () => addToWatchlist([Number(malId)], status, tagColor)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const removeMutation = useMutation({
-    mutationFn: (malId: string) => removeFromWatchlist([Number(malId)]),
+    mutationFn: (malId: string) =>
+      track('POST /api/watched/remove', () => removeFromWatchlist([Number(malId)])),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const createTagMutation = useMutation({
-    mutationFn: ({ tag, color }: { tag: string; color?: string }) => saveWatchlistTag(tag, color),
+    mutationFn: ({ tag, color }: { tag: string; color?: string }) =>
+      track('POST /api/watchlist/tags', () => saveWatchlistTag(tag, color)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
     },
@@ -165,25 +180,25 @@ export default function WatchlistView() {
 
   const updateTagMutation = useMutation({
     mutationFn: ({ tagId, tag, color }: { tagId: string; tag?: string; color?: string }) =>
-      updateWatchlistTag(tagId, { tag, color }),
+      track('POST /api/watchlist/tags/:id/update', () => updateWatchlistTag(tagId, { tag, color })),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const deleteTagMutation = useMutation({
-    mutationFn: ({ tagId }: { tagId: string }) => deleteWatchlistTag(tagId),
+    mutationFn: ({ tagId }: { tagId: string }) =>
+      track('POST /api/watchlist/tags/:id/delete', () => deleteWatchlistTag(tagId)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const previewImportMutation = useMutation({
-    mutationFn: () => previewWatchlistImport(syncSource, syncPayload),
+    mutationFn: () =>
+      track('POST /api/watchlist/import/preview', () =>
+        previewWatchlistImport(syncSource, syncPayload)
+      ),
     onSuccess: (result) => {
       setImportPreview(result);
       setSyncResult(
@@ -193,20 +208,21 @@ export default function WatchlistView() {
   });
 
   const applyImportMutation = useMutation({
-    mutationFn: () => applyWatchlistImport(syncSource, syncPayload, importMode),
+    mutationFn: () =>
+      track('POST /api/watchlist/import/apply', () =>
+        applyWatchlistImport(syncSource, syncPayload, importMode)
+      ),
     onSuccess: (result) => {
       setImportPreview(null);
       setSyncResult(
         `Imported ${result.imported ?? result.entries.length} items (${result.mode ?? importMode}).`
       );
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const exportJsonMutation = useMutation({
-    mutationFn: () => exportShelfWatchlistJson(),
+    mutationFn: () => track('GET /api/watchlist/export/json', () => exportShelfWatchlistJson()),
     onSuccess: async (result) => {
       const text = JSON.stringify(result, null, 2);
       await navigator.clipboard?.writeText(text);
@@ -215,7 +231,7 @@ export default function WatchlistView() {
   });
 
   const exportAniListMutation = useMutation({
-    mutationFn: () => exportAniListWatchlist(),
+    mutationFn: () => track('GET /api/watchlist/export/anilist', () => exportAniListWatchlist()),
     onSuccess: async (result) => {
       const text = JSON.stringify(result.entries, null, 2);
       await navigator.clipboard?.writeText(text);
@@ -224,7 +240,7 @@ export default function WatchlistView() {
   });
 
   const items: EnrichedWatchlistItem[] = data?.items ?? [];
-  const tags = tagsData?.tags ?? [];
+  const tags = tagQuery.data?.tags ?? [];
   const tasteProfile = recommendationsData?.profile;
   const recommendations = recommendationsData?.recommendations ?? [];
   const tagColorMap = useMemo(
@@ -263,31 +279,44 @@ export default function WatchlistView() {
     });
   }, [tags]);
 
-  if (authLoading) return <WatchlistSkeleton />;
-
-  if (!user) return <SignedOutWatchlist />;
-
-  if (isLoading) return <WatchlistSkeleton />;
-  if (error && !data)
-    return (
-      <ErrorState
-        title="could not load your watchlist"
-        description="check your connection and try again."
-        onRetry={() => {
-          void refetch();
-        }}
-      />
-    );
-
   const filtered = filterWatchlist(items, activeTab);
 
   return (
     <ResourceBoundary
-      resource={{ ...resource, status: resource.status === 'empty' ? 'success' : resource.status }}
+      resource={{
+        ...resource,
+        status: resource.status === 'empty' ? 'success' : resource.status,
+      }}
+      error={
+        <ErrorState
+          title="Could not load your watchlist"
+          description="Check your connection and try again."
+          onRetry={() => void resource.refetch()}
+        />
+      }
       delay={0}
       skeleton={<WatchlistSkeleton />}
     >
       <div className="space-y-5">
+        {tagQuery.error && (
+          <ErrorState
+            title="Could not load watchlist tags"
+            onRetry={() => void tagQuery.refetch()}
+          />
+        )}
+        {(statusMutation.isError || removeMutation.isError) && (
+          <p role="alert">
+            Could not confirm the change.{' '}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => void queryClient.invalidateQueries({ queryKey: ['watchlist'] })}
+            >
+              Refresh watchlist
+            </button>{' '}
+            to check its status.
+          </p>
+        )}
         <RefreshIndicator active={isFetching} label="Updating anime watchlist" />
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex gap-2 flex-wrap">
@@ -371,7 +400,7 @@ export default function WatchlistView() {
               </button>
               <button
                 onClick={async () => {
-                  await downloadShelfWatchlistCsv();
+                  await track('GET /api/watchlist/export/csv', () => downloadShelfWatchlistCsv());
                   setSyncResult('Downloaded anime-list-watchlist.csv');
                 }}
                 className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
@@ -559,6 +588,18 @@ export default function WatchlistView() {
           </div>
         )}
 
+        {recommendationQuery.isFetching && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Updating recommendations…
+          </p>
+        )}
+        {recommendationQuery.error && (
+          <ErrorState
+            title="Could not update recommendations"
+            description="Try loading your recommendations again."
+            onRetry={() => void recommendationQuery.refetch()}
+          />
+        )}
         {tasteProfile && (
           <Card className="overflow-hidden p-0">
             <div className="border-b border-border p-4">
@@ -607,9 +648,14 @@ export default function WatchlistView() {
               </div>
             </div>
 
+            {!recommendations.length && tasteProfile.sampledTitles > 0 && (
+              <p className="p-4 text-sm text-muted-foreground">
+                No unseen titles match your genre and theme preferences yet.
+              </p>
+            )}
             {recommendations.length > 0 && (
               <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-                {recommendations.slice(0, 6).map((item) => (
+                {recommendations.map((item) => (
                   <TasteRecommendationCard key={item.mal_id} item={item} />
                 ))}
               </div>

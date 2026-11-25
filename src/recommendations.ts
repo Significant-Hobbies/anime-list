@@ -182,6 +182,8 @@ function scoreAnimeTaste(
   tasteScore += scoreWeightedKeys(anime.genres, genreWeights, 2, 1, 'matches', reasons);
   tasteScore += scoreWeightedKeys(anime.themes, themeWeights, 1.4, 0.7, 'shares', reasons);
 
+  if (tasteScore <= 0) return 0;
+
   if (anime.type) {
     tasteScore += typeWeights.get(anime.type) ?? 0;
   }

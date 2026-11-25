@@ -157,3 +157,87 @@ test.describe('signed-in personal flows', () => {
       });
   });
 });
+
+test('shows failed recommendation requests and refreshes picks on retry', async ({ page }) => {
+  await authenticate(page);
+  let attempts = 0;
+  await page.route('**/api/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/enriched')) return json(route, { items: [watchlistItem] });
+    if (path.endsWith('/tags')) return json(route, { tags: [] });
+    if (path.endsWith('/recommendations')) {
+      if (++attempts === 1) return json(route, {}, 429);
+      return json(route, {
+        profile: { favoriteGenres: [], favoriteThemes: [], preferredTypes: [], sampledTitles: 1 },
+        recommendations: [
+          { mal_id: 23, title: 'Recovered pick', reasons: ['matches Action'], tasteScore: 5 },
+        ],
+      });
+    }
+    return json(route, {});
+  });
+  await page.goto('/watchlist');
+  await expect(page.getByText('Could not update recommendations')).toBeVisible();
+  await page.getByText('Watchlist API activity').click();
+  await expect(page.getByText('HTTP 429')).toBeVisible();
+  await page.getByRole('button', { name: /try again|retry/i }).click();
+  await expect(page.getByText('Recovered pick')).toBeVisible();
+  await expect(page.getByText('GET /api/watchlist/recommendations', { exact: true })).toHaveCount(
+    2
+  );
+  expect(attempts).toBe(2);
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByText('Recovered pick')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      width
+    );
+    await page.screenshot({ path: test.info().outputPath(`watchlist-${width}.png`) });
+  }
+});
+
+test('an edit refreshes picks even while the previous read is pending', async ({ page }) => {
+  await authenticate(page);
+  const release = Promise.withResolvers<void>();
+  let reads = 0;
+  let status = 'Completed';
+  await page.route('**/api/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/enriched'))
+      return json(route, { items: [{ ...watchlistItem, watchStatus: status }] });
+    if (path.endsWith('/tags'))
+      return json(route, {
+        tags: ['Completed', 'Watching'].map((tag) => ({ id: tag, tag, count: 1 })),
+      });
+    if (path.endsWith('/watched/add')) {
+      status = route.request().postDataJSON().status;
+      return json(route, { success: true });
+    }
+    if (path.endsWith('/recommendations')) {
+      const attempt = ++reads;
+      if (attempt === 1) await release.promise;
+      return json(route, {
+        profile: { favoriteGenres: [], favoriteThemes: [], preferredTypes: [], sampledTitles: 1 },
+        recommendations: [
+          {
+            mal_id: attempt,
+            title: attempt === 1 ? 'Old pick' : 'Updated pick',
+            reasons: [],
+            tasteScore: 2,
+          },
+        ],
+      });
+    }
+    return json(route, {});
+  });
+  try {
+    await page.goto('/watchlist');
+    await expect.poll(() => reads).toBe(1);
+    await page.locator('select').selectOption('Watching');
+    await expect(page.getByText('Updated pick')).toBeVisible();
+  } finally {
+    release.resolve();
+  }
+  await expect(page.getByText('Old pick')).toHaveCount(0);
+  expect(reads).toBe(2);
+});
