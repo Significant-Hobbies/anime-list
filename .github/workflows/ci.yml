@@ -39,5 +39,5 @@ jobs:
           preview_pid=$!
           trap 'kill "$preview_pid"' EXIT
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 "$E2E_BASE_URL/search" --output /dev/null
-          pnpm exec playwright test --project desktop e2e/search-recommendations.spec.ts e2e/personal-flows.spec.ts
+          pnpm exec playwright test e2e/search-recommendations.spec.ts e2e/personal-flows.spec.ts --project=desktop
       - run: pnpm exec wrangler deploy --dry-run --config wrangler.local.toml --outdir .wrangler/dry-run
