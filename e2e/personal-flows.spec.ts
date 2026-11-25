@@ -192,6 +192,11 @@ test('shows Watching immediately and expands the plan a week at a time', async (
   });
   await expect(progress).toHaveValue('4');
   await expect(page.getByText('Ep 5-7', { exact: true })).toBeVisible();
+  const fitsViewport = await page.evaluate(() => {
+    const layout = document.documentElement;
+    return layout.scrollWidth <= layout.clientWidth;
+  });
+  expect(fitsViewport).toBe(true);
   await expect(page.getByText(/^Day 8 ·/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Show 7 more days' }).click();
   await expect(page.getByText(/^Day 8 ·/)).toBeVisible();

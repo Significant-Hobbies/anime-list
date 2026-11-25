@@ -653,7 +653,7 @@ export default function ScheduleView() {
                   <div className="w-28 shrink-0 pt-1.5">
                     <DayLabel day={day.day} date={day.date} />
                   </div>
-                  <div className="flex-1 space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1">
                     {day.entries.map((entry, i) => (
                       <div
                         key={`${entry.mal_id}-${i}`}
