@@ -54,6 +54,9 @@ export function createMetadataReader(
     throw new Error('Tenrai request failed after five attempts: ' + url);
   }
   return {
+    full(media: Media, id: number) {
+      return read(`${API_CONFIG.baseUrl}/${media}/${id}/full`, true);
+    },
     async page(media: Media, page: number) {
       const result = pageSchema.parse(
         await read(`${API_CONFIG.baseUrl}/${media}?order_by=mal_id&sort=asc&limit=100&page=${page}`)

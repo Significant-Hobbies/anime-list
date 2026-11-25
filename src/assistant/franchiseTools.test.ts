@@ -40,6 +40,7 @@ beforeEach(() => {
     { id: 4, rel: 'Character' },
   ]);
   db.exec(readFileSync('migrations/d1/0006_assistant_franchises.sql', 'utf8'));
+  db.exec(readFileSync('migrations/d1/0010_franchise_release_observations.sql', 'utf8'));
   db.exec('CREATE TABLE assistant_library(user_id TEXT,media TEXT,mal_id TEXT,status TEXT)');
   setDbClient({ execute: exec, batch: async (stmts) => Promise.all(stmts.map(exec)) });
   for (const [id, from, status] of [

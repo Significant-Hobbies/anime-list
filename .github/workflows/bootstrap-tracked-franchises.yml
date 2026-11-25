@@ -1,0 +1,39 @@
+name: Bootstrap Tracked Franchise Relationships
+on:
+  workflow_dispatch:
+    inputs:
+      max_titles:
+        description: Maximum provider lookups this run
+        type: number
+        required: true
+        default: 10000
+
+concurrency:
+  group: anime-list-catalog-d1-writes
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 210
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
+      - name: Index missing tracked titles and their related works
+        env:
+          MAX_TITLES: ${{ inputs.max_titles }}
+          D1_REMOTE_APPROVED: 'true'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec tsx src/scripts/bootstrapTrackedFranchises.ts --remote --max-titles="$MAX_TITLES"

@@ -2,7 +2,7 @@ import { providerNames } from '../db/catalogTitleMetadata';
 import type { DatabaseClient, DatabaseStatement } from '../db/client';
 import type { createMetadataReader, Media, ProviderTitle } from './catalogMetadataProvider';
 
-type Reader = ReturnType<typeof createMetadataReader>;
+type Reader = Pick<ReturnType<typeof createMetadataReader>, 'detail' | 'page'>;
 const DIRECT_LOOKUP_THRESHOLD = 300;
 const D1_BATCH = 500;
 const PAGE_SELECT = 5000;
