@@ -34,9 +34,9 @@ describe('buildAnimeSearchWhere', () => {
 
     expect(result?.whereClause).toContain('instr(lower(title), lower(?)) > 0');
     expect(result?.whereClause).toContain("COALESCE(title_english, '')");
-    expect(result?.whereClause.match(/EXISTS/g)).toHaveLength(2);
+    expect(result?.whereClause.match(/EXISTS/g)).toHaveLength(3);
     expect(result?.whereClause).toContain("lower(status) = 'currently airing'");
-    expect(result?.args).toEqual(['bebop', 'bebop', 'Action', 'Sci-Fi']);
+    expect(result?.args).toEqual(['bebop', 'bebop', 'bebop', 'Action', 'Sci-Fi']);
   });
 
   it('falls back for weighted ranking filters', () => {

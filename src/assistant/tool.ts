@@ -7,7 +7,12 @@ export interface AssistantContext {
 
 export class AssistantError extends Error {
   constructor(
-    readonly code: 'invalid_argument' | 'not_found' | 'conflict' | 'upstream_unavailable' | 'rate_limited',
+    readonly code:
+      | 'invalid_argument'
+      | 'not_found'
+      | 'conflict'
+      | 'upstream_unavailable'
+      | 'rate_limited',
     message: string
   ) {
     super(message);

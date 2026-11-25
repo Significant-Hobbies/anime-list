@@ -493,6 +493,7 @@ export interface ApiTokenMetadata {
   createdAt: string;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  canWrite: boolean;
 }
 
 export interface CreatedApiToken {
@@ -506,11 +507,11 @@ export function listTokens(signal?: AbortSignal): Promise<{ tokens: ApiTokenMeta
   return fetchJson(`${BASE}/tokens`, { signal });
 }
 
-export function createToken(name: string): Promise<CreatedApiToken> {
+export function createToken(name: string, canWrite = false): Promise<CreatedApiToken> {
   return fetchJson(`${BASE}/tokens`, {
     method: 'POST',
     headers: jsonHeaders,
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, canWrite }),
   });
 }
 

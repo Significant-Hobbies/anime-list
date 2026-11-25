@@ -102,10 +102,15 @@ const matchesFilter = <
   }
 ): boolean => {
   const value = ctx.getFieldValue(item, filter.field);
-  if (value === undefined) return false;
+  if (value == null) return false;
 
   if (ctx.isNumericField(filter.field)) {
-    return evaluateNumericFilter(value as number, filter.value as number, filter.action);
+    return (
+      typeof value === 'number' &&
+      Number.isFinite(value) &&
+      typeof filter.value === 'number' &&
+      evaluateNumericFilter(value, filter.value, filter.action)
+    );
   }
 
   if (ctx.isArrayField(filter.field)) {
@@ -181,7 +186,13 @@ const matchesAnimeFilter = (
     const englishTitleMatch = anime.title_english
       ? matchesStringFilter(anime.title_english, searchValue, FilterAction.Contains)
       : false;
-    return titleMatch || englishTitleMatch;
+    return (
+      titleMatch ||
+      englishTitleMatch ||
+      (anime.aliases ?? []).some((title) =>
+        matchesStringFilter(title, searchValue, FilterAction.Contains)
+      )
+    );
   }
 
   return matchesFilter(anime, filter, ctx);

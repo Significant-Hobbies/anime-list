@@ -60,11 +60,12 @@ describe('handleMcpRequest', () => {
         'get_watchlist_enriched',
       ])
     );
-    expect(names).toHaveLength(13);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toContain('upsert_watchlist_entries');
     for (const tool of tools) {
-      expect(tool.annotations?.readOnlyHint).toBe(true);
-      expect(tool.annotations?.destructiveHint).toBe(false);
-      expect(tool.annotations?.idempotentHint).toBe(true);
+      expect(typeof tool.annotations?.readOnlyHint).toBe('boolean');
+      if (!tool.annotations.readOnlyHint)
+        expect(tool.inputSchema.required).toContain('user_authorized');
       expect(tool.inputSchema).toBeDefined();
       expect(tool.outputSchema).toBeDefined();
     }
@@ -95,7 +96,7 @@ describe('handleMcpRequest', () => {
 
   it('forwards only a product-verified federated bearer to owner reads', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ user: { id: 'anime-user-1' }, anime: [] }), {
+      new Response(JSON.stringify({ items: [], total: 0, nextOffset: null }), {
         headers: { 'Content-Type': 'application/json' },
       })
     );
@@ -132,9 +133,17 @@ describe('handleMcpRequest', () => {
 
   it('normalizes successful reads and strips credential-shaped upstream fields', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ mal_id: 1, title: 'Cowboy Bebop', token: 'upstream-secret' }), {
-        headers: { 'Content-Type': 'application/json' },
-      })
+      new Response(
+        JSON.stringify({
+          anime: { mal_id: 1, title: 'Cowboy Bebop', token: 'upstream-secret' },
+          relations: [],
+          recommendations: [],
+          watchlistEntry: null,
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -145,7 +154,7 @@ describe('handleMcpRequest', () => {
     const body = await res.json();
 
     expect(body.result.isError).not.toBe(true);
-    expect(body.result.structuredContent.data).toMatchObject({
+    expect(body.result.structuredContent.data.anime).toMatchObject({
       mal_id: 1,
       canonicalUrl: 'https://anime.significanthobbies.com/anime/1',
     });
@@ -357,7 +366,10 @@ describe('handleMcpRequest', () => {
     ['get_watchlist_enriched', 'limit'],
     ['get_manga_watchlist_enriched', 'limit'],
   ])('follows %s nextCall across 100 rows through the terminal page', async (name, sizeKey) => {
-    const rows = Array.from({ length: 223 }, (_, index) => ({ id: index + 1 }));
+    const rows = Array.from({ length: 223 }, (_, index) => ({
+      id: name === 'list_watchlist_tags' ? String(index + 1) : index + 1,
+      name: 'tag',
+    }));
     const fetchMock = vi.fn((url: string, init: RequestInit) => {
       const search = init.method === 'POST';
       const args = search
@@ -378,7 +390,7 @@ describe('handleMcpRequest', () => {
       );
     });
     vi.stubGlobal('fetch', fetchMock);
-    const found: number[] = [];
+    const found: (number | string)[] = [];
     let call = { name, arguments: { [sizeKey]: 100 } };
     for (const offset of [0, 100, 200]) {
       const { result } = await (

@@ -46,7 +46,7 @@ export const createArrayFilterSchemas = <Field extends string>(
       field: fieldSchema,
       action: arrayIncludesActionSchema,
       value: z.array(z.string().min(1)),
-      score_multiplier: z.record(z.number()).optional(),
+      score_multiplier: z.record(z.string(), z.number()).optional(),
     })
     .superRefine((data, ctx) => {
       const field = data.field as Field;
@@ -61,7 +61,7 @@ export const createArrayFilterSchemas = <Field extends string>(
       field: fieldSchema,
       action: z.literal(FilterAction.Excludes),
       value: z.union([z.string().min(1), z.array(z.string().min(1))]),
-      score_multiplier: z.record(z.number()).optional(),
+      score_multiplier: z.record(z.string(), z.number()).optional(),
     })
     .superRefine((data, ctx) => {
       const field = data.field as Field;

@@ -1,6 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { z } from 'zod';
+import { catalogOutputs } from './mcpCatalogContracts';
+import { registerAssistantTools, type ResolveSession } from '../assistant/register';
+import { assistantTools } from '../assistant/tools';
+import { filterRequestSchema } from '../validators/animeFilters';
+import { mangaFilterRequestSchema } from '../validators/mangaFilters';
+import { NUMERIC_FIELDS } from '../types/anime';
+import { MANGA_NUMERIC_FIELDS } from '../types/manga';
 import { READ_PAGE_MAX } from './readPagination';
 
 // MCP server: a thin protocol adapter over the existing /api/* endpoints.
@@ -19,26 +26,6 @@ const watchlistPageInput = {
   limit: z.number().int().min(1).max(READ_PAGE_MAX).default(50),
   offset: z.number().int().min(0).max(1_000_000).default(0),
 };
-
-const filterValueSchema = z.union([
-  z.string().max(200),
-  z.number().finite(),
-  z.boolean(),
-  z.array(z.union([z.string().max(100), z.number().finite()])).max(50),
-]);
-const catalogFilterSchema = z.object({
-  field: z
-    .string()
-    .min(1)
-    .max(64)
-    .regex(/^[A-Za-z0-9_.-]+$/),
-  action: z
-    .string()
-    .min(1)
-    .max(32)
-    .regex(/^[A-Za-z0-9_-]+$/),
-  value: filterValueSchema,
-});
 
 const outputSchema = z.object({
   schemaVersion: z.literal('1'),
@@ -62,6 +49,7 @@ const outputSchema = z.object({
   error: z
     .object({
       code: z.enum([
+        'invalid_argument',
         'unauthorized',
         'not_found',
         'rate_limited',
@@ -87,6 +75,22 @@ interface ToolDef {
   inputSchema?: Record<string, z.ZodType>;
 }
 
+function searchBody(args: Record<string, unknown>) {
+  const { query, ...search } = args;
+  if (typeof query === 'string')
+    search.filters = [
+      ...(Array.isArray(search.filters) ? search.filters : []),
+      { field: 'title', action: 'CONTAINS', value: query },
+    ];
+  return search;
+}
+const queryField = z
+  .string()
+  .trim()
+  .min(1)
+  .max(180)
+  .optional()
+  .describe('Match a canonical, English, Japanese, or alternative title.');
 const TOOLS: ToolDef[] = [
   {
     name: 'search_anime',
@@ -95,13 +99,12 @@ const TOOLS: ToolDef[] = [
     method: 'POST',
     path: '/api/search',
     auth: false,
-    buildBody: (a) => a,
+    buildBody: searchBody,
     inputSchema: {
-      filters: z.array(catalogFilterSchema).max(20).default([]),
+      query: queryField,
+      filters: filterRequestSchema.shape.filters.max(20).default([]),
       sortBy: z
-        .string()
-        .max(64)
-        .regex(/^[A-Za-z0-9_.-]+$/)
+        .enum([...NUMERIC_FIELDS, 'released_at', 'created_at', 'recommended', 'time'])
         .optional(),
       airing: z.enum(['any', 'yes', 'no']).default('any'),
       pagesize: z.number().int().min(1).max(READ_PAGE_MAX).default(20),
@@ -115,14 +118,11 @@ const TOOLS: ToolDef[] = [
     method: 'POST',
     path: '/api/manga/search',
     auth: false,
-    buildBody: (a) => a,
+    buildBody: searchBody,
     inputSchema: {
-      filters: z.array(catalogFilterSchema).max(20).default([]),
-      sortBy: z
-        .string()
-        .max(64)
-        .regex(/^[A-Za-z0-9_.-]+$/)
-        .optional(),
+      query: queryField,
+      filters: mangaFilterRequestSchema.shape.filters.max(20).default([]),
+      sortBy: z.enum([...MANGA_NUMERIC_FIELDS, 'released_at', 'created_at', 'time']).optional(),
       pagesize: z.number().int().min(1).max(READ_PAGE_MAX).default(20),
       offset: z.number().int().min(0).max(1_000_000).default(0),
     },
@@ -248,6 +248,7 @@ const TOOLS: ToolDef[] = [
 ];
 
 type StableErrorCode =
+  | 'invalid_argument'
   | 'unauthorized'
   | 'not_found'
   | 'rate_limited'
@@ -368,6 +369,12 @@ async function boundedResponseText(response: Response): Promise<string | null> {
 }
 
 function errorForStatus(tool: ToolDef, status: number) {
+  if (status === 400 || status === 422)
+    return stableError(
+      tool,
+      'invalid_argument',
+      'Invalid input. Check the supported filter fields, values, and operator types in the tool schema.'
+    );
   if (status === 401 || status === 403) {
     return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
   }
@@ -544,7 +551,8 @@ function buildServer(
   dispatch: DispatchApi,
   origin: string,
   authHeader: string | null,
-  federated: boolean
+  federated: boolean,
+  session: ResolveSession
 ): McpServer {
   const readCredential =
     /^Bearer anime_list_[A-Za-z0-9_-]+$/.test(authHeader ?? '') || federated ? authHeader : null;
@@ -562,8 +570,8 @@ function buildServer(
           .map((part) => part[0]?.toUpperCase() + part.slice(1))
           .join(' '),
         description: tool.description,
-        inputSchema: tool.inputSchema ?? {},
-        outputSchema,
+        inputSchema: z.strictObject(tool.inputSchema ?? {}),
+        outputSchema: outputSchema.extend({ data: catalogOutputs[tool.name].optional() }),
         annotations: {
           readOnlyHint: true,
           destructiveHint: false,
@@ -575,6 +583,7 @@ function buildServer(
     );
   }
 
+  registerAssistantTools(server, assistantTools, session);
   return server;
 }
 
@@ -582,7 +591,8 @@ export async function handleMcpRequest(
   request: Request,
   dispatch: DispatchApi,
   authHeader: string | null,
-  federated = false
+  federated = false,
+  session: ResolveSession = async () => ({ userId: '', canWrite: false, env: {} })
 ): Promise<Response> {
   const origin = new URL(request.url).origin;
   // Stateless, JSON responses — no SSE, no session state. Ideal for
@@ -591,7 +601,7 @@ export async function handleMcpRequest(
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
-  const server = buildServer(dispatch, origin, authHeader, federated);
+  const server = buildServer(dispatch, origin, authHeader, federated, session);
   await server.connect(transport);
   const response = await transport.handleRequest(request);
   await server.close();

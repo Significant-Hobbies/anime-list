@@ -15,9 +15,15 @@ import { SITE_NAME } from '@/lib/brand';
 import { CompactSectionSkeleton, TableSkeleton } from '@/components/ui/loading-state';
 
 const API_URL = getApiUrl();
-const MCP_ENDPOINT = `${API_URL}/api/mcp`;
+const MCP_ENDPOINT = `${API_URL || 'https://anime.significanthobbies.com'}/api/mcp`;
 
 const PUBLIC_TOOLS = [
+  {
+    name: 'semantic_search',
+    desc: 'Find stories by synopsis, trope, or a natural-language description.',
+  },
+  { name: 'get_franchise', desc: 'Explore connected seasons and adaptations by catalog ID.' },
+  { name: 'get_seasonal_anime', desc: 'Browse releases by year and season.' },
   {
     name: 'search_anime',
     desc: 'Search with filters and sorting. Use the recommended sort with a connected account for personalized results.',
@@ -35,13 +41,26 @@ const PUBLIC_TOOLS = [
 ];
 
 const AUTH_TOOLS = [
+  { name: 'discover_titles', desc: 'Find candidates using your history and saved preferences.' },
+  {
+    name: 'get_watchlist_stats',
+    desc: 'Count tracked seasons and manga entries by status and personal rating.',
+  },
+  {
+    name: 'upsert_watchlist_entries',
+    desc: 'Save statuses, notes, tags, or optional ratings with write permission.',
+  },
+  {
+    name: 'remove_watchlist_entries',
+    desc: 'Remove explicitly selected entries with write permission.',
+  },
   {
     name: 'get_manga_watchlist_enriched',
     desc: 'Your manga list with titles, chapters, genres, and scores.',
   },
   { name: 'list_watchlist', desc: 'Your anime watchlist with statuses.' },
   { name: 'list_manga_watchlist', desc: 'Your manga watchlist with statuses.' },
-  { name: 'list_watchlist_tags', desc: 'Your watchlist tags with per-tag counts.' },
+  { name: 'list_watchlist_tags', desc: 'Legacy watch statuses with per-status counts.' },
   {
     name: 'get_watchlist_enriched',
     desc: 'Your watchlist joined with catalog metadata (title, image, score, genres).',
@@ -52,7 +71,7 @@ const CLAUDE_CONFIG = `{
   "mcpServers": {
     "anime-list": {
       "command": "npx",
-      "args": ["mcp-remote", "${MCP_ENDPOINT}"],
+      "args": ["mcp-remote", "${MCP_ENDPOINT}", "--header", "Authorization: \${AUTHORIZATION_HEADER}"],
       "env": { "AUTHORIZATION_HEADER": "Bearer <paste-token-here>" }
     }
   }
@@ -74,7 +93,12 @@ function TokenRow({
   const isRevoked = !!token.revokedAt;
   return (
     <tr className="border-b border-border last:border-0">
-      <td className="py-2 pr-4 text-sm font-medium">{token.name}</td>
+      <td className="py-2 pr-4 text-sm font-medium">
+        {token.name}
+        <span className="block text-xs text-muted-foreground">
+          {token.canWrite ? 'Read and write' : 'Read only'}
+        </span>
+      </td>
       <td className="py-2 pr-4 text-sm text-muted-foreground">{fmtDate(token.createdAt)}</td>
       <td className="py-2 pr-4 text-sm text-muted-foreground">{fmtDate(token.lastUsedAt)}</td>
       <td className="py-2 pr-4 text-sm">
@@ -102,6 +126,7 @@ function TokenRow({
 function TokenManager() {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
+  const [canWrite, setCanWrite] = useState(false);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,9 +138,10 @@ function TokenManager() {
   const { data } = resource;
 
   const createMut = useMutation({
-    mutationFn: () => createToken(name.trim()),
+    mutationFn: () => createToken(name.trim(), canWrite),
     onSuccess: (res) => {
       setCreatedToken(res.token);
+      setCanWrite(false);
       setCopied(false);
       setName('');
       setError(null);
@@ -158,6 +184,14 @@ function TokenManager() {
           maxLength={64}
           className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
         />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={canWrite}
+            onChange={(event) => setCanWrite(event.target.checked)}
+          />
+          Allow changes to my library and preferences
+        </label>
         <button
           type="submit"
           disabled={!name.trim() || createMut.isPending}
@@ -267,13 +301,13 @@ export default function McpPage() {
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">MCP Server</h1>
         <p className="mt-4 max-w-prose text-base leading-7 text-muted-foreground">
           {SITE_NAME} exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT,
-          Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search
-          and watchlist tools return up to 100 results per page. Pass nextCall to tools/call until
-          it is null to retrieve every match with the same filters and sort.
+          Claude Desktop, or Cursor can find anime and manga, compare seasons, and track your list.
+          Connect your account for personal discovery. Grant write permission to save changes you
+          request.
         </p>
         <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <span className="text-muted-foreground">Endpoint: </span>
-          <code className="font-mono">{MCP_ENDPOINT}</code>
+          <code className="font-mono break-all">{MCP_ENDPOINT}</code>
         </div>
       </section>
 
@@ -288,9 +322,7 @@ export default function McpPage() {
           ))}
         </ul>
 
-        <h2 className="mt-6 text-sm font-medium text-muted-foreground">
-          Watchlist tools (require a token)
-        </h2>
+        <h2 className="mt-6 text-sm font-medium text-muted-foreground">Personal tools</h2>
         <ul className="mt-3 space-y-2">
           {AUTH_TOOLS.map((t) => (
             <li key={t.name} className="text-sm">

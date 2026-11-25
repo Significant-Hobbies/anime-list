@@ -310,6 +310,7 @@ export function registerMangaRoutes(
         url: manga.url,
         title: manga.title,
         title_english: manga.title_english,
+        aliases: manga.aliases,
         type: manga.type,
         chapters: manga.chapters,
         volumes: manga.volumes,

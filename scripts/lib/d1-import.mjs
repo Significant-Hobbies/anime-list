@@ -12,6 +12,7 @@ const APPLICATION_TABLES = new Set([
   'library_tags',
   'library_entry_tags',
   'anime_data',
+  'catalog_title_metadata',
   'manga_data',
   'anime_relations_cache',
   'anime_recommendations_cache',
@@ -20,6 +21,17 @@ const APPLICATION_TABLES = new Set([
   'collections',
   'collection_items',
   'user_api_tokens',
+  'assistant_write_grants',
+  'assistant_discovery_preferences',
+  'assistant_recommendation_feedback',
+  'assistant_franchise_edges',
+  'assistant_anime_details',
+  'assistant_manga_details',
+  'assistant_manga_edges',
+  'assistant_franchise_monitors',
+  'assistant_release_events',
+  'assistant_provider_attempts',
+  'assistant_manga_attempts',
 ]);
 
 const HEADER = 'PRAGMA defer_foreign_keys = true;\n';
@@ -169,7 +181,9 @@ export function prepareD1Import(sourceSql, options = {}) {
 
     const target =
       {
+        assistant_write_grants: preferences,
         watching_schedule_preferences: preferences,
+        assistant_release_events: assignments,
         library_entry_tags: assignments,
         library_details: details,
       }[table] ?? statements;

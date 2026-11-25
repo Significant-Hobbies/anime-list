@@ -4,12 +4,28 @@ import { asEntry } from './library';
 import type { EntryInput, EntryKey } from './librarySchemas';
 
 const now = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
+async function validateStatus(userId: string, status?: string) {
+  const db = getDb();
+  if (status && !['Done', 'Watching', 'Delaying', 'Dropped'].includes(status)) {
+    const existing = await db.execute({
+      sql: 'SELECT 1 FROM user_tags WHERE user_id=? AND name=?',
+      args: [userId, status],
+    });
+    if (!existing.rows.length)
+      throw new AssistantError(
+        'invalid_argument',
+        'Choose Done, Watching, Delaying, Dropped, or an existing watch status.'
+      );
+  }
+}
+
 export async function upsertLibraryEntry(userId: string, input: EntryInput) {
   const { media_type: media, watch_status: status } = input;
   const id = String(input.catalog_id);
   const key = [userId, media, id];
   const parent = media + '_watchlist';
   const db = getDb();
+  await validateStatus(userId, status);
   const statements: DatabaseStatement[] = [];
   // Reading existence inside the write batch keeps simultaneous creates/removes ordered.
   if (status) {

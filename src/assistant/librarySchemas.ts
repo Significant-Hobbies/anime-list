@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-export const media = z.enum(['anime', 'manga']);
-export const tagName = z.string().trim().min(1).max(64);
+const media = z.enum(['anime', 'manga']);
+const tagName = z.string().trim().min(1).max(64);
 const rating = z.number().min(1).max(10);
 const timestamp = z.iso.datetime({ offset: true });
 export const identity = z.strictObject({

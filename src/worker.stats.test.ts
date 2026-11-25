@@ -188,7 +188,10 @@ it('follows a real MCP continuation through enriched manga rows beyond 50', asyn
 
 it('uses the verified OAuth subject to scope an MCP watchlist read', async () => {
   const token = `${Buffer.from(JSON.stringify({ alg: 'RS256' })).toString('base64url')}.fixture.fixture`;
-  vi.spyOn(auth0, 'verifyAnimeAuth0Subject').mockResolvedValue('google-fixture');
+  vi.spyOn(auth0, 'verifyAnimeAuth0Grant').mockResolvedValue({
+    googleId: 'google-fixture',
+    canWrite: false,
+  });
   const lookup = vi.spyOn(users, 'findUserByGoogleId').mockResolvedValue({
     id: 'private-user',
     google_id: 'google-fixture',
