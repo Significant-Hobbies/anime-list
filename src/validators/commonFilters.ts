@@ -28,7 +28,7 @@ export interface ArrayFieldValidators<Field extends string> {
 }
 
 export const createNumericFilterSchema = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>
+  fieldSchema: z.ZodEnum<Record<string, Field>>
 ) =>
   z.object({
     field: fieldSchema,
@@ -38,7 +38,7 @@ export const createNumericFilterSchema = <Field extends string>(
   });
 
 export const createArrayFilterSchemas = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>,
+  fieldSchema: z.ZodEnum<Record<string, Field>>,
   validators?: ArrayFieldValidators<Field>
 ) => {
   const includesSchema = z
@@ -73,7 +73,7 @@ export const createArrayFilterSchemas = <Field extends string>(
 };
 
 export const createStringFilterSchemas = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>
+  fieldSchema: z.ZodEnum<Record<string, Field>>
 ) => {
   const textSchema = z.object({
     field: fieldSchema,
@@ -100,7 +100,7 @@ export const createStringFilterSchemas = <Field extends string>(
 };
 
 export const createBooleanFilterSchema = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>
+  fieldSchema: z.ZodEnum<Record<string, Field>>
 ) =>
   z.object({
     field: fieldSchema,

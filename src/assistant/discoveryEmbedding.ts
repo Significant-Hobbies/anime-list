@@ -33,7 +33,7 @@ function loadIndex() {
 }
 let loaded: ReturnType<typeof loadIndex> | undefined;
 const model = () => (loaded ??= loadIndex());
-export const normalizeText = (text: string) =>
+const normalizeText = (text: string) =>
   text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const media = z.enum(['anime', 'manga']);
-export const mediaChoice = z.enum(['anime', 'manga', 'both']);
+const mediaChoice = z.enum(['anime', 'manga', 'both']);
 export type Media = z.infer<typeof media>;
 const text = z.string().trim().min(1).max(180);
 const labels = z.array(text).max(24);
@@ -81,7 +81,7 @@ export const pageInput = {
   offset: z.number().int().min(0).max(1_000_000).default(0),
 };
 const outputNumber = z.number().nullable();
-export const resultSchema = z.object({
+const resultSchema = z.object({
   media_type: media,
   mal_id: z.number().int(),
   title: z.string(),

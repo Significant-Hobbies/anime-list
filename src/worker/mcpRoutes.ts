@@ -429,17 +429,20 @@ function fetchErrorResult(tool: ToolDef, error: unknown) {
 }
 
 function parseResponseText(tool: ToolDef, text: string | null) {
-  if (text === null) {
-    return stableError(
-      tool,
-      'invalid_upstream_response',
-      'Anime List response exceeded the read bound.'
-    );
-  }
+  if (text === null)
+    return {
+      error: stableError(
+        tool,
+        'invalid_upstream_response',
+        'Anime List response exceeded the read bound.'
+      ),
+    };
   try {
-    return JSON.parse(text) as unknown;
+    return { value: JSON.parse(text) as unknown };
   } catch {
-    return stableError(tool, 'invalid_upstream_response', 'Anime List returned invalid JSON.');
+    return {
+      error: stableError(tool, 'invalid_upstream_response', 'Anime List returned invalid JSON.'),
+    };
   }
 }
 
@@ -512,11 +515,8 @@ function buildToolHandler(
     if (!res.ok) return errorForStatus(tool, res.status);
 
     const parsed = parseResponseText(tool, await boundedResponseText(res));
-    if (parsed !== null && typeof parsed === 'object' && 'isError' in parsed) {
-      return parsed;
-    }
-
-    const normalized = addCatalogPageInfo(parsed, tool, args);
+    if (parsed.error) return parsed.error;
+    const normalized = addCatalogPageInfo(parsed.value, tool, args);
     const nextCall = continuation(tool, args, normalized);
     const safeData = stripSensitive(addCanonicalUrls(normalized, tool.name));
     const data = {

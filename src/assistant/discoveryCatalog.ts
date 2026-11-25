@@ -6,9 +6,9 @@ import type { Filters, Media } from './discoverySchemas';
 
 export const keyFor = (media: Media, id: number) => `${media}:${id}`;
 export const fold = (value: string) => value.trim().toLowerCase();
-export const optionalString = (value: unknown) =>
+const optionalString = (value: unknown) =>
   typeof value === 'string' && value.trim() ? value : null;
-export const optionalNumber = (value: unknown) =>
+const optionalNumber = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 function parse(value: unknown) {
   if (!value || typeof value !== 'string') return [];
@@ -18,7 +18,7 @@ function parse(value: unknown) {
     return [];
   }
 }
-export function labels(value: unknown): string[] {
+function labels(value: unknown): string[] {
   const data = parse(value);
   if (!data || typeof data !== 'object') return [];
   return Array.isArray(data)

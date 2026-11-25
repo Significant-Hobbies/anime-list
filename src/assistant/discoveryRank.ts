@@ -31,7 +31,7 @@ function languageKey(lang: string) {
   if (['en', 'eng', 'english'].includes(value)) return 'english';
   return value;
 }
-export function allowsEntry(entry: Entry | undefined, filters: Filters) {
+function allowsEntry(entry: Entry | undefined, filters: Filters) {
   if (entry) {
     const status = statusKey(entry.status);
     if (

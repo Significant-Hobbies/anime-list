@@ -35,7 +35,13 @@ const APPLICATION_TABLES = new Set([
 ]);
 
 const HEADER = 'PRAGMA defer_foreign_keys = true;\n';
-const IGNORED_TABLES = new Set(['d1_migrations', 'sqlite_sequence', '_cf_KV', '_cf_METADATA']);
+const IGNORED_TABLES = new Set([
+  'd1_migrations',
+  'sqlite_sequence',
+  '_cf_KV',
+  '_cf_METADATA',
+  'assistant_discovery_revision',
+]);
 
 export function splitStatements(sql) {
   const statements = [];

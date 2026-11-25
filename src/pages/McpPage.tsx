@@ -22,6 +22,8 @@ const PUBLIC_TOOLS = [
     name: 'semantic_search',
     desc: 'Find stories by synopsis, trope, or a natural-language description.',
   },
+  { name: 'get_similar_titles', desc: 'Find titles similar to one or more catalog entries.' },
+  { name: 'get_streaming_links', desc: 'Look up provider-listed streaming services for an anime.' },
   { name: 'get_franchise', desc: 'Explore connected seasons and adaptations by catalog ID.' },
   { name: 'get_seasonal_anime', desc: 'Browse releases by year and season.' },
   {
@@ -41,6 +43,31 @@ const PUBLIC_TOOLS = [
 ];
 
 const AUTH_TOOLS = [
+  {
+    name: 'get_watchlist',
+    desc: 'Filter your anime and manga by status, tags or rating and page through the results.',
+  },
+  { name: 'get_watchlist_entry', desc: 'Read one season or manga entry by catalog ID.' },
+  {
+    name: 'get_user_preferences / update_user_preferences',
+    desc: 'Inspect, save or clear your discovery preferences.',
+  },
+  {
+    name: 'record_recommendation_feedback / get_recommendation_feedback',
+    desc: 'Record a reaction or read earlier feedback.',
+  },
+  {
+    name: 'list_library_tags / manage_watchlist_tags',
+    desc: 'List, create, rename or remove personal classifications.',
+  },
+  {
+    name: 'get_released_sequels / get_upcoming_sequels',
+    desc: 'Find sequels to completed titles.',
+  },
+  {
+    name: 'set_franchise_monitor / get_franchise_updates',
+    desc: 'Follow release changes in selected franchises.',
+  },
   { name: 'discover_titles', desc: 'Find candidates using your history and saved preferences.' },
   {
     name: 'get_watchlist_stats',
@@ -339,6 +366,11 @@ export default function McpPage() {
           Add the server to your AI tool. For watchlist tools, create a token below and replace
           <code className="mx-1 font-mono">{'<paste-token-here>'}</code>
           with it.
+        </p>
+        <p className="my-3 text-sm">
+          For ChatGPT, connect with OAuth at{' '}
+          <code className="break-all">https://anime-mcp.significanthobbies.com/anime-list/mcp</code>
+          . Grant write access to change your list or preferences.
         </p>
         <ConfigBlock title="Claude Desktop" config={CLAUDE_CONFIG} />
         <p className="mt-3 text-xs text-muted-foreground">

@@ -1,20 +1,99 @@
-# Anime List MCP
+[← Home](https://anime.significanthobbies.com/)
 
-Connect ChatGPT to the [hosted account endpoint](https://anime-mcp.significanthobbies.com/anime-list/mcp) using OAuth. Other MCP clients can use the [product endpoint](https://anime.significanthobbies.com/api/mcp) with a personal access token issued on the [connections page](https://anime.significanthobbies.com/mcp). Catalog tools also work anonymously on the product endpoint.
+# MCP Server
 
-## Discovery
+Canonical: https://anime.significanthobbies.com/mcp
 
-- `search_anime` and `search_manga` accept a title query, typed field/operator filters, sortBy, pagesize (1–100), and offset. Follow nextCall for the next page. For example, use `{"filters":[{"field":"score","action":"GREATER_THAN_OR_EQUALS","value":7}],"pagesize":20,"offset":0}`.
-- `semantic_search` ranks titles using synopsis embeddings, keywords, and normalized tropes. `get_similar_titles` accepts a media type and MAL ID as a reference. `discover_titles` also uses the connected account's ratings, feedback, and saved preferences. Done and Dropped are excluded by default. Request-specific filters override matching saved fields.
-- `get_franchise`, `get_released_sequels`, and `get_upcoming_sequels` use media-qualified catalog relationships. Check the returned coverage before concluding a franchise has no further sequels. `get_seasonal_anime` includes provider-listed upcoming titles. `get_streaming_links` reports provider-listed services where available. `set_franchise_monitor` and `get_franchise_updates` track observed release changes.
-- `get_anime_detail` and `get_manga_detail` return extended metadata. All tools publish their inputs and outputs through `tools/list`.
+Anime List exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT, Claude Desktop, or Cursor can find anime and manga, compare seasons, and track your list. Connect your account for personal discovery. Grant write permission to save changes you request.
 
-## Personal library
+Endpoint:  https://anime.significanthobbies.com/api/mcp
 
-Each anime season or manga catalog entry has its own ID and status. Use `get_watchlist`, `get_watchlist_entry`, and `get_watchlist_stats` for private reads. Counts refer to individual catalog entries. Older entries may have unknown creation or completion dates.
+## Public tools (no auth)
 
-`upsert_watchlist_entries` accepts up to 50 anime and manga entries. Omitted fields preserve their values. A null personal rating clears it. Ratings range from 1 to 10. `remove_watchlist_entries` removes the selected entries. Check each per-entry outcome before reporting a bulk change. `manage_watchlist_tags` and `list_library_tags` handle classifications. `list_watchlist_tags` retains the legacy status-bucket interface.
+- semantic_search  — Find stories by synopsis, trope, or a natural-language description.
 
-`get_user_preferences` and `update_user_preferences` manage saved discovery settings. `record_recommendation_feedback` and `get_recommendation_feedback` store reactions separately from watch status.
+- get_similar_titles  — Find titles similar to one or more catalog entries.
 
-Private reads require account access. Mutations also require delegated write permission and an explicit user request for that change. Existing read-only grants and tokens retain read-only access. The hosted connector can request additional consent. Personal-token users can create a write-enabled token on the connections page.
+- get_streaming_links  — Look up provider-listed streaming services for an anime.
+
+- get_franchise  — Explore connected seasons and adaptations by catalog ID.
+
+- get_seasonal_anime  — Browse releases by year and season.
+
+- search_anime  — Search with filters and sorting. Use the recommended sort with a connected account for personalized results.
+
+- search_manga  — Search manga with filters and sorting.
+
+- list_search_fields  — Find available filter fields for anime or manga.
+
+- list_filter_actions  — Find available comparison and array filter actions.
+
+- get_anime_detail  — Full detail for one anime by MAL id.
+
+- get_manga_detail  — Full detail for one manga by MAL id.
+
+- get_anime_stats  — Aggregate stats over the anime catalog.
+
+- get_random_anime  — Random anime, optionally filtered by genre.
+
+## Personal tools
+
+- get_watchlist  — Filter your anime and manga by status, tags or rating and page through the results.
+
+- get_watchlist_entry  — Read one season or manga entry by catalog ID.
+
+- get_user_preferences / update_user_preferences  — Inspect, save or clear your discovery preferences.
+
+- record_recommendation_feedback / get_recommendation_feedback  — Record a reaction or read earlier feedback.
+
+- list_library_tags / manage_watchlist_tags  — List, create, rename or remove personal classifications.
+
+- get_released_sequels / get_upcoming_sequels  — Find sequels to completed titles.
+
+- set_franchise_monitor / get_franchise_updates  — Follow release changes in selected franchises.
+
+- discover_titles  — Find candidates using your history and saved preferences.
+
+- get_watchlist_stats  — Count tracked seasons and manga entries by status and personal rating.
+
+- upsert_watchlist_entries  — Save statuses, notes, tags, or optional ratings with write permission.
+
+- remove_watchlist_entries  — Remove explicitly selected entries with write permission.
+
+- get_manga_watchlist_enriched  — Your manga list with titles, chapters, genres, and scores.
+
+- list_watchlist  — Your anime watchlist with statuses.
+
+- list_manga_watchlist  — Your manga watchlist with statuses.
+
+- list_watchlist_tags  — Legacy watch statuses with per-status counts.
+
+- get_watchlist_enriched  — Your watchlist joined with catalog metadata (title, image, score, genres).
+
+## Client configuration
+
+Add the server to your AI tool. For watchlist tools, create a token below and replace <paste-token-here> with it.
+
+For ChatGPT, connect with OAuth at  https://anime-mcp.significanthobbies.com/anime-list/mcp . Grant write access to change your list or preferences.
+
+### Claude Desktop
+
+  Copy
+
+```
+{
+  "mcpServers": {
+    "anime-list": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://anime.significanthobbies.com/api/mcp", "--header", "Authorization: ${AUTHORIZATION_HEADER}"],
+      "env": { "AUTHORIZATION_HEADER": "Bearer <paste-token-here>" }
+    }
+  }
+}
+```
+
+Cursor and other MCP clients: use the same URL with an Authorization: Bearer anime_list_… header.
+
+Sign in to create and manage Personal Access Tokens for watchlist access.
+
+Personal tokens and account data are excluded.
