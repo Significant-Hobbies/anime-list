@@ -1,4 +1,4 @@
-import { NUMERIC_FIELDS, type NumericField } from '@/src/types/anime';
+import { NUMERIC_FIELDS, type NumericField } from '@/src/types/animeFields';
 
 export const QUICK_GENRES = [
   'Action',

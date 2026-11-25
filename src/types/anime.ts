@@ -1,4 +1,6 @@
-import { AnimeField, FilterAction } from '../config';
+import { FilterAction } from '../config';
+import { AnimeField, NUMERIC_FIELDS, type NumericField } from './animeFields';
+export { NUMERIC_FIELDS, type NumericField };
 import type { TimeSortField } from '../utils/catalogTime';
 
 export interface BaseAnimeItem {
@@ -45,16 +47,6 @@ export interface Filter<T extends string | number | string[] = string | number |
   score_multiplier?: ScoreMultiplier<T>;
 }
 
-export type NumericField =
-  | AnimeField.Score
-  | AnimeField.ScoredBy
-  | AnimeField.Rank
-  | AnimeField.Popularity
-  | AnimeField.Members
-  | AnimeField.Favorites
-  | AnimeField.Year
-  | AnimeField.Episodes;
-
 export type ArrayField = AnimeField.Genres | AnimeField.Themes | AnimeField.Demographics;
 export type AnimeSortField = NumericField | TimeSortField;
 
@@ -64,17 +56,6 @@ export type StringField =
   | AnimeField.Type
   | AnimeField.Season
   | AnimeField.Synopsis;
-
-export const NUMERIC_FIELDS: NumericField[] = [
-  AnimeField.Score,
-  AnimeField.ScoredBy,
-  AnimeField.Rank,
-  AnimeField.Popularity,
-  AnimeField.Members,
-  AnimeField.Favorites,
-  AnimeField.Year,
-  AnimeField.Episodes,
-];
 
 export const ARRAY_FIELDS: ArrayField[] = [
   AnimeField.Genres,
