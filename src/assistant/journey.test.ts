@@ -178,3 +178,44 @@ describe('scoped MCP tracking journey', () => {
     expect(publicResult.results.length).toBeGreaterThan(0);
   });
 });
+
+it('imports historical completions through the website without inventing or overwriting dates', async () => {
+  async function post(path: string, body: unknown) {
+    const response = await worker.fetch(
+      new Request('https://fixture.invalid/api/' + path, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + second, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      env,
+      ctx
+    );
+    expect(response.status).toBe(200);
+    return response.json();
+  }
+  await post('watched/add', { mal_ids: ['102'], status: 'Watching' });
+  await post('watched/add', { mal_ids: ['103'], status: 'Done' });
+  const dates = () =>
+    sqlite
+      .prepare(
+        "SELECT mal_id, completed_at FROM assistant_library WHERE user_id='b' AND media='anime' AND mal_id IN ('101','102','103') ORDER BY mal_id"
+      )
+      .all();
+  const known = dates()[1].completed_at;
+  expect(known).toEqual(expect.any(String));
+  const body = {
+    source: 'shelf',
+    mode: 'replace',
+    payload: JSON.stringify({
+      anime: ['101', '102', '103'].map((id) => ({ id, status: 'Completed' })),
+    }),
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    expect(await post('watchlist/import/apply', body)).toMatchObject({ imported: 3 });
+    expect(dates()).toEqual([
+      { mal_id: '101', completed_at: null },
+      { mal_id: '102', completed_at: null },
+      { mal_id: '103', completed_at: known },
+    ]);
+  }
+});
