@@ -9,7 +9,11 @@ async function main() {
     process.argv.find((arg) => arg.startsWith('--max-titles='))?.slice('--max-titles='.length) ??
       10000
   );
-  await bootstrapTrackedFranchises(getDb(), createMetadataReader(), limit);
+  const result = await bootstrapTrackedFranchises(getDb(), createMetadataReader(), limit);
+  if (result.interrupted)
+    throw new Error(
+      'Provider errors interrupted the bootstrap. Completed work and retry windows were saved.'
+    );
 }
 main().catch((error) => {
   console.error(error);

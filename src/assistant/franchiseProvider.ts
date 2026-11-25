@@ -173,7 +173,11 @@ function mangaStatements(id: number, at: string, data: FullManga): DatabaseState
       'upstream_unavailable',
       'The catalog returned a different manga identifier.'
     );
-  // A single D1 batch replaces the provider snapshot and edges atomically.
+  const relations = JSON.stringify(data.relations);
+  const incoming = `WITH incoming(relation,target_type,target_id,target_title) AS (
+    SELECT LOWER(TRIM(g.value ->> '$.relation')),e.value ->> '$.type',e.value ->> '$.mal_id',e.value ->> '$.name'
+    FROM json_each(?) g,json_each(g.value,'$.entry') e WHERE (e.value ->> '$.type') IN ('anime','manga'))`;
+  const current = 'EXISTS(SELECT 1 FROM assistant_manga_details WHERE mal_id=? AND updated_at=?)';
   return [
     {
       sql: `INSERT INTO assistant_manga_details(mal_id,title,title_english,aliases,status,published_from,synopsis,format,chapters,volumes,updated_at)
@@ -195,15 +199,20 @@ function mangaStatements(id: number, at: string, data: FullManga): DatabaseState
       ],
     },
     {
-      sql: 'DELETE FROM assistant_manga_edges WHERE source_id=? AND EXISTS(SELECT 1 FROM assistant_manga_details WHERE mal_id=? AND updated_at=?)',
-      args: [id, id, at],
+      sql:
+        incoming +
+        ` DELETE FROM assistant_manga_edges WHERE source_id=? AND ${current}
+        AND (relation,target_type,target_id) NOT IN (SELECT relation,target_type,target_id FROM incoming)`,
+      args: [relations, id, id, at],
     },
     {
-      sql: `INSERT OR IGNORE INTO assistant_manga_edges(source_id,relation,target_type,target_id,target_title)
-       SELECT ?,LOWER(TRIM(g.value ->> '$.relation')),e.value ->> '$.type',e.value ->> '$.mal_id',e.value ->> '$.name'
-       FROM json_each(?) g,json_each(g.value,'$.entry') e
-       WHERE (e.value ->> '$.type') IN ('anime','manga') AND EXISTS (SELECT 1 FROM assistant_manga_details WHERE mal_id=? AND updated_at=?)`,
-      args: [id, JSON.stringify(data.relations), id, at],
+      sql:
+        incoming +
+        ` INSERT INTO assistant_manga_edges(source_id,relation,target_type,target_id,target_title)
+       SELECT ?,relation,target_type,target_id,target_title FROM incoming WHERE ${current}
+       ON CONFLICT(source_id,relation,target_type,target_id) DO UPDATE SET target_title=excluded.target_title
+       WHERE assistant_manga_edges.target_title IS NOT excluded.target_title`,
+      args: [relations, id, id, at],
     },
   ];
 }

@@ -2,6 +2,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { z } from 'zod';
 import { API_CONFIG } from '../config';
 
+export class ProviderUnavailableError extends Error {}
+
 export type Media = 'anime' | 'manga';
 const title = z.object({
   mal_id: z.number().int().positive(),
@@ -45,13 +47,13 @@ export function createMetadataReader(
           throw new Error(`Tenrai returned HTTP ${res.status} for ${url}`);
         const retry = Number(res.headers.get('retry-after')) * 1000;
         if (retry > 120_000)
-          throw new Error(
+          throw new ProviderUnavailableError(
             `Tenrai requires a pause of ${retry / 1000}s; resume this job afterward.`
           );
         if (attempt < 4) await wait(Math.max(retry, 1000 * 2 ** attempt));
       } else if (attempt < 4) await wait(1000 * 2 ** attempt);
     }
-    throw new Error('Tenrai request failed after five attempts: ' + url);
+    throw new ProviderUnavailableError('Tenrai request failed after five attempts: ' + url);
   }
   return {
     full(media: Media, id: number) {

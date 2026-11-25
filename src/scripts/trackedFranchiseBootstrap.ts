@@ -5,6 +5,8 @@ import {
   type FranchiseMedia,
 } from '../assistant/franchiseProvider';
 
+import { ProviderUnavailableError } from './catalogMetadataProvider';
+
 const tracked = `WITH RECURSIVE origins(media,id) AS (
   SELECT 'anime',CAST(mal_id AS INTEGER) FROM anime_watchlist
   UNION SELECT 'manga',CAST(mal_id AS INTEGER) FROM manga_watchlist
@@ -15,14 +17,18 @@ const tracked = `WITH RECURSIVE origins(media,id) AS (
   UNION SELECT e.source_type,e.source_id FROM members m JOIN assistant_media_membership e ON m.media=e.target_type AND m.id=e.target_id
 ), coverage AS (
   SELECT m.media,m.id,o.id IS NOT NULL AS origin,
-    COALESCE(d.updated_at,b.updated_at) AS indexed_at, COALESCE(pa.attempted_at,pm.attempted_at) AS attempted_at
+    COALESCE(d.updated_at,b.updated_at) AS indexed_at, COALESCE(pa.attempted_at,pm.attempted_at) AS attempted_at, f.retry_after, f.reason
   FROM members m LEFT JOIN origins o ON o.media=m.media AND o.id=m.id
+  LEFT JOIN assistant_bootstrap_failures f ON f.media=m.media AND f.mal_id=m.id
   LEFT JOIN assistant_anime_details d ON m.media='anime' AND d.mal_id=m.id
   LEFT JOIN assistant_manga_details b ON m.media='manga' AND b.mal_id=m.id
   LEFT JOIN assistant_provider_attempts pa ON m.media='anime' AND pa.mal_id=m.id
   LEFT JOIN assistant_manga_attempts pm ON m.media='manga' AND pm.mal_id=m.id
 )`;
 const retryWindow = () => new Date(Date.now() - 3600000).toISOString();
+
+const deferred = "MAX(COALESCE(attempted_at,'')>=?,COALESCE(retry_after,'')>?)";
+const cutoffs = () => [retryWindow(), new Date().toISOString()];
 
 async function coverage(db: DatabaseClient) {
   return (
@@ -31,10 +37,11 @@ async function coverage(db: DatabaseClient) {
         tracked +
         ` SELECT media,CASE WHEN origin THEN 'tracked_origin' ELSE 'related' END AS scope,
     COUNT(*) AS known,COUNT(indexed_at) AS indexed,
-    SUM(indexed_at IS NULL AND COALESCE(attempted_at,'')>=?) AS deferred,
-    SUM(indexed_at IS NULL AND COALESCE(attempted_at,'')<?) AS pending
+    SUM(indexed_at IS NULL AND COALESCE(reason,'')='missing' AND retry_after>?) AS missing,
+    SUM(indexed_at IS NULL AND ${deferred}) AS deferred,
+    SUM(indexed_at IS NULL AND NOT ${deferred}) AS pending
     FROM coverage GROUP BY media,origin ORDER BY media,origin DESC`,
-      args: [retryWindow(), retryWindow()],
+      args: [new Date().toISOString(), ...cutoffs(), ...cutoffs()],
     })
   ).rows;
 }
@@ -49,17 +56,20 @@ export async function bootstrapTrackedFranchises(
   if (!Number.isSafeInteger(maxTitles) || maxTitles < 1 || maxTitles > 20000)
     throw new Error('Expected max titles between 1 and 20000.');
   let fetched = 0,
-    providerMissing = 0;
+    providerMissing = 0,
+    failed = 0,
+    streak = 0;
+  let interrupted = false;
   log(JSON.stringify({ before: await coverage(db) }));
-  while (fetched + providerMissing < maxTitles) {
-    const limit = Math.min(24, maxTitles - fetched - providerMissing);
+  while (!interrupted && fetched + providerMissing + failed < maxTitles) {
+    const limit = Math.min(24, maxTitles - fetched - providerMissing - failed);
     const targets = (
       await db.execute({
         sql:
           tracked +
           ` SELECT media,id FROM coverage
-      WHERE indexed_at IS NULL AND COALESCE(attempted_at,'')<? ORDER BY origin DESC,media,id LIMIT ?`,
-        args: [retryWindow(), limit],
+      WHERE indexed_at IS NULL AND NOT ${deferred} ORDER BY origin DESC,media,id LIMIT ?`,
+        args: [...cutoffs(), limit],
       })
     ).rows;
     if (!targets.length) break;
@@ -69,24 +79,54 @@ export async function bootstrapTrackedFranchises(
         const media = row.media as FranchiseMedia,
           id = Number(row.id),
           at = new Date().toISOString();
-        const payload = await reader.full(media, id);
-        if (payload === null) {
+        statements.push(attemptStatement(media, id, at));
+        let reason: string;
+        let retryDays = 1;
+        try {
+          const payload = await reader.full(media, id);
+          if (payload !== null) {
+            statements.push(...franchiseSnapshotStatements(media, id, at, payload));
+            fetched++;
+            streak = 0;
+            continue;
+          }
           providerMissing++;
-          statements.push(attemptStatement(media, id, at));
-          continue;
+          reason = 'missing';
+          retryDays = 30;
+          streak = 0;
+        } catch (error) {
+          failed++;
+          streak++;
+          reason = error instanceof ProviderUnavailableError ? 'unavailable' : 'rejected';
+          interrupted = reason === 'unavailable' || streak >= 5;
         }
-        const snapshot = franchiseSnapshotStatements(media, id, at, payload);
-        statements.push(attemptStatement(media, id, at), ...snapshot);
-        fetched++;
+        statements.push({
+          sql: `INSERT INTO assistant_bootstrap_failures VALUES(?,?,?,?,?) ON CONFLICT(media,mal_id)
+            DO UPDATE SET observed_at=excluded.observed_at,reason=excluded.reason,retry_after=excluded.retry_after`,
+          args: [
+            media,
+            id,
+            reason,
+            at,
+            new Date(Date.parse(at) + retryDays * 86400000).toISOString(),
+          ],
+        });
+        if (interrupted) break;
       }
     } finally {
       // A title's snapshot and all of its normalized relationships stay in one transaction.
       // A batch has at most 24 titles x 4 statements, including an observed release change.
       if (statements.length) await db.batch(statements, 'write');
     }
-    log(JSON.stringify({ fetched, provider_missing: providerMissing }));
+    log(JSON.stringify({ fetched, provider_missing: providerMissing, failed, interrupted }));
   }
-  const result = { fetched, provider_missing: providerMissing, coverage: await coverage(db) };
+  const result = {
+    fetched,
+    provider_missing: providerMissing,
+    failed,
+    interrupted,
+    coverage: await coverage(db),
+  };
   log(JSON.stringify(result));
   return result;
 }

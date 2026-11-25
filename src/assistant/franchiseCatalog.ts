@@ -101,10 +101,13 @@ export async function refreshFranchiseIndex(limit = 12, includeCatalog = false) 
       LEFT JOIN assistant_manga_details m ON k.media='manga' AND m.mal_id=k.id
       LEFT JOIN assistant_manga_attempts pm ON k.media='manga' AND pm.mal_id=k.id
       LEFT JOIN assistant_provider_attempts p ON k.media='anime' AND p.mal_id=k.id
-      WHERE COALESCE(d.updated_at,m.updated_at,'') < ? AND COALESCE(p.attempted_at,pm.attempted_at,'') < ?
+      WHERE NOT EXISTS (SELECT 1 FROM assistant_bootstrap_failures f
+        WHERE f.media=k.media AND f.mal_id=k.id AND f.retry_after>? AND d.mal_id IS NULL AND m.mal_id IS NULL)
+        AND COALESCE(d.updated_at,m.updated_at,'') < ? AND COALESCE(p.attempted_at,pm.attempted_at,'') < ?
       GROUP BY k.media,k.id ORDER BY CASE WHEN MIN(priority)=0 THEN 0 WHEN COALESCE(d.updated_at,m.updated_at) IS NULL THEN 1 ELSE 2 END,
       MIN(priority),COALESCE(p.attempted_at,pm.attempted_at,''),k.media,k.id LIMIT ?`,
     args: [
+      new Date().toISOString(),
       new Date(Date.now() - 86400000).toISOString(),
       new Date(Date.now() - 3600000).toISOString(),
       Math.min(24, Math.max(1, limit)),
