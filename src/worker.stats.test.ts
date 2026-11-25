@@ -97,7 +97,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function callMcp(name: string, headers: Record<string, string> = {}) {
+async function callMcp(
+  name: string,
+  headers: Record<string, string> = {},
+  args: Record<string, unknown> = {}
+) {
   const response = await worker.fetch(
     new Request('https://anime.example/api/mcp', {
       method: 'POST',
@@ -110,7 +114,7 @@ async function callMcp(name: string, headers: Record<string, string> = {}) {
         jsonrpc: '2.0',
         id: 1,
         method: 'tools/call',
-        params: { name, arguments: {} },
+        params: { name, arguments: args },
       }),
     }),
     {
@@ -150,6 +154,36 @@ it('uses only the MCP bearer to scope watchlist reads through the Worker API', a
   expect(resolveToken).toHaveBeenCalledExactlyOnceWith(token);
   expect(watchlists.getAnimeWatchlist).toHaveBeenCalledExactlyOnceWith('private-user');
   expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('follows a real MCP continuation through enriched manga rows beyond 50', async () => {
+  vi.spyOn(apiTokens, 'resolveApiToken').mockResolvedValue({
+    userId: 'private-user',
+    tokenId: 'fixture',
+  });
+  vi.spyOn(apiTokens, 'touchApiTokenLastUsed').mockResolvedValue();
+  const headers = { Authorization: 'Bearer anime_list_fixture' };
+  vi.mocked(watchlists.getMangaWatchlist).mockResolvedValue({
+    user: { id: 'private-user', name: 'Private' },
+    manga: Object.fromEntries(
+      Array.from({ length: 101 }, (_, i) => [
+        String(i + 1),
+        { id: String(i + 1), status: 'Completed' },
+      ])
+    ),
+  });
+  const first = (await callMcp('get_manga_watchlist_enriched', headers, { limit: 100 })).result
+    .structuredContent;
+  expect(first.data.items.map((r: { mal_id: string }) => r.mal_id)).toEqual(
+    Array.from({ length: 100 }, (_, i) => String(i + 1))
+  );
+  expect(first.data.items[0].title).toBe('Title 1');
+  const finalPage = await callMcp(first.nextCall.name, headers, first.nextCall.arguments);
+  expect(finalPage.result.structuredContent).toMatchObject({
+    ok: true,
+    nextCall: null,
+    data: { items: [{ mal_id: '101' }], total: 101 },
+  });
 });
 
 it('uses the verified OAuth subject to scope an MCP watchlist read', async () => {

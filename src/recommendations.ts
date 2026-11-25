@@ -28,43 +28,29 @@ export interface TasteRecommendation {
   reasons: string[];
 }
 
-const POSITIVE_STATUS_WEIGHTS: Record<string, number> = {
-  watching: 1.4,
-  completed: 1.3,
-  done: 1.3,
-  brr: 1.15,
-};
-
-const NEGATIVE_STATUS_WEIGHTS: Record<string, number> = {
-  avoiding: -1.6,
-  deferred: -0.8,
-  dropped: -1.2,
-};
+const STATUS_WEIGHTS = new Map<string, number>([
+  ['watching', 1.4],
+  ['completed', 1.3],
+  ['done', 1.3],
+  ['brr', 1.15],
+  ['avoiding', -1.6],
+  ['deferred', -0.8],
+  ['dropped', -1.2],
+]);
 
 export function buildTasteRecommendations(
   catalog: AnimeItem[],
   watchlist: WatchlistData,
   limit = 12
 ): { profile: TasteProfile; recommendations: TasteRecommendation[] } {
-  const watchedIds = new Set(Object.keys(watchlist.anime));
-  const watchedAnime = catalog.filter((anime) => watchedIds.has(String(anime.mal_id)));
-  const genreWeights = new Map<string, number>();
-  const themeWeights = new Map<string, number>();
-  const typeWeights = new Map<string, number>();
-
-  for (const anime of watchedAnime) {
-    const status = watchlist.anime[String(anime.mal_id)]?.status ?? '';
-    const weight = statusWeight(status);
-    addMapWeights(genreWeights, Object.keys(anime.genres), weight);
-    addMapWeights(themeWeights, Object.keys(anime.themes), weight);
-    if (anime.type) addMapWeights(typeWeights, [anime.type], weight * 0.7);
-  }
+  const { watchedIds, sampledTitles, genreWeights, themeWeights, typeWeights } =
+    collectTasteSignals(catalog, watchlist);
 
   const profile = {
     favoriteGenres: topSignals(genreWeights, 5),
     favoriteThemes: topSignals(themeWeights, 5),
     preferredTypes: topSignals(typeWeights, 3),
-    sampledTitles: watchedAnime.length,
+    sampledTitles,
   };
 
   const recommendations = rankRecommendations(
@@ -77,6 +63,56 @@ export function buildTasteRecommendations(
   );
 
   return { profile, recommendations };
+}
+
+function collectTasteSignals(catalog: AnimeItem[], watchlist: WatchlistData | null) {
+  const watchedIds = new Set(Object.keys(watchlist?.anime ?? {}));
+  const watchedAnime = catalog.filter((anime) => watchedIds.has(String(anime.mal_id)));
+  const genreWeights = new Map<string, number>();
+  const themeWeights = new Map<string, number>();
+  const typeWeights = new Map<string, number>();
+
+  for (const anime of watchedAnime) {
+    const status = watchlist?.anime[String(anime.mal_id)]?.status ?? '';
+    const weight = statusWeight(status);
+    addMapWeights(genreWeights, Object.keys(anime.genres), weight);
+    addMapWeights(themeWeights, Object.keys(anime.themes), weight);
+    if (anime.type) addMapWeights(typeWeights, [anime.type], weight * 0.7);
+  }
+
+  return {
+    watchedIds,
+    sampledTitles: watchedAnime.length,
+    genreWeights,
+    themeWeights,
+    typeWeights,
+  };
+}
+
+// Search is a sort over the entire filtered set. Keep unmatched rows reachable
+// and assign points on request-local records, never on the shared catalog.
+export function sortSearchByTaste(
+  catalog: AnimeItem[],
+  filtered: AnimeItem[],
+  watchlist: WatchlistData | null
+) {
+  const { watchedIds, genreWeights, themeWeights, typeWeights } = collectTasteSignals(
+    catalog,
+    watchlist
+  );
+  return filtered
+    .map((anime) => ({
+      anime,
+      points: watchedIds.has(String(anime.mal_id))
+        ? 0
+        : Math.max(0, scoreAnimeTaste(anime, genreWeights, themeWeights, typeWeights)),
+    }))
+    .sort(
+      (a, b) =>
+        b.points - a.points ||
+        (b.anime.score ?? 0) - (a.anime.score ?? 0) ||
+        a.anime.mal_id - b.anime.mal_id
+    );
 }
 
 function rankRecommendations(
@@ -195,7 +231,7 @@ function scoreAnimeTaste(
 
 function statusWeight(status: string) {
   const normalized = status.trim().toLowerCase();
-  return POSITIVE_STATUS_WEIGHTS[normalized] ?? NEGATIVE_STATUS_WEIGHTS[normalized] ?? 0.5;
+  return STATUS_WEIGHTS.get(normalized) ?? 0.5;
 }
 
 function addMapWeights(map: Map<string, number>, keys: string[], weight: number) {

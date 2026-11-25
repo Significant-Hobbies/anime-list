@@ -131,7 +131,7 @@ describe('public source readability', () => {
     const body = await response!.text();
     expect(body).toContain(synopsis.trim());
     expect(body).toContain('[Related]');
-    expect(body).toContain('[Recommended]');
+    expect(body).not.toContain('[Recommended]');
     expect(body).not.toMatch(/SECRET|PRIVATE|private@example/);
     expect(fetcher.mock.calls[0][0]).toBe(
       'https://mal-api.sarthakagrawal927.workers.dev/api/anime/1'

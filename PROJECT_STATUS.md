@@ -61,9 +61,9 @@ production API and Google client allowlists.
 
 ## Why / What
 
-**Anime List** is a production anime/manga discovery app with multi-field search, shareable URLs, personal watchlists (Google OAuth), stats, schedule, and a unified discovery area for the seasonal queue and taste quiz.
+**Anime List** is a production anime/manga discovery app with multi-field search, shareable URLs, personal watchlists (Google OAuth), stats, schedule, and personalized anime search and a taste quiz.
 
-**Users:** Anime/manga fans filtering a ~35k-title catalog; signed-in users tracking watchlists and discovering seasonal picks.
+**Users:** Anime/manga fans filtering a ~35k-title catalog; signed-in users tracking watchlists and sorting search results by taste.
 
 **Constraints:** Operational stability over feature expansion. Keep discovery focused and remove low-signal surfaces before expanding the product.
 
@@ -217,8 +217,8 @@ production API and Google client allowlists.
 
 - `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
 - `/search` — advanced anime filter search with URL-encoded state (nuqs).
-- `/discover` — signed-in seasonal queue + privacy-safe anime taste quiz.
-- `/anime/$malId`, `/manga/$malId` — detail pages with relations/recommendations.
+- `/discover` — privacy-safe anime taste quiz with a link to filtered search.
+- `/anime/$malId`, `/manga/$malId` — detail pages with related titles.
 - `/genre/$genre`, `/random` — discovery pickers.
 - `/schedule` — episode pacing schedule.
 - `/watchlist` — anime watchlist + import/export.
@@ -229,7 +229,7 @@ production API and Google client allowlists.
 
 - Auth: `POST /api/auth/google`, `POST /api/auth/logout`.
 - Catalog: `POST /api/search`, `GET /api/stats`, `GET /api/anime/random`, `GET /api/anime/:malId`, `GET /api/fields`, `GET /api/filters`, `GET /api/last-updated`, `GET /api/changelog`.
-- Watchlist: full CRUD, tags, taste recommendations (`buildTasteRecommendations`), enriched view, import preview/apply (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
+- Watchlist: full CRUD, tags, request activity, enriched view, import preview/apply (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
 - Schedule: timeline, add/update/remove/reorder.
 - Discover: `GET /api/discover/queue` (taste-weighted seasonal + manga interleave 1:5), `POST /api/discover/dismiss`.
 - Manga: parallel search/stats/random/watchlist/detail routes under `/api/manga/*`.
@@ -261,7 +261,7 @@ production API and Google client allowlists.
 ### Personal & discovery
 
 - Watchlist statuses: Watching, Completed, Deferred, Avoiding, BRR + custom tags.
-- Discover queue: current/previous season scoring, taste-weighted genres/themes, quick add/dismiss/skip, signed-in gating.
+- Signed-in anime search orders the full filtered result set by watchlist taste before pagination.
 - Quiz: 4 questions → 4 anime archetypes → prefilled search URLs; privacy-safe, no persistence.
 - First-screen polish: live counts, skeletons, poster grids.
 

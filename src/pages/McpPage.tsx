@@ -20,12 +20,14 @@ const MCP_ENDPOINT = `${API_URL}/api/mcp`;
 const PUBLIC_TOOLS = [
   {
     name: 'search_anime',
-    desc: 'Page through the anime catalog with filters, totals, and an explicit next offset.',
+    desc: 'Search with filters and sorting. Use the recommended sort with a connected account for personalized results.',
   },
   {
     name: 'search_manga',
-    desc: 'Page through the manga catalog with filters, totals, and an explicit next offset.',
+    desc: 'Search manga with filters and sorting.',
   },
+  { name: 'list_search_fields', desc: 'Find available filter fields for anime or manga.' },
+  { name: 'list_filter_actions', desc: 'Find available comparison and array filter actions.' },
   { name: 'get_anime_detail', desc: 'Full detail for one anime by MAL id.' },
   { name: 'get_manga_detail', desc: 'Full detail for one manga by MAL id.' },
   { name: 'get_anime_stats', desc: 'Aggregate stats over the anime catalog.' },
@@ -33,6 +35,10 @@ const PUBLIC_TOOLS = [
 ];
 
 const AUTH_TOOLS = [
+  {
+    name: 'get_manga_watchlist_enriched',
+    desc: 'Your manga list with titles, chapters, genres, and scores.',
+  },
   { name: 'list_watchlist', desc: 'Your anime watchlist with statuses.' },
   { name: 'list_manga_watchlist', desc: 'Your manga watchlist with statuses.' },
   { name: 'list_watchlist_tags', desc: 'Your watchlist tags with per-tag counts.' },
@@ -262,8 +268,8 @@ export default function McpPage() {
         <p className="mt-4 max-w-prose text-base leading-7 text-muted-foreground">
           {SITE_NAME} exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT,
           Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search
-          results include explicit continuation metadata so clients can retrieve every matching
-          title. Public tools work without auth; watchlist tools require a Personal Access Token.
+          and watchlist tools return up to 100 results per page. Pass nextCall to tools/call until
+          it is null to retrieve every match with the same filters and sort.
         </p>
         <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <span className="text-muted-foreground">Endpoint: </span>

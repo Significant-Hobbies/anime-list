@@ -8,8 +8,8 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 
 - `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
 - `/search` — advanced anime filter search with URL-encoded state (nuqs).
-- `/discover` — signed-in seasonal queue + privacy-safe anime taste quiz.
-- `/anime/$malId`, `/manga/$malId` — detail pages with relations/recommendations.
+- `/discover` — privacy-safe anime taste quiz with a link to filtered search.
+- `/anime/$malId`, `/manga/$malId` — detail pages with title metadata and related entries.
 - `/genre/$genre`, `/random` — discovery pickers.
 - `/schedule` — episode pacing schedule.
 - `/watchlist` — anime watchlist + import/export.
@@ -25,8 +25,7 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 - **Catalog:** `POST /api/search`, `GET /api/stats`, `GET /api/anime/random`,
   `GET /api/anime/:malId`, `GET /api/fields`, `GET /api/filters`,
   `GET /api/last-updated`, `GET /api/changelog`.
-- **Watchlist:** full CRUD, tags, taste recommendations
-  (`buildTasteRecommendations`), enriched view, import preview/apply
+- **Watchlist:** full CRUD, tags, request activity, enriched view, import preview/apply
   (MAL XML/CSV, AniList JSON, Anime List JSON), export (JSON/CSV/AniList).
 - **Schedule:** timeline, add/update/remove/reorder.
 - **Discover:** `GET /api/discover/queue` (taste-weighted seasonal + manga
@@ -64,8 +63,7 @@ current build/ship timeline, see [`../../PROJECT_STATUS.md`](../../PROJECT_STATU
 
 - Watchlist statuses: `Watching`, `Completed`, `Deferred`, `Avoiding`, `BRR`
   + custom tags.
-- Discover queue: current/previous season scoring, taste-weighted
-  genres/themes, quick add/dismiss/skip, signed-in gating.
+- Signed-in anime search defaults to Recommended for you. Ranking uses watchlist genres and themes across the filtered result set before pagination.
 - Quiz: 4 questions → 4 anime archetypes → prefilled search URLs;
   privacy-safe, no persistence. Expansion deferred pending engagement data
   (see [`../archive/2026-06-04-character-identity-quiz-brief.md`](../archive/2026-06-04-character-identity-quiz-brief.md)).

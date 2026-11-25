@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { z } from 'zod';
+import { READ_PAGE_MAX } from './readPagination';
 
 // MCP server: a thin protocol adapter over the existing /api/* endpoints.
 // Each tool dispatches to the corresponding endpoint and returns the body.
@@ -15,7 +16,7 @@ const MAX_RESPONSE_BYTES = 1_000_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 type DispatchApi = (url: string, init: RequestInit) => Response | Promise<Response>;
 const watchlistPageInput = {
-  limit: z.number().int().min(1).max(50).default(50),
+  limit: z.number().int().min(1).max(READ_PAGE_MAX).default(50),
   offset: z.number().int().min(0).max(1_000_000).default(0),
 };
 
@@ -45,8 +46,18 @@ const outputSchema = z.object({
   tool: z.string(),
   generatedAt: z.string(),
   retrievalMode: z.enum(['public-catalog', 'owner-watchlist', 'error']),
-  data: z.unknown().optional(),
   truncated: z.boolean(),
+  nextCall: z
+    .object({
+      name: z.string(),
+      arguments: z.record(z.string(), z.unknown()),
+    })
+    .nullable()
+    .optional()
+    .describe(
+      'Pass this object to tools/call to retrieve the next page. Null means the last page.'
+    ),
+  data: z.unknown().optional(),
   sourceUrl: z.string().url().optional(),
   error: z
     .object({
@@ -80,7 +91,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'search_anime',
     description:
-      'Search and page through the anime catalog. Input: { filters: [{field, action, value}], sortBy, airing: "any"|"yes"|"no", pagesize, offset }. Returns filteredList plus pageInfo { total, returned, hasMore, nextOffset }; keep calling with offset=nextOffset until nextOffset is null.',
+      'Search and page through the anime catalog. Input: { filters: [{field, action, value}], sortBy (use "recommended" with a connected account for personalized ranking), airing: "any"|"yes"|"no", pagesize, offset }. Returns filteredList plus pageInfo { total, returned, hasMore, nextOffset }; when nextCall is present, call it to continue.',
     method: 'POST',
     path: '/api/search',
     auth: false,
@@ -93,14 +104,14 @@ const TOOLS: ToolDef[] = [
         .regex(/^[A-Za-z0-9_.-]+$/)
         .optional(),
       airing: z.enum(['any', 'yes', 'no']).default('any'),
-      pagesize: z.number().int().min(1).max(50).default(20),
+      pagesize: z.number().int().min(1).max(READ_PAGE_MAX).default(20),
       offset: z.number().int().min(0).max(1_000_000).default(0),
     },
   },
   {
     name: 'search_manga',
     description:
-      'Search and page through the manga catalog. Input: { filters, sortBy, pagesize, offset }. Returns filteredList plus pageInfo { total, returned, hasMore, nextOffset }; keep calling with offset=nextOffset until nextOffset is null.',
+      'Search and page through the manga catalog. Input: { filters, sortBy, pagesize, offset }. Returns filteredList plus pageInfo { total, returned, hasMore, nextOffset }; when nextCall is present, call it to continue.',
     method: 'POST',
     path: '/api/manga/search',
     auth: false,
@@ -112,9 +123,29 @@ const TOOLS: ToolDef[] = [
         .max(64)
         .regex(/^[A-Za-z0-9_.-]+$/)
         .optional(),
-      pagesize: z.number().int().min(1).max(50).default(20),
+      pagesize: z.number().int().min(1).max(READ_PAGE_MAX).default(20),
       offset: z.number().int().min(0).max(1_000_000).default(0),
     },
+  },
+  {
+    name: 'list_search_fields',
+    description:
+      'List the numeric, string and array fields available for catalog search filters, grouped by type.',
+    method: 'GET',
+    path: '/api/fields',
+    auth: false,
+    buildUrl: (origin, args) => `${origin}/api/${args.media === 'manga' ? 'manga/' : ''}fields`,
+    inputSchema: { media: z.enum(['anime', 'manga']).default('anime') },
+  },
+  {
+    name: 'list_filter_actions',
+    description:
+      'List the comparison and array actions accepted by search filters for the selected catalog.',
+    method: 'GET',
+    path: '/api/filters',
+    auth: false,
+    buildUrl: (origin, args) => `${origin}/api/${args.media === 'manga' ? 'manga/' : ''}filters`,
+    inputSchema: { media: z.enum(['anime', 'manga']).default('anime') },
   },
   {
     name: 'get_anime_detail',
@@ -166,7 +197,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_watchlist',
     description:
-      "Page through the authenticated user's complete anime watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
+      "Page through the authenticated user's complete anime watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
     method: 'GET',
     path: '/api/watchlist',
     auth: true,
@@ -176,7 +207,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_manga_watchlist',
     description:
-      "Page through the authenticated user's complete manga watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
+      "Page through the authenticated user's complete manga watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
     method: 'GET',
     path: '/api/manga/watchlist',
     auth: true,
@@ -186,7 +217,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_watchlist_tags',
     description:
-      "Page through the authenticated user's watchlist tags with per-tag anime counts. Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
+      "Page through the authenticated user's watchlist tags with per-tag anime counts. Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
     method: 'GET',
     path: '/api/watchlist/tags',
     auth: true,
@@ -194,9 +225,20 @@ const TOOLS: ToolDef[] = [
     inputSchema: watchlistPageInput,
   },
   {
+    name: 'get_manga_watchlist_enriched',
+    description:
+      'Page through your manga watchlist with titles, genres, chapters, and scores. Follow nextCall until null. Requires a connected account.',
+    method: 'GET',
+    path: '/api/manga/watchlist/enriched',
+    auth: true,
+    buildUrl: (origin, a) =>
+      `${origin}/api/manga/watchlist/enriched?limit=${a.limit}&offset=${a.offset}`,
+    inputSchema: watchlistPageInput,
+  },
+  {
     name: 'get_watchlist_enriched',
     description:
-      "Page through the authenticated user's complete anime watchlist joined with catalog metadata (title, image, score, genres). Returns { items, total, nextOffset, hasMore }; keep calling with offset=nextOffset until nextOffset is null. Requires a PAT.",
+      "Page through the authenticated user's complete anime watchlist joined with catalog metadata (title, image, score, genres). Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
     method: 'GET',
     path: '/api/watchlist/enriched',
     auth: true,
@@ -235,8 +277,7 @@ function stripSensitive(value: unknown, depth = 0): unknown {
   if (typeof value === 'string')
     return value.length > 20_000 ? `${value.slice(0, 20_000)}…` : value;
   if (depth >= 7) return '[truncated]';
-  if (Array.isArray(value))
-    return value.slice(0, 50).map((item) => stripSensitive(item, depth + 1));
+  if (Array.isArray(value)) return value.map((item) => stripSensitive(item, depth + 1));
   if (typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value)
@@ -355,7 +396,7 @@ function buildRequestInit(
 ): RequestInit {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (tool.method === 'POST') headers['Content-Type'] = 'application/json';
-  if (tool.auth && readCredential) headers['Authorization'] = readCredential;
+  if (readCredential) headers['Authorization'] = readCredential;
 
   const init: RequestInit = { method: tool.method, headers };
   if (tool.method === 'POST' && tool.buildBody) {
@@ -395,17 +436,12 @@ function parseResponseText(tool: ToolDef, text: string | null) {
   }
 }
 
-function hasMoreFlag(parsed: unknown): boolean {
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
-  const record = parsed as Record<string, unknown>;
-  if (record.hasMore === true) return true;
-  const pageInfo = record.pageInfo;
-  return (
-    pageInfo !== null &&
-    typeof pageInfo === 'object' &&
-    !Array.isArray(pageInfo) &&
-    (pageInfo as Record<string, unknown>).hasMore === true
-  );
+function continuation(tool: ToolDef, args: Record<string, unknown>, parsed: unknown) {
+  if (!parsed || typeof parsed !== 'object') return undefined;
+  const page = 'pageInfo' in parsed ? parsed.pageInfo : parsed;
+  if (!page || typeof page !== 'object' || !('nextOffset' in page)) return undefined;
+  if (typeof page.nextOffset !== 'number') return null;
+  return { name: tool.name, arguments: { ...args, offset: page.nextOffset } };
 }
 
 function addCatalogPageInfo(
@@ -450,13 +486,18 @@ function buildToolHandler(
 ) {
   return async (args: Record<string, unknown>) => {
     const url = tool.buildUrl ? tool.buildUrl(origin, args) : `${origin}${tool.path}`;
-    if (tool.auth && !readCredential) {
+    const personal = tool.auth || (tool.name === 'search_anime' && args.sortBy === 'recommended');
+    if (personal && !readCredential) {
       return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
     }
 
     let res: Response;
     try {
-      res = await boundedFetch(dispatch, url, buildRequestInit(tool, args, readCredential));
+      res = await boundedFetch(
+        dispatch,
+        url,
+        buildRequestInit(tool, args, personal ? readCredential : null)
+      );
     } catch (error) {
       return fetchErrorResult(tool, error);
     }
@@ -469,26 +510,29 @@ function buildToolHandler(
     }
 
     const normalized = addCatalogPageInfo(parsed, tool, args);
+    const nextCall = continuation(tool, args, normalized);
     const safeData = stripSensitive(addCanonicalUrls(normalized, tool.name));
     const data = {
       schemaVersion: '1' as const,
       ok: true,
       tool: tool.name,
       generatedAt: new Date().toISOString(),
-      retrievalMode: tool.auth ? ('owner-watchlist' as const) : ('public-catalog' as const),
+      retrievalMode: personal ? ('owner-watchlist' as const) : ('public-catalog' as const),
       data: safeData,
-      truncated: hasMoreFlag(normalized),
+      truncated: Boolean(nextCall),
+      nextCall,
       sourceUrl: url,
     };
     return {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify(
-            { tool: tool.name, data: safeData, truncated: data.truncated },
-            null,
-            2
-          ),
+          text: JSON.stringify({
+            tool: tool.name,
+            nextCall,
+            truncated: data.truncated,
+            data: safeData,
+          }),
         },
       ],
       structuredContent: outputSchema.parse(data),

@@ -9,7 +9,7 @@ interface RequestEntry {
   duration?: number;
 }
 
-export function useWatchlistActivity() {
+export function useRequestActivity() {
   const sequence = useRef(0);
   const [entries, setEntries] = useState<RequestEntry[]>([]);
 
@@ -24,7 +24,7 @@ export function useWatchlistActivity() {
       status =
         error instanceof ApiError
           ? `HTTP ${error.status}`
-          : error instanceof DOMException && error.name === 'TimeoutError'
+          : error instanceof Error && error.name === 'TimeoutError'
             ? 'Timed out'
             : error instanceof DOMException && error.name === 'AbortError'
               ? 'Canceled'
@@ -41,11 +41,11 @@ export function useWatchlistActivity() {
   return { entries, track };
 }
 
-export function WatchlistActivity({ entries }: { entries: RequestEntry[] }) {
+export function RequestActivity({ entries, label }: { entries: RequestEntry[]; label: string }) {
   return (
     <details className="rounded-lg border border-border px-4 py-2 text-xs">
       <summary className="cursor-pointer font-medium">
-        Watchlist API activity ({entries.length})
+        {label} ({entries.length})
       </summary>
       <ul className="mt-2 divide-y divide-border">
         {entries.map((entry) => (

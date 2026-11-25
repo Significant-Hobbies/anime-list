@@ -197,12 +197,18 @@ export function registerMangaRoutes(
   app.get('/api/manga/watchlist/enriched', requireAuth, async (c) => {
     const user = c.get('user')!;
     const watchlist = await getMangaWatchlist(user.userId);
-    if (!watchlist) return c.json({ items: [] });
+    const paged = c.req.query('limit') !== undefined || c.req.query('offset') !== undefined;
+    const page = boundedReadPage(c.req.query('limit'), c.req.query('offset'));
+    const entries = Object.values(watchlist?.manga ?? {});
+    const selection = paged
+      ? pageReadItems(entries.sort(compareWatchlistIds), page)
+      : { items: entries };
+    if (!selection.items.length) return c.json(selection);
 
     const allManga = await mangaStore.getMangaList();
     const mangaMap = new Map(allManga.map((m) => [m.mal_id.toString(), m]));
 
-    const items = Object.values(watchlist.manga).map((entry) => {
+    const items = selection.items.map((entry) => {
       const manga = mangaMap.get(entry.id);
       return {
         mal_id: entry.id,
@@ -220,7 +226,7 @@ export function registerMangaRoutes(
       };
     });
 
-    return c.json({ items });
+    return c.json({ ...selection, items });
   });
 
   app.get('/api/manga/watchlist', requireAuth, async (c) => {

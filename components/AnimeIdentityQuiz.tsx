@@ -32,7 +32,6 @@ interface Archetype {
   tagline: string;
   traits: string[];
   filters: SearchFilter[];
-  exemplarMalIds: number[];
 }
 
 const ARCHETYPES: Record<ArchetypeId, Archetype> = {
@@ -41,7 +40,6 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
     title: 'Steady Strategist',
     tagline: 'You like sharp choices, slow reveals, and characters with a plan.',
     traits: ['Psychological stakes', 'Adult casts', 'Consequences over spectacle'],
-    exemplarMalIds: [11061, 9253, 19],
     filters: [
       { field: 'genres', action: 'INCLUDES_ANY', value: ['Drama', 'Suspense'] },
       { field: 'demographics', action: 'INCLUDES_ANY', value: ['Seinen'] },
@@ -53,7 +51,6 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
     title: 'Chaotic Optimist',
     tagline: 'You want big swings, loud friends, and a reason to grin after a fight.',
     traits: ['Action momentum', 'Found family', 'Comic release'],
-    exemplarMalIds: [20, 31964, 30276],
     filters: [
       { field: 'genres', action: 'INCLUDES_ANY', value: ['Action', 'Comedy', 'Adventure'] },
       { field: 'demographics', action: 'INCLUDES_ANY', value: ['Shounen'] },
@@ -65,7 +62,6 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
     title: 'Quiet Observer',
     tagline: 'You notice tiny emotional turns and prefer a show that breathes.',
     traits: ['Slice of life', 'Gentle pacing', 'Character texture'],
-    exemplarMalIds: [4081, 36098, 42897],
     filters: [
       { field: 'genres', action: 'INCLUDES_ANY', value: ['Slice of Life', 'Drama'] },
       { field: 'score', action: 'GREATER_THAN_OR_EQUALS', value: 7.6 },
@@ -77,7 +73,6 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
     title: 'World Builder',
     tagline: 'You want maps, rules, factions, and a setting that keeps unfolding.',
     traits: ['Fantasy systems', 'Adventure arcs', 'Longer commitments'],
-    exemplarMalIds: [5114, 16498, 21],
     filters: [
       { field: 'genres', action: 'INCLUDES_ANY', value: ['Fantasy', 'Adventure', 'Sci-Fi'] },
       { field: 'episodes', action: 'GREATER_THAN_OR_EQUALS', value: 24 },
@@ -228,19 +223,6 @@ export default function AnimeIdentityQuiz() {
             Explore shows for this archetype
           </Link>
         </Button>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
-          {result.exemplarMalIds.map((id) => (
-            <Link
-              key={id}
-              to="/anime/$malId"
-              params={{ malId: String(id) }}
-              onClick={() => trackQuizResultClick(result.id, 'exemplar_detail')}
-              className="rounded-md border border-border px-2 py-2 hover:text-foreground"
-            >
-              MAL {id}
-            </Link>
-          ))}
-        </div>
         {!complete && (
           <p className="mt-3 text-xs text-muted-foreground">
             Answer all questions to unlock the search link.

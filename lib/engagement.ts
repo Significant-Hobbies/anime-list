@@ -51,7 +51,7 @@ export function trackQuizResultClick(
 
 // --- Homepage -> surface entries ---
 
-export type HomeSurface = 'search' | 'discover' | 'stats' | 'quiz';
+export type HomeSurface = 'search' | 'discover' | 'stats' | 'quiz' | 'schedule';
 
 export function trackHomeSurfaceClick(surface: HomeSurface, placement: string): void {
   trackEvent('home_surface_click', { surface, placement, ...variantProps() });

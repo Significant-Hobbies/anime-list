@@ -2,7 +2,7 @@
 
 > Filter and explore anime and manga titles from MyAnimeList with advanced search, statistics, schedules, and watchlists.
 
-Generated: 2026-11-08
+Generated: 2026-11-25
 
 ---
 <!-- source: https://anime.significanthobbies.com/ -->
@@ -14,7 +14,7 @@ Canonical: https://anime.significanthobbies.com/
 
 Filter anime and manga titles from MyAnimeList by score, genre, year, and members. Free, no sign-up to search, private watchlist if you want one.
 
-[Filter the catalog](https://anime.significanthobbies.com/search) [Browse the queue](https://anime.significanthobbies.com/discover)
+[Filter the catalog](https://anime.significanthobbies.com/search) [Browse the schedule](https://anime.significanthobbies.com/schedule)
 
 Illustrative catalog query
 
@@ -74,7 +74,7 @@ A log-scale popularity formula keeps mega-popular titles from burying everything
 
 Filter rows stack into a single query. Results, stats, and your watchlist all read from the same URL state — every query is shareable.
 
-[Top-rated TV anime score 8+, finished airing](https://anime.significanthobbies.com/search?af=%7B%22f%22%3A%5B%7B%22field%22%3A%22score%22%2C%22action%22%3A%22GREATER_THAN_OR_EQUALS%22%2C%22value%22%3A8%7D%2C%7B%22field%22%3A%22type%22%2C%22action%22%3A%22EQUALS%22%2C%22value%22%3A%22TV%22%7D%5D%7D&airing=no&sort=score) [Currently airing queue this season, sorted for you](https://anime.significanthobbies.com/discover) [Catalog stats](https://anime.significanthobbies.com/stats)
+[Top-rated TV anime score 8+, finished airing](https://anime.significanthobbies.com/search?af=%7B%22f%22%3A%5B%7B%22field%22%3A%22score%22%2C%22action%22%3A%22GREATER_THAN_OR_EQUALS%22%2C%22value%22%3A8%7D%2C%7B%22field%22%3A%22type%22%2C%22action%22%3A%22EQUALS%22%2C%22value%22%3A%22TV%22%7D%5D%7D&airing=no&sort=score) [Anime taste quiz Find your anime archetype](https://anime.significanthobbies.com/discover) [Catalog stats](https://anime.significanthobbies.com/stats)
 
 ## Frequently asked
 
@@ -327,15 +327,19 @@ Provided as-is. Air dates, episode counts, and synopses come from upstream sourc
 
 Canonical: https://anime.significanthobbies.com/mcp
 
-Anime List exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT, Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search results include explicit continuation metadata so clients can retrieve every matching title. Public tools work without auth; watchlist tools require a Personal Access Token.
+Anime List exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT, Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search and watchlist tools return up to 100 results per page. Pass nextCall to tools/call until it is null to retrieve every match with the same filters and sort.
 
 Endpoint:  https://anime.significanthobbies.com/api/mcp
 
 ## Public tools (no auth)
 
-- search_anime  — Page through the anime catalog with filters, totals, and an explicit next offset.
+- search_anime  — Search with filters and sorting. Use the recommended sort with a connected account for personalized results.
 
-- search_manga  — Page through the manga catalog with filters, totals, and an explicit next offset.
+- search_manga  — Search manga with filters and sorting.
+
+- list_search_fields  — Find available filter fields for anime or manga.
+
+- list_filter_actions  — Find available comparison and array filter actions.
 
 - get_anime_detail  — Full detail for one anime by MAL id.
 
@@ -346,6 +350,8 @@ Endpoint:  https://anime.significanthobbies.com/api/mcp
 - get_random_anime  — Random anime, optionally filtered by genre.
 
 ## Watchlist tools (require a token)
+
+- get_manga_watchlist_enriched  — Your manga list with titles, chapters, genres, and scores.
 
 - list_watchlist  — Your anime watchlist with statuses.
 

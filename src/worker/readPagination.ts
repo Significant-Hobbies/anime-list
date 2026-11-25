@@ -1,4 +1,4 @@
-const READ_PAGE_MAX = 50;
+export const READ_PAGE_MAX = 100;
 
 export interface ReadPage {
   limit: number;
@@ -17,7 +17,7 @@ function boundedInteger(
 
 export function boundedReadPage(limit: string | undefined, offset: string | undefined): ReadPage {
   return {
-    limit: boundedInteger(limit, READ_PAGE_MAX, 1, READ_PAGE_MAX),
+    limit: boundedInteger(limit, 50, 1, READ_PAGE_MAX),
     offset: boundedInteger(offset, 0, 0, 1_000_000),
   };
 }

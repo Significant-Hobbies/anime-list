@@ -7,7 +7,6 @@ import type {
   WatchlistData,
   AnimeDetailResponse,
   EnrichedWatchlistResponse,
-  TasteRecommendationsResponse,
   WatchlistTag,
   WatchlistImportPreview,
   AniListExportResponse,
@@ -15,7 +14,6 @@ import type {
   MangaWatchlistData,
   EnrichedMangaWatchlistResponse,
   MangaDetailResponse,
-  DiscoveryQueueResponse,
 } from './types';
 import { getApiUrl } from './apiConfig';
 import { ApiError, CATALOG_UNAVAILABLE_CODE, CATALOG_UNAVAILABLE_MESSAGE } from './apiErrors';
@@ -95,7 +93,9 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
       if (!timedOut) throw error;
       if (url.startsWith(`${BASE}/watch`))
         throw new DOMException('Watchlist request timed out.', 'TimeoutError');
-      throw new TypeError('Search service timed out. Please try again.');
+      const timeoutError = new TypeError('Search service timed out. Please try again.');
+      timeoutError.name = 'TimeoutError';
+      throw timeoutError;
     }
     throw error;
   } finally {
@@ -210,12 +210,6 @@ export function removeFromWatchlist(
 
 export function getEnrichedWatchlist(signal?: AbortSignal): Promise<EnrichedWatchlistResponse> {
   return fetchWatchlistJson(`${BASE}/watchlist/enriched`, { signal });
-}
-
-export function getTasteRecommendations(
-  signal?: AbortSignal
-): Promise<TasteRecommendationsResponse> {
-  return fetchWatchlistJson(`${BASE}/watchlist/recommendations`, { signal });
 }
 
 export function previewWatchlistImport(
@@ -489,23 +483,6 @@ export function getMangaDetail(
   signal?: AbortSignal
 ): Promise<MangaDetailResponse> {
   return fetchJson(`${MANGA_BASE}/${malId}`, { signal });
-}
-
-export function getDiscoveryQueue(
-  limit = 50,
-  signal?: AbortSignal
-): Promise<DiscoveryQueueResponse> {
-  return fetchJson(`${BASE}/discover/queue?limit=${limit}`, { signal });
-}
-
-export function dismissDiscoveryItems(
-  malIds: (string | number)[]
-): Promise<{ success: boolean; message: string }> {
-  return fetchJson(`${BASE}/discover/dismiss`, {
-    method: 'POST',
-    headers: jsonHeaders,
-    body: JSON.stringify({ mal_ids: malIds }),
-  });
 }
 
 // ── Personal Access Tokens (for MCP server auth) ───────────────────────

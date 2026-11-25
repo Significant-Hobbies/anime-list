@@ -37,7 +37,7 @@ describe('handleMcpRequest', () => {
     expect(body.result.capabilities.tools).toBeDefined();
   });
 
-  it('lists all 10 tools (6 public + 4 auth-gated)', async () => {
+  it('lists the catalog and watchlist tools', async () => {
     const res = await mcpCall('tools/list');
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -47,6 +47,9 @@ describe('handleMcpRequest', () => {
       expect.arrayContaining([
         'search_anime',
         'search_manga',
+        'list_search_fields',
+        'list_filter_actions',
+        'get_manga_watchlist_enriched',
         'get_anime_detail',
         'get_manga_detail',
         'get_anime_stats',
@@ -57,7 +60,7 @@ describe('handleMcpRequest', () => {
         'get_watchlist_enriched',
       ])
     );
-    expect(names).toHaveLength(10);
+    expect(names).toHaveLength(13);
     for (const tool of tools) {
       expect(tool.annotations?.readOnlyHint).toBe(true);
       expect(tool.annotations?.destructiveHint).toBe(false);
@@ -345,12 +348,93 @@ describe('handleMcpRequest', () => {
     });
   });
 
+  it.each([
+    ['search_anime', 'pagesize'],
+    ['search_manga', 'pagesize'],
+    ['list_watchlist', 'limit'],
+    ['list_watchlist_tags', 'limit'],
+    ['list_manga_watchlist', 'limit'],
+    ['get_watchlist_enriched', 'limit'],
+    ['get_manga_watchlist_enriched', 'limit'],
+  ])('follows %s nextCall across 100 rows through the terminal page', async (name, sizeKey) => {
+    const rows = Array.from({ length: 223 }, (_, index) => ({ id: index + 1 }));
+    const fetchMock = vi.fn((url: string, init: RequestInit) => {
+      const search = init.method === 'POST';
+      const args = search
+        ? JSON.parse(String(init.body))
+        : Object.fromEntries(new URL(url).searchParams);
+      const start = Number(args.offset);
+      const items = rows.slice(start, start + Number(args[sizeKey]));
+      const end = start + items.length;
+      return Response.json(
+        search
+          ? { filteredList: items, totalFiltered: rows.length }
+          : {
+              items,
+              total: rows.length,
+              nextOffset: end < rows.length ? end : null,
+              hasMore: end < rows.length,
+            }
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const found: number[] = [];
+    let call = { name, arguments: { [sizeKey]: 100 } };
+    for (const offset of [0, 100, 200]) {
+      const { result } = await (
+        await mcpCall('tools/call', call, 'Bearer anime_list_fixture')
+      ).json();
+      expect(result.isError).not.toBe(true);
+      const { data, nextCall } = result.structuredContent;
+      const text = JSON.parse(result.content[0].text);
+      expect(text.nextCall).toEqual(nextCall);
+      found.push(...(data.filteredList ?? data.items).map((item: { id: number }) => item.id));
+      if (offset === 200) expect(nextCall).toBeNull();
+      else
+        expect(nextCall).toMatchObject({
+          name,
+          arguments: { [sizeKey]: 100, offset: offset + 100 },
+        });
+      call = nextCall;
+    }
+    expect(found).toEqual(rows.map((row) => row.id));
+  });
+
+  it('authenticates only personalized anime search and carries the sort and filters forward', async () => {
+    const fetchMock = vi.fn(() => Response.json({ filteredList: [{ id: 1 }], totalFiltered: 2 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const filters = [{ field: 'year', action: 'GREATER_THAN', value: 2010 }];
+    const call = {
+      name: 'search_anime',
+      arguments: { sortBy: 'recommended', filters, pagesize: 1 },
+    };
+    expect(await (await mcpCall('tools/call', call)).json()).toMatchObject({
+      result: { isError: true, structuredContent: { error: { code: 'unauthorized' } } },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    const auth = 'Bearer anime_list_fixture';
+    const { result } = await (await mcpCall('tools/call', call, auth)).json();
+    expect(result.structuredContent).toMatchObject({
+      retrievalMode: 'owner-watchlist',
+      nextCall: { name: 'search_anime', arguments: { filters, sortBy: 'recommended', offset: 1 } },
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: auth }) })
+    );
+    await mcpCall('tools/call', { name: 'search_anime', arguments: {} }, auth);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ headers: expect.not.objectContaining({ Authorization: auth }) })
+    );
+  });
+
   it('rejects oversized catalog inputs before any upstream request', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const res = await mcpCall('tools/call', {
       name: 'search_anime',
-      arguments: { filters: [], pagesize: 51, offset: 0, airing: 'any' },
+      arguments: { filters: [], pagesize: 101, offset: 0, airing: 'any' },
     });
 
     expect(res.status).toBeLessThan(500);

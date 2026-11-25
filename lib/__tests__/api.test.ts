@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getTasteRecommendations, searchAnime } from '../api';
+import { getEnrichedWatchlist, searchAnime } from '../api';
 import { CATALOG_UNAVAILABLE_CODE, CATALOG_UNAVAILABLE_MESSAGE } from '../apiErrors';
 
 afterEach(() => {
@@ -34,7 +34,7 @@ describe('search API errors', () => {
 describe('search API timeout', () => {
   it.each([
     ['search', () => searchAnime([]), 'Search service timed out'],
-    ['recommendations', () => getTasteRecommendations(), 'Watchlist request timed out'],
+    ['watchlist', () => getEnrichedWatchlist(), 'Watchlist request timed out'],
   ] as const)('times out a stalled %s response body', async (_label, start, message) => {
     vi.useFakeTimers();
     vi.stubGlobal(

@@ -21,7 +21,10 @@ export const POPULARITY_PRESETS = [
   { value: 100_000, label: '100k+ members' },
 ] as const;
 
+export const RECOMMENDED_SORT = 'recommended';
+
 export const ANIME_SORT_OPTIONS = [
+  { value: RECOMMENDED_SORT, label: 'Recommended for you' },
   { value: 'score', label: 'Score' },
   { value: 'members', label: 'Popularity' },
   { value: 'released_at', label: 'Release time' },

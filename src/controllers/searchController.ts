@@ -1,5 +1,7 @@
 import { trace } from '../telemetry';
 import { filterAnimeList } from '../filterEngine';
+import { animeStore } from '../store/animeStore';
+import { sortSearchByTaste } from '../recommendations';
 import { getAnimeWatchlist } from '../db/watchlist';
 import { getScoreSortedList } from '../utils/statistics';
 import { getSimpleAnimeSearchPage } from '../db/animeData';
@@ -58,7 +60,7 @@ export type SearchResult = {
 
 export interface SearchParams {
   filters: Filter[];
-  sortBy: AnimeSortField | undefined;
+  sortBy: AnimeSortField | 'recommended' | undefined;
   airing: 'yes' | 'no' | 'any';
   hideWatched: string[];
   includeWatched: string[];
@@ -71,13 +73,14 @@ export async function executeSearch(params: SearchParams): Promise<SearchResult>
   const { filters, sortBy, airing, hideWatched, includeWatched, pagesize, offset, userId } = params;
   const canUseD1Search = hideWatched.length === 0 && includeWatched.length === 0;
 
-  const simpleSearchPage = canUseD1Search
-    ? await trace(
-        'db:search:simple',
-        () => getSimpleAnimeSearchPage({ filters, sortBy, airing, pagesize, offset }),
-        { project: 'mal-api' }
-      )
-    : null;
+  const simpleSearchPage =
+    canUseD1Search && sortBy !== 'recommended'
+      ? await trace(
+          'db:search:simple',
+          () => getSimpleAnimeSearchPage({ filters, sortBy, airing, pagesize, offset }),
+          { project: 'mal-api' }
+        )
+      : null;
 
   if (simpleSearchPage) {
     return {
@@ -87,9 +90,8 @@ export async function executeSearch(params: SearchParams): Promise<SearchResult>
     };
   }
 
-  let filtered: AnimeItem[] = await trace('db:search', () => filterAnimeList(filters), {
-    project: 'mal-api',
-  });
+  const catalog = await trace('db:search', () => animeStore.getAnimeList(), { project: 'mal-api' });
+  let filtered = filterAnimeList(catalog, filters);
 
   if (airing !== 'any') {
     filtered = filtered.filter((anime) => {
@@ -98,20 +100,35 @@ export async function executeSearch(params: SearchParams): Promise<SearchResult>
     });
   }
 
+  const watchlist =
+    userId && (sortBy === 'recommended' || includeWatched.length || hideWatched.length)
+      ? await getAnimeWatchlist(userId)
+      : null;
   if (userId && includeWatched.length > 0) {
     filtered = await includeOnlyWatchedItems(
       filtered,
       includeWatched,
-      () => getAnimeWatchlist(userId),
+      async () => watchlist,
       (list) => list.anime
     );
   } else if (userId) {
     filtered = await hideWatchedItems(
       filtered,
       hideWatched,
-      () => getAnimeWatchlist(userId),
+      async () => watchlist,
       (list) => list.anime
     );
+  }
+
+  if (sortBy === 'recommended') {
+    const ranked = sortSearchByTaste(catalog, filtered, watchlist);
+    return {
+      totalFiltered: ranked.length,
+      filteredList: takePage(ranked, pagesize, offset).map(({ anime, points }) =>
+        toSearchAnime({ ...anime, points })
+      ),
+      cachePath: 'memory',
+    };
   }
 
   const sorted = getScoreSortedList(filtered, filters, sortBy, pagesize + offset);

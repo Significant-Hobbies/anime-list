@@ -1,5 +1,5 @@
 'use client';
-import { WatchlistActivity, useWatchlistActivity } from './WatchlistActivity';
+import { RequestActivity, useRequestActivity } from './RequestActivity';
 import GoogleSignInButton from './GoogleSignInButton';
 
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
@@ -20,7 +20,6 @@ import {
   exportAniListWatchlist,
   exportShelfWatchlistJson,
   getEnrichedWatchlist,
-  getTasteRecommendations,
   getWatchlistTags,
   previewWatchlistImport,
   removeFromWatchlist,
@@ -38,53 +37,6 @@ function WatchlistSkeleton() {
   return <ListSkeleton label="Loading anime watchlist" rows={6} />;
 }
 
-type TasteRecommendation = Awaited<
-  ReturnType<typeof getTasteRecommendations>
->['recommendations'][number];
-
-function TasteRecommendationCard({ item }: { item: TasteRecommendation }) {
-  return (
-    <Link
-      key={item.mal_id}
-      to={getAnimeDetailHref(item.mal_id)}
-      className="group flex gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/50"
-    >
-      {item.image ? (
-        <img
-          src={item.image}
-          alt={item.title_english || item.title}
-          width={56}
-          height={78}
-          className="h-[78px] w-14 rounded-md object-cover"
-        />
-      ) : (
-        <div className="h-[78px] w-14 shrink-0 rounded-md bg-muted" />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
-          {item.title_english || item.title}
-        </div>
-        <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted-foreground">
-          {item.score ? <span>{item.score}</span> : null}
-          {item.year ? <span>{item.year}</span> : null}
-          {item.type ? <span>{item.type}</span> : null}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1">
-          {item.reasons.slice(0, 2).map((reason) => (
-            <Badge key={reason} variant="secondary" className="text-[10px] font-normal">
-              {reason}
-            </Badge>
-          ))}
-        </div>
-      </div>
-      <div className="shrink-0 text-right">
-        <div className="text-sm font-semibold text-primary">{item.tasteScore}</div>
-        <div className="text-[10px] text-muted-foreground">fit</div>
-      </div>
-    </Link>
-  );
-}
-
 function filterWatchlist(items: EnrichedWatchlistItem[], activeTab: string) {
   return activeTab ? items.filter((item) => item.watchStatus === activeTab) : items;
 }
@@ -97,16 +49,16 @@ export default function WatchlistView() {
 }
 
 function SignedInWatchlist() {
-  const { entries, track } = useWatchlistActivity();
+  const { entries, track } = useRequestActivity();
   return (
     <div className="space-y-3">
-      <WatchlistActivity entries={entries} />
+      <RequestActivity label="Watchlist API activity" entries={entries} />
       <WatchlistContent track={track} />
     </div>
   );
 }
 
-function WatchlistContent({ track }: { track: ReturnType<typeof useWatchlistActivity>['track'] }) {
+function WatchlistContent({ track }: { track: ReturnType<typeof useRequestActivity>['track'] }) {
   const [activeTab, setActiveTab] = useState('');
   const [showListSettings, setShowListSettings] = useState(false);
   const [showSyncTools, setShowSyncTools] = useState(false);
@@ -140,13 +92,6 @@ function WatchlistContent({ track }: { track: ReturnType<typeof useWatchlistActi
     queryFn: ({ signal }) => track('GET /api/watchlist/tags', () => getWatchlistTags(signal)),
   });
 
-  const recommendationQuery = useQuery({
-    queryKey: ['watchlist', 'recommendations'],
-    queryFn: ({ signal }) =>
-      track('GET /api/watchlist/recommendations', () => getTasteRecommendations(signal)),
-  });
-
-  const recommendationsData = recommendationQuery.data;
   const statusMutation = useMutation({
     mutationFn: ({
       malId,
@@ -239,10 +184,26 @@ function WatchlistContent({ track }: { track: ReturnType<typeof useWatchlistActi
     },
   });
 
+  const exportCsvMutation = useMutation({
+    mutationFn: () => track('GET /api/watchlist/export/csv', downloadShelfWatchlistCsv),
+    onSuccess: () => setSyncResult('Downloaded anime-list-watchlist.csv'),
+  });
+  const [acknowledgedAction, setAcknowledgedAction] = useState(-1);
+  const latestAction = [
+    statusMutation,
+    removeMutation,
+    createTagMutation,
+    updateTagMutation,
+    deleteTagMutation,
+    previewImportMutation,
+    applyImportMutation,
+    exportJsonMutation,
+    exportAniListMutation,
+    exportCsvMutation,
+  ].reduce((latest, action) => (action.submittedAt > latest.submittedAt ? action : latest));
+
   const items: EnrichedWatchlistItem[] = data?.items ?? [];
   const tags = tagQuery.data?.tags ?? [];
-  const tasteProfile = recommendationsData?.profile;
-  const recommendations = recommendationsData?.recommendations ?? [];
   const tagColorMap = useMemo(
     () => new Map(tags.map((tag) => [tag.tag, resolveTagColor(tag.tag, tag.color)])),
     [tags]
@@ -304,17 +265,20 @@ function WatchlistContent({ track }: { track: ReturnType<typeof useWatchlistActi
             onRetry={() => void tagQuery.refetch()}
           />
         )}
-        {(statusMutation.isError || removeMutation.isError) && (
+        {latestAction.isError && latestAction.submittedAt > acknowledgedAction && (
           <p role="alert">
-            Could not confirm the change.{' '}
+            The watchlist action failed. See API activity for details.{' '}
             <button
               type="button"
               className="underline"
-              onClick={() => void queryClient.invalidateQueries({ queryKey: ['watchlist'] })}
+              onClick={() => {
+                setAcknowledgedAction(latestAction.submittedAt);
+                void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
+              }}
             >
               Refresh watchlist
             </button>{' '}
-            to check its status.
+            to check the current state.
           </p>
         )}
         <RefreshIndicator active={isFetching} label="Updating anime watchlist" />
@@ -399,10 +363,8 @@ function WatchlistContent({ track }: { track: ReturnType<typeof useWatchlistActi
                 Copy Anime List JSON
               </button>
               <button
-                onClick={async () => {
-                  await track('GET /api/watchlist/export/csv', () => downloadShelfWatchlistCsv());
-                  setSyncResult('Downloaded anime-list-watchlist.csv');
-                }}
+                onClick={() => exportCsvMutation.mutate()}
+                disabled={exportCsvMutation.isPending}
                 className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
               >
                 Download CSV
@@ -586,81 +548,6 @@ function WatchlistContent({ track }: { track: ReturnType<typeof useWatchlistActi
               })}
             </div>
           </div>
-        )}
-
-        {recommendationQuery.isFetching && (
-          <p role="status" className="text-sm text-muted-foreground">
-            Updating recommendations…
-          </p>
-        )}
-        {recommendationQuery.error && (
-          <ErrorState
-            title="Could not update recommendations"
-            description="Try loading your recommendations again."
-            onRetry={() => void recommendationQuery.refetch()}
-          />
-        )}
-        {tasteProfile && (
-          <Card className="overflow-hidden p-0">
-            <div className="border-b border-border p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Taste Profile</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Recommendations from your watchlist genres, themes, types, and list signals.
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="rounded-md border border-border px-3 py-2">
-                    <div className="text-sm font-semibold">{tasteProfile.sampledTitles}</div>
-                    <div className="text-[10px] uppercase text-muted-foreground">sampled</div>
-                  </div>
-                  <div className="rounded-md border border-border px-3 py-2">
-                    <div className="text-sm font-semibold">
-                      {tasteProfile.favoriteGenres.length}
-                    </div>
-                    <div className="text-[10px] uppercase text-muted-foreground">genres</div>
-                  </div>
-                  <div className="rounded-md border border-border px-3 py-2">
-                    <div className="text-sm font-semibold">{recommendations.length}</div>
-                    <div className="text-[10px] uppercase text-muted-foreground">picks</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {[...tasteProfile.favoriteGenres, ...tasteProfile.favoriteThemes]
-                  .slice(0, 8)
-                  .map((signal) => (
-                    <Badge
-                      key={`${signal.name}-${signal.weight}`}
-                      variant="outline"
-                      className="text-[11px]"
-                    >
-                      {signal.name} · {signal.weight}
-                    </Badge>
-                  ))}
-                {tasteProfile.sampledTitles === 0 && (
-                  <span className="text-sm text-muted-foreground">
-                    Add anime to your watchlist to build a profile.
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {!recommendations.length && tasteProfile.sampledTitles > 0 && (
-              <p className="p-4 text-sm text-muted-foreground">
-                No unseen titles match your genre and theme preferences yet.
-              </p>
-            )}
-            {recommendations.length > 0 && (
-              <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-                {recommendations.map((item) => (
-                  <TasteRecommendationCard key={item.mal_id} item={item} />
-                ))}
-              </div>
-            )}
-          </Card>
         )}
 
         {filtered.length === 0 ? (

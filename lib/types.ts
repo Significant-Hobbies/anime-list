@@ -125,7 +125,7 @@ export interface AnimeRelationItem {
   url?: string;
 }
 
-export interface AnimeRecommendationItem {
+interface AnimeRecommendationItem {
   mal_id: number;
   title: string;
   title_english?: string;
@@ -176,36 +176,6 @@ export interface WatchlistTag {
   tag: string;
   count: number;
   color: string;
-}
-
-interface TasteSignal {
-  name: string;
-  weight: number;
-}
-
-interface TasteRecommendation {
-  mal_id: number;
-  title: string;
-  title_english?: string;
-  image?: string;
-  type?: string;
-  score?: number;
-  year?: number;
-  url?: string;
-  genres: string[];
-  themes: string[];
-  tasteScore: number;
-  reasons: string[];
-}
-
-export interface TasteRecommendationsResponse {
-  profile: {
-    favoriteGenres: TasteSignal[];
-    favoriteThemes: TasteSignal[];
-    preferredTypes: TasteSignal[];
-    sampledTitles: number;
-  };
-  recommendations: TasteRecommendation[];
 }
 
 interface WatchlistImportConflict {
@@ -336,28 +306,4 @@ export interface MangaDetailResponse {
     demographics: string[];
   };
   watchlistEntry: { status: string } | null;
-}
-
-export interface DiscoveryQueueResponse {
-  meta?: {
-    currentSeason: string;
-    currentYear: number;
-  };
-  results: {
-    mal_id: number;
-    id: number;
-    title: string;
-    title_english?: string;
-    synopsis?: string;
-    image?: string;
-    genres: string[];
-    themes: string[];
-    year?: number;
-    season?: string;
-    score?: number;
-    members?: number;
-    status?: string;
-    reasons?: string[];
-    mediaType?: 'anime' | 'manga';
-  }[];
 }
