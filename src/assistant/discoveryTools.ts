@@ -19,7 +19,7 @@ import {
 export const discoveryTools = [
   defineTool({
     name: 'semantic_search',
-    access: 'public',
+    access: 'optional',
     description:
       'Search anime and manga by natural-language plot, trope, title, or themes using corpus-trained synopsis embeddings and keyword evidence. Use filters for strict constraints. Public catalog access supports content filters; use discover_titles for account filters. Connected account searches exclude Done, Dropped, and dismissed titles by default. Use next_offset to continue.',
     input: z.strictObject({ ...searchFields, query: z.string().trim().min(1).max(600) }),
@@ -49,7 +49,7 @@ export const discoveryTools = [
   }),
   defineTool({
     name: 'get_similar_titles',
-    access: 'public',
+    access: 'optional',
     description:
       'Find similar works using one or more source titles and their synopses. Supply the source media and MAL ID, then optionally limit the target media or combine filters.',
     input: z.strictObject({

@@ -116,9 +116,12 @@ describe('ID-backed franchise reads', () => {
       "INSERT INTO assistant_library VALUES('u1','anime','1','Done'),('u1','anime','2','Watching'),('u2','anime','2','Done'),('u2','anime','3','Done')"
     );
     const released = await call('get_released_sequels', {});
-    expect(released.items.map((i) => [i.mal_id, i.origin_ids])).toEqual([[2, [1]]]);
+    expect(released.items).toEqual([]);
+    db.exec("UPDATE assistant_library SET status='Delaying' WHERE user_id='u1' AND mal_id='2'");
+    const delayed = await call('get_released_sequels', {});
+    expect(delayed.items.map((i) => [i.mal_id, i.origin_ids])).toEqual([[2, [1]]]);
     const upcoming = await call('get_upcoming_sequels', {});
-    expect(upcoming.items.map((i) => [i.mal_id, i.origin_ids])).toEqual([[3, [1, 2]]]);
+    expect(upcoming.items.map((i) => [i.mal_id, i.origin_ids])).toEqual([[3, [1]]]);
     expect(upcoming.coverage).toMatchObject({
       origins_and_descendants: 3,
       relation_records: 3,

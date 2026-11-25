@@ -5,7 +5,7 @@ import { AssistantError, type AssistantContext } from './tool';
 export interface AssistantDefinition {
   name: string;
   description: string;
-  access: 'public' | 'read' | 'write';
+  access: 'public' | 'optional' | 'read' | 'write';
   input: z.ZodObject;
   output: z.ZodObject;
   example: Record<string, unknown>;
@@ -55,21 +55,21 @@ export function registerAssistantTools(
         annotations: { readOnlyHint: !write, destructiveHint: write, openWorldHint: false },
       },
       async (raw: Record<string, unknown>) => {
-        const session =
-          tool.access === 'public'
-            ? { userId: '', canWrite: false, env: {} }
-            : await resolveSession();
-        if (tool.access !== 'public' && !session.userId)
-          return failure('unauthorized', 'Connect your Anime List account to use this tool.');
-        if (write && !session.canWrite)
-          return failure(
-            'forbidden',
-            'Authorize anime-list.write or use a personal token with write permission.'
-          );
-        const { user_authorized, ...args } = raw;
-        if (write && user_authorized !== true)
-          return failure('invalid_argument', 'Explicit user authorization is required.');
         try {
+          const session =
+            tool.access === 'public'
+              ? { userId: '', canWrite: false, env: {} }
+              : await resolveSession();
+          if ((tool.access === 'read' || write) && !session.userId)
+            return failure('unauthorized', 'Connect your Anime List account to use this tool.');
+          if (write && !session.canWrite)
+            return failure(
+              'forbidden',
+              'Authorize anime-list.write or use a personal token with write permission.'
+            );
+          const { user_authorized, ...args } = raw;
+          if (write && user_authorized !== true)
+            return failure('invalid_argument', 'Explicit user authorization is required.');
           const data = await tool.execute(args, {
             userId: tool.access === 'public' ? '' : session.userId,
             env: session.env,

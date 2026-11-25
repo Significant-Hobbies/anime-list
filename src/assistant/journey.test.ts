@@ -96,7 +96,10 @@ describe('scoped MCP tracking journey', () => {
     expect((await call('upsert_watchlist_entries', set, reader)).structuredContent.error.code).toBe(
       'forbidden'
     );
-    expect((await call('upsert_watchlist_entries', { entries: set.entries })).isError).toBe(true);
+    expect(
+      (await call('upsert_watchlist_entries', { entries: set.entries })).structuredContent.error
+        .code
+    ).toBe('invalid_argument');
     for (const path of ['watched/add', 'manga/watched/add', 'tokens']) {
       const res = await worker.fetch(
         new Request('https://fixture.invalid/api/' + path, {
@@ -152,5 +155,26 @@ describe('scoped MCP tracking journey', () => {
       ).structuredContent.succeeded
     ).toBe(1);
     expect((await call('get_watchlist', {}, reader)).structuredContent.total).toBe(7);
+  });
+  it('uses saved hard constraints, account history, and temporary overrides through the actual protocol', async () => {
+    await call('update_user_preferences', {
+      hard_filters: { min_score: 7 },
+      user_authorized: true,
+    });
+    const fresh = (await call('discover_titles', { media_type: 'anime' })).structuredContent;
+    expect(fresh.results).toEqual([]);
+    const retry = (
+      await call('discover_titles', { media_type: 'anime', filters: { min_score: 5 } })
+    ).structuredContent;
+    expect(retry.results.map((row: { mal_id: number }) => row.mal_id)).toEqual([8]);
+    const stats = (await call('get_watchlist_stats', { media_type: 'anime' })).structuredContent;
+    expect(stats.total).toBe(7);
+    expect(stats.by_status).toContainEqual({ label: 'Done', count: 7 });
+    const foreign = (await call('get_user_preferences', {}, second)).structuredContent;
+    expect(foreign.hard_filters.min_score).toBeUndefined();
+    const publicResult = (
+      await call('semantic_search', { media_type: 'anime', query: 'magic' }, '')
+    ).structuredContent;
+    expect(publicResult.results.length).toBeGreaterThan(0);
   });
 });

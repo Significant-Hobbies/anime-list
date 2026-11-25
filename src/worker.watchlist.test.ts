@@ -157,7 +157,10 @@ class FakeD1 {
       return { results: rows, meta: { changes: 0 } };
     }
 
-    if (normalized === 'SELECT * FROM anime_data ORDER BY mal_id') {
+    if (
+      normalized.includes('FROM anime_data c LEFT JOIN catalog_title_metadata') &&
+      normalized.endsWith('ORDER BY c.mal_id')
+    ) {
       const rows = [...this.animeData]
         .sort((a, b) => (a.mal_id as number) - (b.mal_id as number))
         .map((row) => ({ ...row }));
@@ -174,7 +177,10 @@ class FakeD1 {
       return { results, meta: { changes: 0 } };
     }
 
-    if (normalized.startsWith('SELECT * FROM anime_data WHERE mal_id = ?')) {
+    if (
+      normalized.includes('FROM anime_data c LEFT JOIN catalog_title_metadata') &&
+      normalized.endsWith('WHERE c.mal_id = ? LIMIT 1')
+    ) {
       const [malId] = args as [number];
       const row = this.animeData.find((anime) => anime.mal_id === malId);
       return { results: row ? [{ ...row }] : [], meta: { changes: 0 } };

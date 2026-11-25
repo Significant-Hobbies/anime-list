@@ -601,6 +601,35 @@ export async function handleMcpRequest(
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
+  // Preserve protocol negotiation while giving SDK validation failures a machine-readable code.
+  const send = transport.send.bind(transport);
+  transport.send = (message, options) => {
+    if ('result' in message && message.result.isError && !message.result.structuredContent) {
+      const content = message.result.content;
+      const text =
+        Array.isArray(content) && typeof content[0]?.text === 'string' ? content[0].text : '';
+      const invalid = text.includes('Invalid arguments for tool');
+      const error = invalid
+        ? { code: 'invalid_argument', message: text.slice(0, 1500), retryable: false }
+        : {
+            code: 'upstream_unavailable',
+            message: 'The tool could not complete the request.',
+            retryable: true,
+          };
+      return send(
+        {
+          ...message,
+          result: {
+            isError: true,
+            structuredContent: { ok: false, error },
+            content: [{ type: 'text', text: error.message }],
+          },
+        },
+        options
+      );
+    }
+    return send(message, options);
+  };
   const server = buildServer(dispatch, origin, authHeader, federated, session);
   await server.connect(transport);
   const response = await transport.handleRequest(request);

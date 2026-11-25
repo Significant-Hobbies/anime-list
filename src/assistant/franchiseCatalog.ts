@@ -8,8 +8,6 @@ function walk(seed: string) {
     UNION SELECT e.source_id FROM members m JOIN assistant_franchise_member_edges e ON e.target_id=m.id
   )`;
 }
-const franchise = walk('SELECT ?');
-export const franchiseMembersSql = franchise + ' SELECT id FROM members';
 
 /** The traversal follows directed provider sequel edges through completed intermediates. */
 export async function sequelRows(
@@ -67,7 +65,7 @@ export async function sequelRows(
         COALESCE(d.updated_at,a.updated_at) AS metadata_at
         FROM members m LEFT JOIN assistant_${media}_details d ON d.mal_id=m.id
         LEFT JOIN ${media}_data a ON a.mal_id=m.id WHERE NOT EXISTS (SELECT 1 FROM assistant_library l
-      WHERE l.user_id=? AND l.media='${media}' AND l.status='Done' AND l.mal_id=CAST(m.id AS TEXT))
+      WHERE l.user_id=? AND l.media='${media}' AND l.status IN ('Done','Dropped','Watching') AND l.mal_id=CAST(m.id AS TEXT))
       ORDER BY start IS NULL,start,m.id`,
         args: [...args, userId],
       },

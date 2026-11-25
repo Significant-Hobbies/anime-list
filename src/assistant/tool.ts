@@ -22,7 +22,7 @@ export class AssistantError extends Error {
 export function defineTool<I extends z.ZodObject, O extends z.ZodObject>(definition: {
   name: string;
   description: string;
-  access: 'public' | 'read' | 'write';
+  access: 'public' | 'optional' | 'read' | 'write';
   input: I;
   output: O;
   example: Record<string, unknown>;

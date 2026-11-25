@@ -69,7 +69,7 @@ function validateBounds(filters: Filters) {
 async function* rankablePages(media: Media, filters: Filters) {
   // Batch all unmatched IDs across pages. A partially indexed catalog should
   // need a handful of extra reads, not an extra round-trip for every page.
-  let pending: number[] = [];
+  const pending: number[] = [];
   for await (const rows of candidatePages(media, filters)) {
     const indexed: Title[] = [];
     for (const title of rows) {

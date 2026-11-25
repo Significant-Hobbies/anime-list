@@ -142,8 +142,10 @@ const LAST_UPDATED_CACHE_URL = 'https://mal-cache.local/api/last-updated?v=2';
 
 // ── JWT helpers (using jose instead of jsonwebtoken) ───────────────────
 
-const getJwtSecret = () =>
-  new TextEncoder().encode(process.env.JWT_SECRET || 'mal-explorer-dev-secret-change-in-prod');
+function getJwtSecret() {
+  if (!process.env.JWT_SECRET) throw new Error('Session signing is not configured.');
+  return new TextEncoder().encode(process.env.JWT_SECRET);
+}
 
 async function signToken(payload: AuthPayload): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)
