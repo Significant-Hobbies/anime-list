@@ -6,6 +6,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { prepareD1Import } from './lib/d1-import.mjs';
 import { upsertAnimeBatch } from '../src/db/animeData';
+import { readLibraryEntry } from '../src/assistant/library';
+import { upsertLibraryEntry } from '../src/assistant/libraryWrite';
 import { createApiToken, resolveApiToken, revokeApiToken } from '../src/db/apiTokens';
 import { getDb } from '../src/db/client';
 import { createCollection, getCollectionBySlug } from '../src/db/collections';
@@ -98,6 +100,15 @@ try {
   await updateScheduleItem(userId, String(animeId), { episodesWatched: 2 });
   await removeScheduleItems(userId, ['3']);
   await updateScheduleItem(userId, '4', { episodesWatched: 5 });
+  const mangaLibraryKey = { media_type: 'manga' as const, catalog_id: mangaId };
+  const ratedManga = await upsertLibraryEntry(userId, {
+    ...mangaLibraryKey,
+    watch_status: 'Done',
+    personal_rating: 9,
+    tags: ['reread'],
+    notes: 'Synthetic private note',
+    completed_at: '2025-01-03T00:00:00Z',
+  });
   const collection = await createCollection(userId, {
     title: 'D1 Rehearsal',
     items: [{ mal_id: String(animeId) }],
@@ -232,6 +243,15 @@ try {
     restoredSchedule[1].episodes_watched !== 5
   ) {
     throw new Error('Watching schedule removal or progress did not survive export/import');
+  }
+  const restoredManga = await readLibraryEntry(userId, mangaLibraryKey);
+  if (
+    ratedManga.personal_rating !== 9 ||
+    ratedManga.tags[0] !== 'reread' ||
+    JSON.stringify(restoredManga) !== JSON.stringify(ratedManga) ||
+    (await readLibraryEntry('other-user', mangaLibraryKey)) !== null
+  ) {
+    throw new Error('Private manga rating, notes, tags, or dates did not survive the D1 restore');
   }
   const targetCounts = await targetDb.execute(`
     SELECT
