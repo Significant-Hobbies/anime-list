@@ -64,7 +64,7 @@ test('normalizeUnistrCalls converts new SQLite dump literals for D1', () => {
 test('replaying a watchlist dump preserves dependent schedule preferences', () => {
   const db = new DatabaseSync(':memory:');
   try {
-    for (const name of ['0001_initial', '0003_watching_schedule']) {
+    for (const name of ['0001_initial', '0003_watching_schedule', '0004_assistant_library']) {
       db.exec(readFileSync(new URL(`../../migrations/d1/${name}.sql`, import.meta.url), 'utf8'));
     }
     db.exec("INSERT INTO user_tags(id,user_id,name) VALUES ('tag','u','Watching')");
@@ -93,6 +93,56 @@ test('replaying a watchlist dump preserves dependent schedule preferences', () =
         .prepare("SELECT episodes_watched FROM watching_schedule_preferences WHERE mal_id='2'")
         .get()?.episodes_watched,
       7
+    );
+  } finally {
+    db.close();
+  }
+});
+
+test('restores classifications, private ratings and original dates for both media', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    for (const name of ['0001_initial', '0003_watching_schedule', '0004_assistant_library']) {
+      db.exec(readFileSync(new URL(`../../migrations/d1/${name}.sql`, import.meta.url), 'utf8'));
+    }
+    const source = [
+      "INSERT INTO library_entry_tags VALUES('u','manga','1','Fav');",
+      "INSERT INTO library_details VALUES('u','manga','1',8,'Read',NULL,'2024-01-02T00:00:00.000Z',NULL);",
+      "INSERT INTO manga_watchlist VALUES('u','1','t');",
+      "INSERT INTO anime_watchlist(user_id,mal_id,tag_id) VALUES('u','2','t');",
+      "INSERT INTO library_tags VALUES('u','Fav');",
+      "INSERT INTO user_tags(id,user_id,name) VALUES('t','u','Done');",
+    ].join('\n');
+    const { chunks } = prepareD1Import(source, { maxBytes: 1100 });
+    for (let run = 0; run < 2; run++) for (const sql of chunks) db.exec(sql);
+    const rows = db
+      .prepare(
+        'SELECT media,rating,tags,notes,created_at,updated_at,completed_at FROM assistant_library ORDER BY media'
+      )
+      .all();
+    assert.deepEqual(
+      { ...rows[0] },
+      {
+        media: 'anime',
+        rating: null,
+        tags: '[]',
+        notes: null,
+        created_at: null,
+        updated_at: null,
+        completed_at: null,
+      }
+    );
+    assert.deepEqual(
+      { ...rows[1] },
+      {
+        media: 'manga',
+        rating: 8,
+        tags: '["Fav"]',
+        notes: 'Read',
+        created_at: null,
+        updated_at: '2024-01-02T00:00:00.000Z',
+        completed_at: null,
+      }
     );
   } finally {
     db.close();
