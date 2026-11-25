@@ -10,7 +10,7 @@ import GoogleSignInButton from './GoogleSignInButton';
 import { Menu } from 'lucide-react';
 
 const animeLinks = [
-  { href: '/discover', label: 'Discover' },
+  { href: '/discover', label: 'Taste quiz' },
   { href: '/search', label: 'Search' },
   { href: '/stats', label: 'Stats' },
   { href: '/watchlist', label: 'Watchlist' },

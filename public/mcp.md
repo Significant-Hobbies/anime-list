@@ -4,15 +4,19 @@
 
 Canonical: https://anime.significanthobbies.com/mcp
 
-Anime List exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT, Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search results include explicit continuation metadata so clients can retrieve every matching title. Public tools work without auth; watchlist tools require a Personal Access Token.
+Anime List exposes an MCP (Model Context Protocol) server so AI tools like ChatGPT, Claude Desktop, or Cursor can search the complete catalog and read your watchlist. Search and watchlist tools return up to 100 results per page. Pass nextCall to tools/call until it is null to retrieve every match with the same filters and sort.
 
 Endpoint:  https://anime.significanthobbies.com/api/mcp
 
 ## Public tools (no auth)
 
-- search_anime  — Page through the anime catalog with filters, totals, and an explicit next offset.
+- search_anime  — Search with filters and sorting. Use the recommended sort with a connected account for personalized results.
 
-- search_manga  — Page through the manga catalog with filters, totals, and an explicit next offset.
+- search_manga  — Search manga with filters and sorting.
+
+- list_search_fields  — Find available filter fields for anime or manga.
+
+- list_filter_actions  — Find available comparison and array filter actions.
 
 - get_anime_detail  — Full detail for one anime by MAL id.
 
@@ -23,6 +27,8 @@ Endpoint:  https://anime.significanthobbies.com/api/mcp
 - get_random_anime  — Random anime, optionally filtered by genre.
 
 ## Watchlist tools (require a token)
+
+- get_manga_watchlist_enriched  — Your manga list with titles, chapters, genres, and scores.
 
 - list_watchlist  — Your anime watchlist with statuses.
 

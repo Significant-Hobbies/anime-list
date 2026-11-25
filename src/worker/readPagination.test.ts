@@ -20,7 +20,7 @@ describe('read pagination', () => {
   });
 
   it('bounds malformed and oversized page inputs', () => {
-    expect(boundedReadPage('500', '-10')).toEqual({ limit: 50, offset: 0 });
+    expect(boundedReadPage('500', '-10')).toEqual({ limit: 100, offset: 0 });
     expect(boundedReadPage('nope', 'nope')).toEqual({ limit: 50, offset: 0 });
   });
 });

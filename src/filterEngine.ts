@@ -10,7 +10,6 @@ import {
   isArrayField,
   isStringField,
 } from './types/anime';
-import { animeStore } from './store/animeStore';
 
 // ── Primitive matchers ─────────────────────────────────────────────────
 
@@ -190,10 +189,8 @@ const matchesAnimeFilter = (
 
 // ── Public API ─────────────────────────────────────────────────────────
 
-export const filterAnimeList = async (filters: Filter[]): Promise<AnimeItem[]> => {
-  const animeList = await animeStore.getAnimeList();
-
-  return animeList.filter((anime) =>
+export const filterAnimeList = (animeList: AnimeItem[], filters: Filter[]): AnimeItem[] =>
+  animeList.filter((anime) =>
     filters.every((filter) =>
       matchesAnimeFilter(anime, filter, {
         getFieldValue: getAnimeFieldValue,
@@ -203,4 +200,3 @@ export const filterAnimeList = async (filters: Filter[]): Promise<AnimeItem[]> =
       })
     )
   );
-};

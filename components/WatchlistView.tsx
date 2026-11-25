@@ -1,4 +1,5 @@
 'use client';
+import { RequestActivity, useRequestActivity } from './RequestActivity';
 import GoogleSignInButton from './GoogleSignInButton';
 
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
@@ -19,7 +20,6 @@ import {
   exportAniListWatchlist,
   exportShelfWatchlistJson,
   getEnrichedWatchlist,
-  getTasteRecommendations,
   getWatchlistTags,
   previewWatchlistImport,
   removeFromWatchlist,
@@ -37,59 +37,28 @@ function WatchlistSkeleton() {
   return <ListSkeleton label="Loading anime watchlist" rows={6} />;
 }
 
-type TasteRecommendation = Awaited<
-  ReturnType<typeof getTasteRecommendations>
->['recommendations'][number];
-
-function TasteRecommendationCard({ item }: { item: TasteRecommendation }) {
-  return (
-    <Link
-      key={item.mal_id}
-      to={getAnimeDetailHref(item.mal_id)}
-      className="group flex gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/50"
-    >
-      {item.image ? (
-        <img
-          src={item.image}
-          alt={item.title_english || item.title}
-          width={56}
-          height={78}
-          className="h-[78px] w-14 rounded-md object-cover"
-        />
-      ) : (
-        <div className="h-[78px] w-14 shrink-0 rounded-md bg-muted" />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
-          {item.title_english || item.title}
-        </div>
-        <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted-foreground">
-          {item.score ? <span>{item.score}</span> : null}
-          {item.year ? <span>{item.year}</span> : null}
-          {item.type ? <span>{item.type}</span> : null}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1">
-          {item.reasons.slice(0, 2).map((reason) => (
-            <Badge key={reason} variant="secondary" className="text-[10px] font-normal">
-              {reason}
-            </Badge>
-          ))}
-        </div>
-      </div>
-      <div className="shrink-0 text-right">
-        <div className="text-sm font-semibold text-primary">{item.tasteScore}</div>
-        <div className="text-[10px] text-muted-foreground">fit</div>
-      </div>
-    </Link>
-  );
-}
-
 function filterWatchlist(items: EnrichedWatchlistItem[], activeTab: string) {
   return activeTab ? items.filter((item) => item.watchStatus === activeTab) : items;
 }
 
 export default function WatchlistView() {
   const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <WatchlistSkeleton />;
+  if (!user) return <SignedOutWatchlist />;
+  return <SignedInWatchlist key={user.id} />;
+}
+
+function SignedInWatchlist() {
+  const { entries, track } = useRequestActivity();
+  return (
+    <div className="space-y-3">
+      <RequestActivity label="Watchlist API activity" entries={entries} />
+      <WatchlistContent track={track} />
+    </div>
+  );
+}
+
+function WatchlistContent({ track }: { track: ReturnType<typeof useRequestActivity>['track'] }) {
   const [activeTab, setActiveTab] = useState('');
   const [showListSettings, setShowListSettings] = useState(false);
   const [showSyncTools, setShowSyncTools] = useState(false);
@@ -113,21 +82,14 @@ export default function WatchlistView() {
 
   const resource = useQuery({
     queryKey: ['watchlist', 'enriched'],
-    queryFn: ({ signal }) => getEnrichedWatchlist(signal),
-    enabled: !!user,
+    queryFn: ({ signal }) =>
+      track('GET /api/watchlist/enriched', () => getEnrichedWatchlist(signal)),
   });
-  const { data, isLoading, error, refetch, isFetching } = resource;
+  const { data, isFetching } = resource;
 
-  const { data: tagsData } = useQuery({
+  const tagQuery = useQuery({
     queryKey: ['watchlist', 'tags'],
-    queryFn: ({ signal }) => getWatchlistTags(signal),
-    enabled: !!user,
-  });
-
-  const { data: recommendationsData } = useQuery({
-    queryKey: ['watchlist', 'recommendations'],
-    queryFn: ({ signal }) => getTasteRecommendations(signal),
-    enabled: !!user,
+    queryFn: ({ signal }) => track('GET /api/watchlist/tags', () => getWatchlistTags(signal)),
   });
 
   const statusMutation = useMutation({
@@ -139,25 +101,23 @@ export default function WatchlistView() {
       malId: string;
       status: string;
       tagColor?: string;
-    }) => addToWatchlist([Number(malId)], status, tagColor),
+    }) => track('POST /api/watched/add', () => addToWatchlist([Number(malId)], status, tagColor)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const removeMutation = useMutation({
-    mutationFn: (malId: string) => removeFromWatchlist([Number(malId)]),
+    mutationFn: (malId: string) =>
+      track('POST /api/watched/remove', () => removeFromWatchlist([Number(malId)])),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const createTagMutation = useMutation({
-    mutationFn: ({ tag, color }: { tag: string; color?: string }) => saveWatchlistTag(tag, color),
+    mutationFn: ({ tag, color }: { tag: string; color?: string }) =>
+      track('POST /api/watchlist/tags', () => saveWatchlistTag(tag, color)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
     },
@@ -165,25 +125,25 @@ export default function WatchlistView() {
 
   const updateTagMutation = useMutation({
     mutationFn: ({ tagId, tag, color }: { tagId: string; tag?: string; color?: string }) =>
-      updateWatchlistTag(tagId, { tag, color }),
+      track('POST /api/watchlist/tags/:id/update', () => updateWatchlistTag(tagId, { tag, color })),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const deleteTagMutation = useMutation({
-    mutationFn: ({ tagId }: { tagId: string }) => deleteWatchlistTag(tagId),
+    mutationFn: ({ tagId }: { tagId: string }) =>
+      track('POST /api/watchlist/tags/:id/delete', () => deleteWatchlistTag(tagId)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const previewImportMutation = useMutation({
-    mutationFn: () => previewWatchlistImport(syncSource, syncPayload),
+    mutationFn: () =>
+      track('POST /api/watchlist/import/preview', () =>
+        previewWatchlistImport(syncSource, syncPayload)
+      ),
     onSuccess: (result) => {
       setImportPreview(result);
       setSyncResult(
@@ -193,20 +153,21 @@ export default function WatchlistView() {
   });
 
   const applyImportMutation = useMutation({
-    mutationFn: () => applyWatchlistImport(syncSource, syncPayload, importMode),
+    mutationFn: () =>
+      track('POST /api/watchlist/import/apply', () =>
+        applyWatchlistImport(syncSource, syncPayload, importMode)
+      ),
     onSuccess: (result) => {
       setImportPreview(null);
       setSyncResult(
         `Imported ${result.imported ?? result.entries.length} items (${result.mode ?? importMode}).`
       );
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'tags'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'recommendations'] });
+      void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
     },
   });
 
   const exportJsonMutation = useMutation({
-    mutationFn: () => exportShelfWatchlistJson(),
+    mutationFn: () => track('GET /api/watchlist/export/json', () => exportShelfWatchlistJson()),
     onSuccess: async (result) => {
       const text = JSON.stringify(result, null, 2);
       await navigator.clipboard?.writeText(text);
@@ -215,7 +176,7 @@ export default function WatchlistView() {
   });
 
   const exportAniListMutation = useMutation({
-    mutationFn: () => exportAniListWatchlist(),
+    mutationFn: () => track('GET /api/watchlist/export/anilist', () => exportAniListWatchlist()),
     onSuccess: async (result) => {
       const text = JSON.stringify(result.entries, null, 2);
       await navigator.clipboard?.writeText(text);
@@ -223,10 +184,26 @@ export default function WatchlistView() {
     },
   });
 
+  const exportCsvMutation = useMutation({
+    mutationFn: () => track('GET /api/watchlist/export/csv', downloadShelfWatchlistCsv),
+    onSuccess: () => setSyncResult('Downloaded anime-list-watchlist.csv'),
+  });
+  const [acknowledgedAction, setAcknowledgedAction] = useState(-1);
+  const latestAction = [
+    statusMutation,
+    removeMutation,
+    createTagMutation,
+    updateTagMutation,
+    deleteTagMutation,
+    previewImportMutation,
+    applyImportMutation,
+    exportJsonMutation,
+    exportAniListMutation,
+    exportCsvMutation,
+  ].reduce((latest, action) => (action.submittedAt > latest.submittedAt ? action : latest));
+
   const items: EnrichedWatchlistItem[] = data?.items ?? [];
-  const tags = tagsData?.tags ?? [];
-  const tasteProfile = recommendationsData?.profile;
-  const recommendations = recommendationsData?.recommendations ?? [];
+  const tags = tagQuery.data?.tags ?? [];
   const tagColorMap = useMemo(
     () => new Map(tags.map((tag) => [tag.tag, resolveTagColor(tag.tag, tag.color)])),
     [tags]
@@ -263,31 +240,47 @@ export default function WatchlistView() {
     });
   }, [tags]);
 
-  if (authLoading) return <WatchlistSkeleton />;
-
-  if (!user) return <SignedOutWatchlist />;
-
-  if (isLoading) return <WatchlistSkeleton />;
-  if (error && !data)
-    return (
-      <ErrorState
-        title="could not load your watchlist"
-        description="check your connection and try again."
-        onRetry={() => {
-          void refetch();
-        }}
-      />
-    );
-
   const filtered = filterWatchlist(items, activeTab);
 
   return (
     <ResourceBoundary
-      resource={{ ...resource, status: resource.status === 'empty' ? 'success' : resource.status }}
+      resource={{
+        ...resource,
+        status: resource.status === 'empty' ? 'success' : resource.status,
+      }}
+      error={
+        <ErrorState
+          title="Could not load your watchlist"
+          description="Check your connection and try again."
+          onRetry={() => void resource.refetch()}
+        />
+      }
       delay={0}
       skeleton={<WatchlistSkeleton />}
     >
       <div className="space-y-5">
+        {tagQuery.error && (
+          <ErrorState
+            title="Could not load watchlist tags"
+            onRetry={() => void tagQuery.refetch()}
+          />
+        )}
+        {latestAction.isError && latestAction.submittedAt > acknowledgedAction && (
+          <p role="alert">
+            The watchlist action failed. See API activity for details.{' '}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => {
+                setAcknowledgedAction(latestAction.submittedAt);
+                void queryClient.invalidateQueries({ queryKey: ['watchlist'] });
+              }}
+            >
+              Refresh watchlist
+            </button>{' '}
+            to check the current state.
+          </p>
+        )}
         <RefreshIndicator active={isFetching} label="Updating anime watchlist" />
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex gap-2 flex-wrap">
@@ -370,10 +363,8 @@ export default function WatchlistView() {
                 Copy Anime List JSON
               </button>
               <button
-                onClick={async () => {
-                  await downloadShelfWatchlistCsv();
-                  setSyncResult('Downloaded anime-list-watchlist.csv');
-                }}
+                onClick={() => exportCsvMutation.mutate()}
+                disabled={exportCsvMutation.isPending}
                 className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
               >
                 Download CSV
@@ -557,64 +548,6 @@ export default function WatchlistView() {
               })}
             </div>
           </div>
-        )}
-
-        {tasteProfile && (
-          <Card className="overflow-hidden p-0">
-            <div className="border-b border-border p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Taste Profile</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Recommendations from your watchlist genres, themes, types, and list signals.
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="rounded-md border border-border px-3 py-2">
-                    <div className="text-sm font-semibold">{tasteProfile.sampledTitles}</div>
-                    <div className="text-[10px] uppercase text-muted-foreground">sampled</div>
-                  </div>
-                  <div className="rounded-md border border-border px-3 py-2">
-                    <div className="text-sm font-semibold">
-                      {tasteProfile.favoriteGenres.length}
-                    </div>
-                    <div className="text-[10px] uppercase text-muted-foreground">genres</div>
-                  </div>
-                  <div className="rounded-md border border-border px-3 py-2">
-                    <div className="text-sm font-semibold">{recommendations.length}</div>
-                    <div className="text-[10px] uppercase text-muted-foreground">picks</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {[...tasteProfile.favoriteGenres, ...tasteProfile.favoriteThemes]
-                  .slice(0, 8)
-                  .map((signal) => (
-                    <Badge
-                      key={`${signal.name}-${signal.weight}`}
-                      variant="outline"
-                      className="text-[11px]"
-                    >
-                      {signal.name} · {signal.weight}
-                    </Badge>
-                  ))}
-                {tasteProfile.sampledTitles === 0 && (
-                  <span className="text-sm text-muted-foreground">
-                    Add anime to your watchlist to build a profile.
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {recommendations.length > 0 && (
-              <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-                {recommendations.slice(0, 6).map((item) => (
-                  <TasteRecommendationCard key={item.mal_id} item={item} />
-                ))}
-              </div>
-            )}
-          </Card>
         )}
 
         {filtered.length === 0 ? (

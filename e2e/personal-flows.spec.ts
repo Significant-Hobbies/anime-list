@@ -28,63 +28,6 @@ const watchlistItem = {
 };
 
 test.describe('signed-in personal flows', () => {
-  test('adds a discovery recommendation to the watchlist', async ({ page }) => {
-    await authenticate(page);
-    let added: unknown;
-
-    await page.route('**/api/**', async (route) => {
-      const request = route.request();
-      const path = new URL(request.url()).pathname;
-
-      if (path === '/api/discover/queue') {
-        return json(route, {
-          meta: { currentSeason: 'summer', currentYear: 2026 },
-          results: [
-            {
-              mal_id: 5114,
-              id: 5114,
-              title: 'Fullmetal Alchemist: Brotherhood',
-              genres: ['Action', 'Fantasy'],
-              themes: [],
-              year: 2009,
-              score: 9.1,
-              reasons: ['Completed favorites'],
-              mediaType: 'anime',
-            },
-          ],
-        });
-      }
-      if (path === '/api/watchlist/tags') {
-        return json(route, {
-          tags: [{ id: 'watching', tag: 'Watching', count: 0, color: '#2563eb' }],
-        });
-      }
-      if (path === '/api/watched/add' && request.method() === 'POST') {
-        added = request.postDataJSON();
-        return json(route, { success: true, message: 'Added' });
-      }
-      if (path === '/api/last-updated') {
-        return json(route, { lastUpdated: null, anime: null, manga: null });
-      }
-      return json(route, { error: `Unexpected E2E request: ${path}` }, 404);
-    });
-
-    await page.goto('/discover');
-
-    await expect(page.getByRole('heading', { name: 'Weekly Discovery' })).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: 'Fullmetal Alchemist: Brotherhood' })
-    ).toBeVisible();
-    await page.getByRole('button', { name: 'Add to List' }).click();
-
-    await expect
-      .poll(() => added)
-      .toEqual({
-        mal_ids: [5114],
-        status: 'Watching',
-      });
-  });
-
   test('previews a watchlist import without applying it', async ({ page }) => {
     await authenticate(page);
     let previewPayload: unknown;
@@ -99,17 +42,6 @@ test.describe('signed-in personal flows', () => {
       if (path === '/api/watchlist/tags') {
         return json(route, {
           tags: [{ id: 'completed', tag: 'Completed', count: 1, color: '#16a34a' }],
-        });
-      }
-      if (path === '/api/watchlist/recommendations') {
-        return json(route, {
-          profile: {
-            favoriteGenres: [],
-            favoriteThemes: [],
-            preferredTypes: [],
-            sampledTitles: 1,
-          },
-          recommendations: [],
         });
       }
       if (path === '/api/watchlist/import/preview' && request.method() === 'POST') {
@@ -156,4 +88,34 @@ test.describe('signed-in personal flows', () => {
         source: 'mal',
       });
   });
+});
+
+test('watchlist records failed reads, retries, and leaves recommendations to search', async ({
+  page,
+}) => {
+  await authenticate(page);
+  const calls: string[] = [];
+  let attempts = 0;
+  await page.route('**/api/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    calls.push(path);
+    if (path.endsWith('/enriched')) {
+      if (++attempts === 1) return json(route, {}, 429);
+      return json(route, { items: [watchlistItem] });
+    }
+    if (path.endsWith('/tags')) return json(route, { tags: [] });
+    return json(route, {});
+  });
+  await page.goto('/watchlist');
+  await expect(page.getByText('Could not load your watchlist')).toBeVisible();
+  await page.getByText('Watchlist API activity').click();
+  await expect(page.getByText('HTTP 429')).toBeVisible();
+  await page.getByRole('button', { name: /try again|retry/i }).click();
+  await expect(page.getByText(watchlistItem.title)).toBeVisible();
+  await expect(page.getByText('GET /api/watchlist/enriched', { exact: true })).toHaveCount(2);
+  await expect(page.getByRole('heading', { name: 'Taste Profile' })).toHaveCount(0);
+  await page.goto('/discover');
+  await expect(page.getByRole('heading', { name: 'Find your anime archetype' })).toBeVisible();
+  expect(calls).not.toContain('/api/watchlist/recommendations');
+  expect(calls).not.toContain('/api/discover/queue');
 });

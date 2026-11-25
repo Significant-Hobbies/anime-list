@@ -28,7 +28,7 @@ test('anime detail page loads from the deployed API', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: new RegExp(animeTitle, 'i') })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Synopsis' })).toBeVisible();
-  await expect(page.getByText('Recommendations', { exact: true })).toBeVisible();
+  await expect(page.getByText('Recommendations', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Unable to load anime details')).toHaveCount(0);
   await expect(page.getByText('API error: 404')).toHaveCount(0);
   expect(saasmakerRequests).toEqual([]);

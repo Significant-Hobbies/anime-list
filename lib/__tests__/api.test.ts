@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { searchAnime } from '../api';
+import { getEnrichedWatchlist, searchAnime } from '../api';
 import { CATALOG_UNAVAILABLE_CODE, CATALOG_UNAVAILABLE_MESSAGE } from '../apiErrors';
 
 afterEach(() => {
@@ -32,7 +32,10 @@ describe('search API errors', () => {
 });
 
 describe('search API timeout', () => {
-  it('keeps the timeout armed while the response body downloads', async () => {
+  it.each([
+    ['search', () => searchAnime([]), 'Search service timed out'],
+    ['watchlist', () => getEnrichedWatchlist(), 'Watchlist request timed out'],
+  ] as const)('times out a stalled %s response body', async (_label, start, message) => {
     vi.useFakeTimers();
     vi.stubGlobal(
       'fetch',
@@ -51,8 +54,8 @@ describe('search API timeout', () => {
       )
     );
 
-    const pending = searchAnime([]);
-    const assertion = expect(pending).rejects.toThrow('Search service timed out');
+    const pending = start();
+    const assertion = expect(pending).rejects.toThrow(message);
     await vi.advanceTimersByTimeAsync(12_000);
     await assertion;
   });

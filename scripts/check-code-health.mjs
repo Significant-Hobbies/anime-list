@@ -14,14 +14,14 @@ const sourceExtensions = new Set(['.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx'])
 
 const baselines = {
   complexity: {
-    violations: 15,
-    maxCcn: 55,
-    maxLength: 643,
+    violations: 11,
+    maxCcn: 46,
+    maxLength: 557,
     maxParams: 8,
   },
   duplication: {
-    clones: 43,
-    duplicatedLines: 711,
+    clones: 39,
+    duplicatedLines: 658,
   },
   unused: {
     files: 0,

@@ -52,8 +52,8 @@
     "path": "/discover",
     "markdownPath": "/discover.md",
     "title": "Anime discovery — Anime List",
-    "description": "Use a signed-in weekly queue or answer four lightweight questions for a private anime taste profile and prefilled search.",
-    "markdown": "Discovery combines a signed-in weekly queue with a public, privacy-safe taste quiz. Quiz answers are not persisted; analytics retain only the resulting archetype."
+    "description": "Answer four questions for a private anime taste profile and prefilled search.",
+    "markdown": "The taste quiz opens a filtered anime search. Quiz answers are not persisted; analytics retain only the resulting archetype."
   },
   {
     "id": "changelog",

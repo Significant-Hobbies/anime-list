@@ -461,6 +461,10 @@ app.post('/api/search', optionalAuth, async (c) => {
   }
   const user = c.get('user');
   const { filters, sortBy, airing, hideWatched, includeWatched, pagesize, offset } = parsed.data;
+  if (sortBy === 'recommended') {
+    c.header('Cache-Control', 'private, no-store');
+    if (!user) return c.json({ error: 'Sign in to sort by recommendations.' }, 401);
+  }
   const result = await executeSearch({
     filters,
     sortBy,

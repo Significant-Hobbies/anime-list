@@ -102,7 +102,7 @@ async function renderPublicDetail(path: string, assets?: Fetcher) {
   if (!entry || Number(entry.mal_id) !== Number(match[2]) || !entry.title)
     throw new Error('Invalid public detail');
   const title = label(entry.title_english || entry.title);
-  return `# ${title}\n\nCanonical: ${ORIGIN}${path}\n\n${entry.title_english && entry.title_english !== entry.title ? text(entry.title) + '\n\n' : ''}${entry.image ? `![${title}](${text(entry.image)})\n\n` : ''}${detailFacts(entry)}\n## Synopsis\n\n${text(entry.synopsis) || 'No synopsis available.'}\n${titleLinks(data.relations, 'Related titles', kind)}${titleLinks(data.recommendations, 'Recommendations', kind)}\n[MyAnimeList](${text(entry.url) || `https://myanimelist.net/${kind}/${match[2]}`}) · [Browse ${kind}](${ORIGIN}${kind === 'anime' ? '/search' : '/manga'})\n`;
+  return `# ${title}\n\nCanonical: ${ORIGIN}${path}\n\n${entry.title_english && entry.title_english !== entry.title ? text(entry.title) + '\n\n' : ''}${entry.image ? `![${title}](${text(entry.image)})\n\n` : ''}${detailFacts(entry)}\n## Synopsis\n\n${text(entry.synopsis) || 'No synopsis available.'}\n${titleLinks(data.relations, 'Related titles', kind)}\n[MyAnimeList](${text(entry.url) || `https://myanimelist.net/${kind}/${match[2]}`}) · [Browse ${kind}](${ORIGIN}${kind === 'anime' ? '/search' : '/manga'})\n`;
 }
 
 function statsMarkdown(data: PublicRecord) {

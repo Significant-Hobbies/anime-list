@@ -138,17 +138,11 @@ it('preserves the return path when opening a related anime', async () => {
   expect(fixture.trackDiscoveryEvent.mock.calls).toEqual([['discovery.choice_selected']]);
 });
 
-it('preserves the return path when opening a recommended anime', async () => {
+it('keeps recommended titles off the detail page', async () => {
   fixture.recommendations = [{ mal_id: 3, title: 'Recommended anime', votes: 10 }];
-  render(detailPage('/search?af=score%3E%3D8&airing=no&page=3'));
-
-  const recommendationLink = await screen.findByRole('link', { name: /Recommended anime/ });
-  expect(recommendationLink).toHaveAttribute(
-    'data-return-to-search',
-    '/search?af=score%3E%3D8&airing=no&page=3'
-  );
-  fireEvent.click(recommendationLink);
-  expect(fixture.trackDiscoveryEvent.mock.calls).toEqual([['discovery.choice_selected']]);
+  render(detail());
+  await screen.findByRole('button', { name: 'Add to watchlist' });
+  expect(screen.queryByRole('link', { name: /Recommended anime/ })).toBeNull();
 });
 
 it('tracks from detail, restores the saved status after remount, and explains guest access', async () => {

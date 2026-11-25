@@ -82,11 +82,11 @@ function HeroSection({ quizAboveFold }: { quizAboveFold: boolean }) {
             Filter the catalog
           </Link>
           <Link
-            to="/discover"
-            onClick={() => trackHomeSurfaceClick('discover', 'hero')}
+            to="/stats"
+            onClick={() => trackHomeSurfaceClick('stats', 'hero')}
             className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Browse the queue
+            Explore catalog stats
           </Link>
           {quizAboveFold && (
             <Link
@@ -226,8 +226,8 @@ function TryItSection() {
             onClick={() => trackHomeSurfaceClick('discover', 'card')}
             className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
           >
-            <p className="text-sm font-medium text-foreground">Currently airing queue</p>
-            <p className="mt-1 text-xs text-muted-foreground">this season, sorted for you</p>
+            <p className="text-sm font-medium text-foreground">Anime taste quiz</p>
+            <p className="mt-1 text-xs text-muted-foreground">Find your anime archetype</p>
           </Link>
           <Link
             to="/stats"

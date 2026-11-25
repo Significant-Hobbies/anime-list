@@ -101,9 +101,15 @@ for (const width of [390, 768, 1440]) {
     await page.screenshot({ path: `test-results/catalog-search-${width}.png`, fullPage: false });
     for (const path of ['/watchlist', '/discover']) {
       await page.goto(path);
-      await expect(
-        page.locator('main').getByRole('button', { name: 'Continue with Google', exact: true })
-      ).toBeVisible();
+      if (path === '/watchlist') {
+        await expect(
+          page.locator('main').getByRole('button', { name: 'Continue with Google', exact: true })
+        ).toBeVisible();
+      } else {
+        await expect(
+          page.getByRole('heading', { name: 'Find your anime archetype' })
+        ).toBeVisible();
+      }
       await expect(page.locator('studio-footer footer')).toHaveAttribute(
         'data-footer-mode',
         'compact'
@@ -123,6 +129,7 @@ for (const width of [390, 768, 1440]) {
         'data-footer-mode',
         'compact'
       );
+      if (path === '/discover') continue;
       await page
         .getByRole('link', { name: 'Browse anime without signing in', exact: true })
         .click();

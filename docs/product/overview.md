@@ -4,7 +4,7 @@
 
 **Anime List** is a production anime/manga discovery app. It gives
 multi-field filtering, shareable URLs, personal watchlists (Google OAuth),
-stats, schedule tracking, and a signed-in seasonal discovery queue over a
+stats, schedule tracking, and watchlist-ranked anime search over a
 catalog of ~14.8k anime + ~20.7k manga titles synced daily from MyAnimeList
 through the Tenrai API.
 
@@ -15,7 +15,7 @@ through the Tenrai API.
 ## Who it serves
 
 Anime/manga fans filtering a ~35k-title catalog; signed-in users tracking
-watchlists and discovering seasonal picks.
+watchlists and sorting search results by taste.
 
 ## Operating posture
 

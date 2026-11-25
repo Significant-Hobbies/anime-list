@@ -80,14 +80,15 @@ describe('catalog time sorting', () => {
     'keeps SQL and cached %s ordering identical through pagination',
     async (sortBy, expected) => {
       const parsed = filterRequestSchema.parse({ filters: [], sortBy });
+      if (parsed.sortBy !== sortBy) throw new Error('Time sort changed during validation');
       const list = await getAllAnime();
       const cached = getScoreSortedList([...list].reverse(), [], parsed.sortBy);
       expect(cached.map((item) => item.mal_id)).toEqual(expected);
-      const sql = await getSimpleAnimeSearchPage({ ...parsed, pagesize: 20 });
+      const sql = await getSimpleAnimeSearchPage({ ...parsed, sortBy, pagesize: 20 });
       expect(sql?.page.map((item) => item.mal_id)).toEqual(expected);
       expect(sql?.page.map((item) => item.points)).toEqual(cached.map((item) => item.points));
 
-      const paged = await getSimpleAnimeSearchPage({ ...parsed, pagesize: 2, offset: 1 });
+      const paged = await getSimpleAnimeSearchPage({ ...parsed, sortBy, pagesize: 2, offset: 1 });
       const cachedPage = getScoreSortedList([...list].reverse(), [], parsed.sortBy, 3).slice(1, 3);
       expect(paged?.page.map((item) => item.mal_id)).toEqual(expected.slice(1, 3));
       expect(cachedPage.map((item) => item.mal_id)).toEqual(expected.slice(1, 3));

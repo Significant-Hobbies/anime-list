@@ -7,7 +7,6 @@ import type {
   WatchlistData,
   AnimeDetailResponse,
   EnrichedWatchlistResponse,
-  TasteRecommendationsResponse,
   WatchlistTag,
   WatchlistImportPreview,
   AniListExportResponse,
@@ -15,7 +14,6 @@ import type {
   MangaWatchlistData,
   EnrichedMangaWatchlistResponse,
   MangaDetailResponse,
-  DiscoveryQueueResponse,
 } from './types';
 import { getApiUrl } from './apiConfig';
 import { ApiError, CATALOG_UNAVAILABLE_CODE, CATALOG_UNAVAILABLE_MESSAGE } from './apiErrors';
@@ -23,6 +21,8 @@ import { ApiError, CATALOG_UNAVAILABLE_CODE, CATALOG_UNAVAILABLE_MESSAGE } from 
 const API_URL = getApiUrl();
 const BASE = `${API_URL}/api`;
 const DEFAULT_PAGE_SIZE = 40;
+const WATCHLIST_READ_TIMEOUT_MS = 12_000;
+const WATCHLIST_WRITE_TIMEOUT_MS = 30_000;
 const SEARCH_REQUEST_TIMEOUT_MS = 12_000;
 
 // Auth now flows via httpOnly cookie set by the server. We send
@@ -37,11 +37,12 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   let timedOut = false;
 
+  const onAbort = () => controller?.abort();
   if (controller && init?.signal) {
     if (init.signal.aborted) {
       controller.abort();
     } else {
-      init.signal.addEventListener('abort', () => controller.abort(), { once: true });
+      init.signal.addEventListener('abort', onAbort, { once: true });
     }
   }
 
@@ -90,10 +91,15 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs?: number)
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (!timedOut) throw error;
-      throw new TypeError('Search service timed out. Please try again.');
+      if (url.startsWith(`${BASE}/watch`))
+        throw new DOMException('Watchlist request timed out.', 'TimeoutError');
+      const timeoutError = new TypeError('Search service timed out. Please try again.');
+      timeoutError.name = 'TimeoutError';
+      throw timeoutError;
     }
     throw error;
   } finally {
+    init?.signal?.removeEventListener('abort', onAbort);
     if (timeoutId) clearTimeout(timeoutId);
   }
 }
@@ -172,12 +178,20 @@ export function getAnimeDetail(
   return fetchJson(`${BASE}/anime/${malId}`, { signal });
 }
 
+function fetchWatchlistJson<T>(url: string, init?: RequestInit): Promise<T> {
+  return fetchJson(
+    url,
+    init,
+    init?.method === 'POST' ? WATCHLIST_WRITE_TIMEOUT_MS : WATCHLIST_READ_TIMEOUT_MS
+  );
+}
+
 export function addToWatchlist(
   malIds: number[],
   status: string,
   tagColor?: string
 ): Promise<{ success: boolean; message: string }> {
-  return fetchJson(`${BASE}/watched/add`, {
+  return fetchWatchlistJson(`${BASE}/watched/add`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({ mal_ids: malIds, status, tagColor }),
@@ -187,7 +201,7 @@ export function addToWatchlist(
 export function removeFromWatchlist(
   malIds: number[]
 ): Promise<{ success: boolean; message: string }> {
-  return fetchJson(`${BASE}/watched/remove`, {
+  return fetchWatchlistJson(`${BASE}/watched/remove`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({ mal_ids: malIds }),
@@ -195,20 +209,14 @@ export function removeFromWatchlist(
 }
 
 export function getEnrichedWatchlist(signal?: AbortSignal): Promise<EnrichedWatchlistResponse> {
-  return fetchJson(`${BASE}/watchlist/enriched`, { signal });
-}
-
-export function getTasteRecommendations(
-  signal?: AbortSignal
-): Promise<TasteRecommendationsResponse> {
-  return fetchJson(`${BASE}/watchlist/recommendations`, { signal });
+  return fetchWatchlistJson(`${BASE}/watchlist/enriched`, { signal });
 }
 
 export function previewWatchlistImport(
   source: 'mal' | 'anilist' | 'shelf',
   payload: string
 ): Promise<WatchlistImportPreview> {
-  return fetchJson(`${BASE}/watchlist/import/preview`, {
+  return fetchWatchlistJson(`${BASE}/watchlist/import/preview`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({ source, payload }),
@@ -220,7 +228,7 @@ export function applyWatchlistImport(
   payload: string,
   mode: 'merge' | 'replace' | 'skip' = 'merge'
 ): Promise<WatchlistImportPreview> {
-  return fetchJson(`${BASE}/watchlist/import/apply`, {
+  return fetchWatchlistJson(`${BASE}/watchlist/import/apply`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({ source, payload, mode }),
@@ -228,15 +236,18 @@ export function applyWatchlistImport(
 }
 
 export function exportAniListWatchlist(): Promise<AniListExportResponse> {
-  return fetchJson(`${BASE}/watchlist/export/anilist`);
+  return fetchWatchlistJson(`${BASE}/watchlist/export/anilist`);
 }
 
 export function exportShelfWatchlistJson(): Promise<{ version: number; anime: unknown[] }> {
-  return fetchJson(`${BASE}/watchlist/export/json`);
+  return fetchWatchlistJson(`${BASE}/watchlist/export/json`);
 }
 
 export async function downloadShelfWatchlistCsv(): Promise<void> {
-  const response = await fetch(`${BASE}/watchlist/export/csv`, withCreds());
+  const response = await fetch(
+    `${BASE}/watchlist/export/csv`,
+    withCreds({ signal: AbortSignal.timeout(WATCHLIST_READ_TIMEOUT_MS) })
+  );
   if (!response.ok) throw new Error('Export failed');
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
@@ -259,14 +270,14 @@ export function updateAnimeNote(
 }
 
 export function getWatchlistTags(signal?: AbortSignal): Promise<{ tags: WatchlistTag[] }> {
-  return fetchJson(`${BASE}/watchlist/tags`, { signal });
+  return fetchWatchlistJson(`${BASE}/watchlist/tags`, { signal });
 }
 
 export function saveWatchlistTag(
   tag: string,
   color?: string
 ): Promise<{ success: boolean; message: string }> {
-  return fetchJson(`${BASE}/watchlist/tags`, {
+  return fetchWatchlistJson(`${BASE}/watchlist/tags`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({ tag, color }),
@@ -277,7 +288,7 @@ export function updateWatchlistTag(
   tagId: string,
   payload: { tag?: string; color?: string }
 ): Promise<{ success: boolean; message: string }> {
-  return fetchJson(`${BASE}/watchlist/tags/${tagId}/update`, {
+  return fetchWatchlistJson(`${BASE}/watchlist/tags/${tagId}/update`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify(payload),
@@ -288,7 +299,7 @@ export function deleteWatchlistTag(
   tagId: string,
   moveToTagId?: string
 ): Promise<{ success: boolean; message: string }> {
-  return fetchJson(`${BASE}/watchlist/tags/${tagId}/delete`, {
+  return fetchWatchlistJson(`${BASE}/watchlist/tags/${tagId}/delete`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({ moveToTagId }),
@@ -472,23 +483,6 @@ export function getMangaDetail(
   signal?: AbortSignal
 ): Promise<MangaDetailResponse> {
   return fetchJson(`${MANGA_BASE}/${malId}`, { signal });
-}
-
-export function getDiscoveryQueue(
-  limit = 50,
-  signal?: AbortSignal
-): Promise<DiscoveryQueueResponse> {
-  return fetchJson(`${BASE}/discover/queue?limit=${limit}`, { signal });
-}
-
-export function dismissDiscoveryItems(
-  malIds: (string | number)[]
-): Promise<{ success: boolean; message: string }> {
-  return fetchJson(`${BASE}/discover/dismiss`, {
-    method: 'POST',
-    headers: jsonHeaders,
-    body: JSON.stringify({ mal_ids: malIds }),
-  });
 }
 
 // ── Personal Access Tokens (for MCP server auth) ───────────────────────

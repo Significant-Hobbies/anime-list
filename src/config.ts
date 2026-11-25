@@ -1,22 +1,5 @@
-export enum AnimeField {
-  MalId = 'mal_id',
-  Title = 'title',
-  TitleEnglish = 'title_english',
-  Type = 'type',
-  Episodes = 'episodes',
-  Score = 'score',
-  ScoredBy = 'scored_by',
-  Rank = 'rank',
-  Popularity = 'popularity',
-  Members = 'members',
-  Favorites = 'favorites',
-  Year = 'year',
-  Season = 'season',
-  Synopsis = 'synopsis',
-  Genres = 'genres',
-  Themes = 'themes',
-  Demographics = 'demographics',
-}
+import { AnimeField } from './types/animeFields';
+export { AnimeField };
 
 export enum FilterAction {
   Equals = 'EQUALS',

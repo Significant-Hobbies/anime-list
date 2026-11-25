@@ -28,9 +28,11 @@ import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS, filtersParser } from '@/
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { catalogErrorMessage } from '@/lib/apiErrors';
 import FilterRow from './FilterRow';
+import { RequestActivity, useRequestActivity } from './RequestActivity';
 import ResultsGrid, { ResultsGridSkeleton } from './ResultsGrid';
 import {
   ANIME_SORT_OPTIONS,
+  RECOMMENDED_SORT,
   normalizeTimeSort,
   POPULARITY_PRESETS,
   QUICK_GENRES,
@@ -151,6 +153,18 @@ function AnimeCatalogCount({ totalFiltered }: { totalFiltered?: number }) {
   );
 }
 
+const PUBLIC_ANIME_SORT_OPTIONS = ANIME_SORT_OPTIONS.filter(
+  ({ value }) => value !== RECOMMENDED_SORT
+);
+
+function useAnimeSearchSort(signedIn: boolean) {
+  const [selected, setSortBy] = useQueryState('sort', parseAsString);
+  const sortOptions = signedIn ? ANIME_SORT_OPTIONS : PUBLIC_ANIME_SORT_OPTIONS;
+  const sort =
+    sortOptions.find(({ value }) => value === normalizeTimeSort(selected ?? '')) ?? sortOptions[0];
+  return { sort, sortOptions, setSortBy };
+}
+
 type FilterBuilderProps = {
   initialSearchData?: SearchResponse;
   initialSearchKey?: string;
@@ -158,9 +172,10 @@ type FilterBuilderProps = {
 
 export default function FilterBuilder({ initialSearchData, initialSearchKey }: FilterBuilderProps) {
   const { user } = useAuth();
+  const { entries, track } = useRequestActivity();
   const [filters, setFilters] = useQueryState('af', filtersParser.withDefault([]));
   const [searchText, setSearchText] = useQueryState('q', parseAsString.withDefault(''));
-  const [sortBy, setSortBy] = useQueryState('sort', parseAsString.withDefault('score'));
+  const { sort, sortOptions, setSortBy } = useAnimeSearchSort(!!user);
   const [selectedSeason, setSelectedSeason] = useQueryState(
     'season',
     parseAsString.withDefault('any')
@@ -284,8 +299,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
       opts: {
         pagesize,
         offset,
-        sortBy:
-          sortBy === RELEVANCE_SORT_VALUE ? undefined : normalizeTimeSort(sortBy) || undefined,
+        sortBy: sort.value === RELEVANCE_SORT_VALUE ? undefined : sort.value,
         airing,
         hideWatched: watchlistMode === 'hide' ? hideWatched : [],
         includeWatched: watchlistMode === 'show' ? hideWatched : [],
@@ -295,7 +309,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     activeAdvancedFilters,
     pagesize,
     offset,
-    sortBy,
+    sort,
     airing,
     selectedGenres,
     selectedSeason,
@@ -314,10 +328,13 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
   );
 
   const resource = useQuery<SearchResponse>({
-    queryKey: ['search', debouncedFilterKey],
+    queryKey:
+      debouncedSearchRequest.opts.sortBy === RECOMMENDED_SORT
+        ? ['watchlist', 'search', debouncedFilterKey]
+        : ['search', debouncedFilterKey],
     queryFn: ({ signal }) => {
       const { filters: f, opts } = debouncedSearchRequest;
-      return searchAnime(f, opts, signal);
+      return track('POST /api/search', () => searchAnime(f, opts, signal));
     },
     initialData: debouncedFilterKey === initialSearchKey ? initialSearchData : undefined,
     placeholderData: (prev) => prev,
@@ -360,7 +377,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
     setSelectedGenres([]);
     setSearchText('');
     setFilters([]);
-    setSortBy('score');
+    setSortBy(null);
     setSelectedSeason('any');
     setMinMembers(0);
     setAiring('any');
@@ -377,11 +394,6 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
         value: String(p.value),
         label: p.label,
       })),
-    []
-  );
-
-  const sortOptions = useMemo(
-    () => ANIME_SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
     []
   );
 
@@ -449,10 +461,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-lg bg-white/[0.04] p-3">
                 <p className="text-xs text-muted-foreground">Sort</p>
-                <p className="mt-1 font-medium text-foreground">
-                  {ANIME_SORT_OPTIONS.find((o) => o.value === normalizeTimeSort(sortBy))?.label ??
-                    'Score'}
-                </p>
+                <p className="mt-1 font-medium text-foreground">{sort.label}</p>
               </div>
               <div className="rounded-lg bg-white/[0.04] p-3">
                 <p className="text-xs text-muted-foreground">Season</p>
@@ -482,7 +491,7 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
           />
           <DiscoverSelect
             label="Sort"
-            value={normalizeTimeSort(sortBy) || RELEVANCE_SORT_VALUE}
+            value={sort.value}
             onValueChange={(value) => {
               setSortBy(value);
               resetPage();
@@ -677,12 +686,11 @@ export default function FilterBuilder({ initialSearchData, initialSearchKey }: F
         )}
       </DiscoverPanel>
 
-      {
-        <div className="flex min-h-5 flex-wrap items-center gap-3">
-          <AnimeCatalogCount totalFiltered={data?.totalFiltered} />
-          <RefreshIndicator active={isFetching} label="Updating anime results" />
-        </div>
-      }
+      <div className="flex min-h-5 flex-wrap items-center gap-3">
+        <AnimeCatalogCount totalFiltered={data?.totalFiltered} />
+        <RefreshIndicator active={isFetching} label="Updating anime results" />
+      </div>
+      <RequestActivity label="Search API activity" entries={entries} />
 
       <ResourceBoundary
         resource={resource}

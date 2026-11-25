@@ -17,7 +17,7 @@ import {
   getWatchlistTags,
   addToSchedule,
 } from '@/lib/api';
-import type { AnimeRecommendationItem, AnimeRelationItem } from '@/lib/types';
+import type { AnimeRelationItem } from '@/lib/types';
 import { cn, getAnimeDetailHref } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
@@ -261,18 +261,6 @@ export default function AnimeDetailView({
       }
     );
   };
-
-  const recommendations = useMemo(() => {
-    if (!detailQuery.data) return [];
-    const deduped = new Map<number, AnimeRecommendationItem>();
-    for (const item of [...detailQuery.data.recommendations].sort((a, b) => b.votes - a.votes)) {
-      if (item.mal_id === malId) continue;
-      if (!deduped.has(item.mal_id)) {
-        deduped.set(item.mal_id, item);
-      }
-    }
-    return Array.from(deduped.values()).slice(0, 12);
-  }, [detailQuery.data, malId]);
 
   const savedNote = detailQuery.data?.watchlistEntry?.note ?? '';
 
@@ -691,46 +679,6 @@ export default function AnimeDetailView({
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Recommendations Scroll */}
-            {recommendations.length > 0 && (
-              <div className="space-y-6">
-                <div className="flex items-end border-b border-outline/10 pb-4">
-                  <h2 className="text-xl font-semibold text-foreground">Recommendations</h2>
-                </div>
-                <div className="flex gap-4 md:gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-                  {recommendations.map((item) => {
-                    const itemTitle = animeTitle(item);
-                    return (
-                      <Link
-                        to={getAnimeDetailHref(item.mal_id)}
-                        state={(previous) => getAnimeDetailLinkState(previous, returnToSearch)}
-                        key={item.mal_id}
-                        className="min-w-[200px] md:min-w-[240px] group cursor-pointer block"
-                        onClick={() => trackDiscoveryEvent('discovery.choice_selected')}
-                      >
-                        <div className="aspect-[2/3] overflow-hidden bg-surface-container-low mb-3 relative rounded-sm border border-outline/10">
-                          {item.image ? (
-                            <img
-                              src={item.image}
-                              alt={itemTitle}
-                              className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : null}
-                          <div className="absolute inset-0 bg-primary-container/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        </div>
-                        <h4 className="text-sm md:text-base font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                          {itemTitle}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {item.type || 'Unknown'} · {item.year || 'Unknown'}
-                        </p>
-                      </Link>
-                    );
-                  })}
-                </div>
               </div>
             )}
           </div>

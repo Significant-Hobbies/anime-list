@@ -57,6 +57,18 @@ describe('buildTasteRecommendations', () => {
     expect(result.recommendations[0].reasons).toContain('matches Action');
   });
 
+  it('keeps popular format-only matches out of personalized picks', () => {
+    const result = buildTasteRecommendations(
+      [
+        anime(1, 'Favorite', ['Drama']),
+        anime(2, 'Another drama', ['Drama']),
+        { ...anime(3, 'Unrelated hit', ['Action']), score: 10 },
+      ],
+      { user: { id: 'u', name: 'User' }, anime: { '1': { id: '1', status: 'Completed' } } }
+    );
+    expect(result.recommendations.map((item) => item.mal_id)).toEqual([2]);
+  });
+
   it('does not recommend already watched titles', () => {
     const watchlist: WatchlistData = {
       user: { id: 'u1', name: 'User' },

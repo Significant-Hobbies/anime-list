@@ -5,6 +5,7 @@ import axios from 'axios';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { D1Database } from '@cloudflare/workers-types';
 import worker from './worker';
+import { animeStore } from './store/animeStore';
 
 // Relations and recommendations fall back to an empty payload when the
 // catalog provider is unreachable; keep tests hermetic by refusing at once.
@@ -308,6 +309,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  animeStore.clearStore();
   db = new FakeD1([ANIME_ROW]);
   edgeCache = new Map();
   pending = [];
@@ -490,6 +492,93 @@ describe('watchlist handlers', () => {
     expect(db.statements.some((statement) => statement.sql === 'SELECT * FROM anime_data')).toBe(
       false
     );
+  });
+
+  it('orders the entire filtered search by this account’s taste before taking a page', async () => {
+    db = new FakeD1([
+      animeRow(1, { year: 2000, genres: '{"Drama":1}' }),
+      animeRow(2, { genres: '{"Action":1}', score: 9 }),
+      animeRow(3, { genres: '{"Drama":1}', score: 6 }),
+      animeRow(4, { genres: '{"Drama":1}', score: 7 }),
+    ]);
+    const alice = await tokenFor('alice');
+    const bob = await tokenFor('bob');
+    expect((await addStatus(alice, 'Completed')).status).toBe(200);
+    const filters = [{ field: 'year', action: 'EQUALS', value: 2024 }];
+    const search = (token?: string, offset = 0, overrides = {}) =>
+      call('/api/search', {
+        method: 'POST',
+        token,
+        body: { sortBy: 'recommended', filters, pagesize: 1, offset, ...overrides },
+      });
+
+    expect((await search()).status).toBe(401);
+    const first = await search(alice);
+    expect(first.status).toBe(200);
+    expect(first.headers.get('cache-control')).toContain('no-store');
+    expect(await first.json()).toMatchObject({ totalFiltered: 3, filteredList: [{ id: 4 }] });
+    expect(await (await search(alice, 1)).json()).toMatchObject({
+      totalFiltered: 3,
+      filteredList: [{ id: 3 }],
+    });
+    expect(await (await search(alice, 2)).json()).toMatchObject({
+      totalFiltered: 3,
+      filteredList: [{ id: 2, points: 0 }],
+    });
+    expect(await (await search(alice, 3)).json()).toMatchObject({
+      totalFiltered: 3,
+      filteredList: [],
+    });
+    expect(await (await search(bob)).json()).toMatchObject({
+      totalFiltered: 3,
+      filteredList: [{ id: 2, points: 0 }],
+    });
+    expect(
+      await (await search(alice, 0, { filters: [], includeWatched: ['Completed'] })).json()
+    ).toMatchObject({
+      totalFiltered: 1,
+      filteredList: [{ id: 1 }],
+    });
+  });
+
+  it('puts a tracked exact title ahead of unseen franchise matches before paging', async () => {
+    db = new FakeD1([
+      animeRow(1, { title: 'ナルト', title_english: 'Naruto', genres: '{"Action":1}', score: 7 }),
+      animeRow(2, { title: 'Naruto: Shippuden', genres: '{"Action":1}', score: 9 }),
+      animeRow(3, { title: 'Naruto the Movie', genres: '{"Action":1}', score: 8 }),
+      animeRow(4, { title: 'Unrelated', genres: '{"Action":1}', score: 10 }),
+    ]);
+    const token = await tokenFor('naruto-viewer');
+    expect((await addStatus(token, 'Completed')).status).toBe(200);
+    const search = async (offset: number, hideWatched: string[] = [], sortBy = 'recommended') => {
+      const response = await call('/api/search', {
+        method: 'POST',
+        token,
+        body: {
+          filters: [{ field: 'title', action: 'CONTAINS', value: '  nARuTo ' }],
+          sortBy,
+          pagesize: 1,
+          offset,
+          hideWatched,
+        },
+      });
+      expect(response.status).toBe(200);
+      return response.json();
+    };
+    expect(await search(0)).toMatchObject({
+      totalFiltered: 3,
+      filteredList: [{ id: 1, points: 0 }],
+    });
+    expect(await search(1)).toMatchObject({ totalFiltered: 3, filteredList: [{ id: 2 }] });
+    expect(await search(2)).toMatchObject({ totalFiltered: 3, filteredList: [{ id: 3 }] });
+    expect(await search(0, ['Completed'], 'score')).toMatchObject({
+      totalFiltered: 2,
+      filteredList: [{ id: 2 }],
+    });
+    expect(await search(0, ['Completed'])).toMatchObject({
+      totalFiltered: 2,
+      filteredList: [{ id: 2 }],
+    });
   });
 
   it('persists status and note changes across later reads for the same account', async () => {

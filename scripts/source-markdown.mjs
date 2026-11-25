@@ -7,7 +7,6 @@ const skip = new Set([
   'TokenManager',
   'TokenRow',
   'CatalogTotals',
-  'DiscoveryQueue',
   'AnimeIdentityQuiz',
   'ResourceBoundary',
   'CompactSectionSkeleton',

@@ -6,7 +6,7 @@ Canonical: https://anime.significanthobbies.com/
 
 Filter anime and manga titles from MyAnimeList by score, genre, year, and members. Free, no sign-up to search, private watchlist if you want one.
 
-[Filter the catalog](https://anime.significanthobbies.com/search) [Browse the queue](https://anime.significanthobbies.com/discover)
+[Filter the catalog](https://anime.significanthobbies.com/search) [Explore catalog stats](https://anime.significanthobbies.com/stats)
 
 Illustrative catalog query
 
@@ -66,7 +66,7 @@ A log-scale popularity formula keeps mega-popular titles from burying everything
 
 Filter rows stack into a single query. Results, stats, and your watchlist all read from the same URL state — every query is shareable.
 
-[Top-rated TV anime score 8+, finished airing](https://anime.significanthobbies.com/search?af=%7B%22f%22%3A%5B%7B%22field%22%3A%22score%22%2C%22action%22%3A%22GREATER_THAN_OR_EQUALS%22%2C%22value%22%3A8%7D%2C%7B%22field%22%3A%22type%22%2C%22action%22%3A%22EQUALS%22%2C%22value%22%3A%22TV%22%7D%5D%7D&airing=no&sort=score) [Currently airing queue this season, sorted for you](https://anime.significanthobbies.com/discover) [Catalog stats](https://anime.significanthobbies.com/stats)
+[Top-rated TV anime score 8+, finished airing](https://anime.significanthobbies.com/search?af=%7B%22f%22%3A%5B%7B%22field%22%3A%22score%22%2C%22action%22%3A%22GREATER_THAN_OR_EQUALS%22%2C%22value%22%3A8%7D%2C%7B%22field%22%3A%22type%22%2C%22action%22%3A%22EQUALS%22%2C%22value%22%3A%22TV%22%7D%5D%7D&airing=no&sort=score) [Anime taste quiz Find your anime archetype](https://anime.significanthobbies.com/discover) [Catalog stats](https://anime.significanthobbies.com/stats)
 
 ## Frequently asked
 
