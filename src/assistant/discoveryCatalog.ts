@@ -218,7 +218,11 @@ export async function* candidatePages(media: Media, filters: Filters, revision: 
       last = Number(result.rows.at(-1)?.mal_id);
     }
   }
-  for await (const rows of publicCatalogPages(JSON.stringify([media, condition]), revision, read)) {
+  // Membership can change independently of title metadata. Re-read filtered franchises.
+  const pages = filters.franchise_id
+    ? read()
+    : publicCatalogPages(JSON.stringify([media, condition]), revision, read);
+  for await (const rows of pages) {
     yield rows.map((r) => titleRow(media, r));
   }
 }

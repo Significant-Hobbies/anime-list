@@ -150,6 +150,7 @@ function textRelevance(title: Title, tropes: string[], query: Query) {
   const tags = [...title.genres, ...title.themes, ...title.demographics];
   const seriousFantasy =
     query.textTokens.has('serious') &&
+    query.textTokens.has('fantasy') &&
     includes(tags, 'Fantasy') &&
     ['Drama', 'Suspense', 'Psychological', 'Military'].some((tag) => includes(tags, tag));
   const literalTags = tags.filter((t) => query.textTokens.has(fold(t)));

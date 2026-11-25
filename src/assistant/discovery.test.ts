@@ -23,6 +23,7 @@ beforeEach(() => {
     '0006_assistant_franchises',
     '0008_catalog_title_metadata',
     '0009_assistant_discovery_cache',
+    '0013_discovery_franchise_cache',
   ]) {
     db.exec(readFileSync(new URL(`../../migrations/d1/${migration}.sql`, import.meta.url), 'utf8'));
   }
@@ -115,6 +116,21 @@ describe('assistant discovery', () => {
     expect(relevance(query.vector, vectorFor(cowboy))).toBeGreaterThan(0.2);
     expect(encode('qzxwjv').vector).toBeNull();
   });
+  it('requires fantasy intent before boosting serious fantasy', async () => {
+    db.exec(`UPDATE anime_data SET title='Fixture',title_english='Fixture',score=8,synopsis=NULL,episodes=12
+             WHERE mal_id IN (910001,910003);
+             UPDATE anime_data SET genres='{"Fantasy":1,"Drama":1}' WHERE mal_id=910001`);
+    async function first(query: string) {
+      const results = await call(
+        'semantic_search',
+        { media_type: 'anime', query, filters: { title: 'Fixture' } },
+        ''
+      );
+      return results.results[0].mal_id;
+    }
+    expect(await first('serious sports')).toBe(910003);
+    expect(await first('serious fantasy')).toBe(910001);
+  });
   it('ranks unseen titles using live synopsis vectors, keyword and trope evidence', async () => {
     const search = await call('semantic_search', {
       query: 'OP protagonist unaware of strength at a magical academy',
@@ -204,6 +220,21 @@ describe('assistant discovery', () => {
     );
     expect(related.resolved_seeds.map((r: any) => r.media_type)).toEqual(['anime', 'manga']);
     expect(related.results.map((r: any) => r.mal_id)).not.toContain(910001);
+  });
+  it('reads current franchise membership and labels without flushing unrelated catalogs', async () => {
+    const args = { media_type: 'anime' };
+    const franchise = { filters: { franchise_id: 910001 } };
+    await call('discover_titles', args);
+    expect((await call('discover_titles', franchise)).total).toBe(1);
+    const before = catalogReads;
+    db.exec(`INSERT INTO assistant_franchise_edges (source_id,relation,target_type,target_id,target_title)
+      VALUES (910001,'adaptation','manga',910001,'Kingdom Council')`);
+    const page = await call('discover_titles', args);
+    expect(catalogReads).toBe(before);
+    expect(page.results.find((r: any) => r.mal_id === 910001).franchise.franchise_id).toBe(
+      'anime:910001'
+    );
+    expect((await call('discover_titles', franchise)).total).toBe(2);
   });
   it('reuses catalog reads across accounts and invalidates them on catalog or alias changes', async () => {
     catalogReads = 0;
