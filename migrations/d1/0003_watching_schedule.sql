@@ -24,3 +24,21 @@ WHERE COALESCE(p.hidden, 0) = 0
   AND NOT EXISTS (
     SELECT 1 FROM anime_schedule s WHERE s.user_id = w.user_id AND s.mal_id = w.mal_id
   );
+
+-- Start a fresh automatic plan each time a title enters Watching.
+CREATE TRIGGER clear_schedule_preferences_on_status_change
+AFTER UPDATE OF tag_id ON anime_watchlist
+WHEN OLD.tag_id <> NEW.tag_id
+BEGIN
+  DELETE FROM watching_schedule_preferences WHERE user_id = OLD.user_id AND mal_id = OLD.mal_id;
+END;
+
+CREATE TRIGGER clear_schedule_preferences_on_tag_rename
+AFTER UPDATE OF name ON user_tags
+WHEN OLD.name = 'Watching' AND NEW.name <> 'Watching'
+BEGIN
+  DELETE FROM watching_schedule_preferences
+  WHERE user_id = OLD.user_id AND mal_id IN (
+    SELECT mal_id FROM anime_watchlist WHERE user_id = OLD.user_id AND tag_id = OLD.id
+  );
+END;

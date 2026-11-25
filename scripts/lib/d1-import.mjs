@@ -107,6 +107,18 @@ function chunkStatements(statements, maxBytes) {
   return chunks;
 }
 
+function replayInsert(sourceStatement, table) {
+  const prefix = /^INSERT(?:\s+OR\s+REPLACE)?\s+INTO/i;
+  if (table !== 'anime_watchlist') return sourceStatement.replace(prefix, 'INSERT OR REPLACE INTO');
+
+  // REPLACE deletes the old parent row, cascading to schedule preferences
+  // even when a legacy backup or a single replayed chunk has no preferences.
+  const insert = sourceStatement.replace(prefix, 'INSERT INTO').replace(/;$/, '');
+  return `${insert} ON CONFLICT(user_id, mal_id) DO UPDATE SET
+    tag_id=excluded.tag_id, title=excluded.title, type=excluded.type,
+    episodes=excluded.episodes, note=excluded.note;`;
+}
+
 export function prepareD1Import(sourceSql, options = {}) {
   const maxBytes = options.maxBytes ?? 4 * 1024 * 1024;
   const statements = [];
@@ -123,10 +135,7 @@ export function prepareD1Import(sourceSql, options = {}) {
       throw new Error(`Unexpected source table in dump: ${table}`);
     }
 
-    const statement = sourceStatement.replace(
-      /^INSERT(?:\s+OR\s+REPLACE)?\s+INTO/i,
-      'INSERT OR REPLACE INTO'
-    );
+    const statement = replayInsert(sourceStatement, table);
     if (Buffer.byteLength(`${HEADER}${statement}\n`) > maxBytes) {
       throw new Error(`Source statement for ${table} exceeds the ${maxBytes}-byte chunk limit`);
     }

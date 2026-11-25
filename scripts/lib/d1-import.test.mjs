@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync } from 'node:fs';
 import { normalizeUnistrCalls, prepareD1Import, splitStatements } from './d1-import.mjs';
 
 test('splitStatements preserves semicolons and escaped quotes inside values', () => {
@@ -57,4 +59,30 @@ test('normalizeUnistrCalls converts new SQLite dump literals for D1', () => {
     ),
     "INSERT INTO notes VALUES('line\nbreak\\path ''quoted'' 🚀');"
   );
+});
+
+test('replaying a watchlist dump preserves dependent schedule preferences', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    for (const name of ['0001_initial', '0003_watching_schedule']) {
+      db.exec(readFileSync(new URL(`../../migrations/d1/${name}.sql`, import.meta.url), 'utf8'));
+    }
+    db.exec("INSERT INTO user_tags(id,user_id,name) VALUES ('tag','u','Watching')");
+    db.exec("INSERT INTO anime_watchlist(user_id,mal_id,tag_id,note) VALUES ('u','1','tag','old')");
+    db.exec(
+      "INSERT INTO watching_schedule_preferences(user_id,mal_id,episodes_watched,hidden) VALUES ('u','1',5,1)"
+    );
+    const { chunks } = prepareD1Import(
+      "INSERT OR REPLACE INTO anime_watchlist VALUES ('u','1','tag','New title',NULL,12,'new');"
+    );
+    for (const chunk of chunks) db.exec(chunk);
+    assert.equal(db.prepare('SELECT note FROM anime_watchlist').get().note, 'new');
+    assert.equal(
+      db.prepare('SELECT episodes_watched FROM watching_schedule_preferences WHERE hidden=1').get()
+        ?.episodes_watched,
+      5
+    );
+  } finally {
+    db.close();
+  }
 });

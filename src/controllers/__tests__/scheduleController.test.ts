@@ -74,9 +74,50 @@ describe('Watching schedule', () => {
       db.prepare('SELECT COUNT(*) AS n FROM anime_watchlist WHERE user_id=?').get('a')?.n
     ).toBe(3);
     await addScheduleItems('a', ['2'], 3);
+    await addScheduleItems('a', ['2'], 3);
+    const restored = await getSchedule('a');
+    expect(restored.map((i) => i.mal_id)).toEqual(['3', '2']);
+    expect(restored[1]).toMatchObject({ episodes_watched: 3, episodes_per_day: 2 });
     status('a', '2', 'c');
-    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['3', '2']);
+    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['3']);
     db.exec("DELETE FROM anime_watchlist WHERE user_id='a' AND mal_id='3'");
-    expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['2']);
+    expect(await getSchedule('a')).toEqual([]);
   });
+});
+
+it('starts a fresh plan when a title returns to Watching', async () => {
+  await updateScheduleItem('a', '2', { episodesWatched: 5, episodesPerDay: 2 });
+  await removeScheduleItems('a', ['3']);
+  for (const id of ['2', '3']) {
+    status('a', id, 'c');
+    status('a', id, 'w');
+  }
+  expect(
+    (await getSchedule('a')).slice(1).map((i) => [i.mal_id, i.episodes_watched, i.episodes_per_day])
+  ).toEqual([
+    ['2', 0, 3],
+    ['3', 0, 3],
+  ]);
+  await removeScheduleItems('a', ['2']);
+  db.exec(
+    "UPDATE user_tags SET name='On hold' WHERE id='w'; UPDATE user_tags SET name='Watching' WHERE id='w'"
+  );
+  expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['1', '2', '3']);
+});
+
+it('appends manual titles after all visible rows and preserves existing positions on retry', async () => {
+  await addScheduleItems('a', ['9', '8'], 2);
+  await addScheduleItems('a', ['8', '9'], 4);
+  status('a', '7', 'w');
+  await addScheduleItems('a', ['6'], 3);
+  expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual([
+    '1',
+    '2',
+    '3',
+    '9',
+    '8',
+    '7',
+    '6',
+  ]);
+  expect((await getSchedule('b')).map((i) => i.mal_id)).toEqual(['4']);
 });
