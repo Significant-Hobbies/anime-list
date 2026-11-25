@@ -61,9 +61,7 @@ function page<T>(rows: T[], offset: number, limit: number) {
   };
 }
 
-function orderByPrequels(members: Row[], edges: Row[]) {
-  // Stable topological order. Members without story-order edges keep their release ordering.
-  const byId = new Map(members.map((row) => [row.media + ':' + row.id, row]));
+function storyLinks(byId: Map<string, Row>, edges: Row[]) {
   const after = new Map<string, Set<string>>();
   const degree = new Map([...byId.keys()].map((id) => [id, 0]));
   for (const e of edges) {
@@ -79,6 +77,13 @@ function orderByPrequels(members: Row[], edges: Row[]) {
       degree.set(b, (degree.get(b) ?? 0) + 1);
     }
   }
+  return { after, degree };
+}
+
+function orderByPrequels(members: Row[], edges: Row[]) {
+  // Stable topological order. Members without story-order edges keep their release ordering.
+  const byId = new Map(members.map((row) => [row.media + ':' + row.id, row]));
+  const { after, degree } = storyLinks(byId, edges);
   const result: Row[] = [];
   while (degree.size) {
     const next = [...degree].find(([, n]) => n === 0)?.[0];
