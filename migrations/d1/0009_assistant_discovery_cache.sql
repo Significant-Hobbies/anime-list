@@ -21,16 +21,16 @@ BEGIN UPDATE assistant_discovery_revision SET revision=revision+1 WHERE singleto
 
 CREATE TRIGGER assistant_discovery_assistant_anime_details_insert AFTER INSERT ON assistant_anime_details
 BEGIN UPDATE assistant_discovery_revision SET revision=revision+1 WHERE singleton=1; END;
-CREATE TRIGGER assistant_discovery_assistant_anime_details_update AFTER UPDATE OF aliases, studios ON assistant_anime_details
-WHEN OLD.aliases IS NOT NEW.aliases OR OLD.studios IS NOT NEW.studios
+CREATE TRIGGER assistant_discovery_assistant_anime_details_update AFTER UPDATE OF aliases, studios, synopsis ON assistant_anime_details
+WHEN OLD.aliases IS NOT NEW.aliases OR OLD.studios IS NOT NEW.studios OR OLD.synopsis IS NOT NEW.synopsis
 BEGIN UPDATE assistant_discovery_revision SET revision=revision+1 WHERE singleton=1; END;
 CREATE TRIGGER assistant_discovery_assistant_anime_details_delete AFTER DELETE ON assistant_anime_details
 BEGIN UPDATE assistant_discovery_revision SET revision=revision+1 WHERE singleton=1; END;
 
 CREATE TRIGGER assistant_discovery_assistant_manga_details_insert AFTER INSERT ON assistant_manga_details
 BEGIN UPDATE assistant_discovery_revision SET revision=revision+1 WHERE singleton=1; END;
-CREATE TRIGGER assistant_discovery_assistant_manga_details_update AFTER UPDATE OF aliases ON assistant_manga_details
-WHEN OLD.aliases IS NOT NEW.aliases
+CREATE TRIGGER assistant_discovery_assistant_manga_details_update AFTER UPDATE OF aliases, synopsis ON assistant_manga_details
+WHEN OLD.aliases IS NOT NEW.aliases OR OLD.synopsis IS NOT NEW.synopsis
 BEGIN UPDATE assistant_discovery_revision SET revision=revision+1 WHERE singleton=1; END;
 CREATE TRIGGER assistant_discovery_assistant_manga_details_delete AFTER DELETE ON assistant_manga_details
 BEGIN UPDATE assistant_discovery_revision SET revision=revision+1 WHERE singleton=1; END;

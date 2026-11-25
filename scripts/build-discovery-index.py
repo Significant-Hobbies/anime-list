@@ -31,7 +31,7 @@ def pack(array, dtype):
 
 
 def load_corpus():
-    docs, groups, masks = [], {}, []
+    docs, groups, masks, fingerprints = [], {}, [], bytearray()
     source = hashlib.sha256()
     tropes = json.loads((ROOT / "src/assistant/discoveryTropes.json").read_text())
     source.update(json.dumps(tropes, sort_keys=True).encode())
@@ -47,6 +47,8 @@ def load_corpus():
             document = synopsis + " " + " ".join(tags)
             ids.append(row["mal_id"])
             docs.append(document)
+            signature = json.dumps([row.get("synopsis") or "", row["title"], row.get("title_english") or "", sorted(tags)], ensure_ascii=False, separators=(",",":")).encode()
+            fingerprints.extend(hashlib.sha256(signature).digest()[:8])
             source.update(f"{media}:{row['mal_id']}:{document}\n".encode())
             evidence_text = " ".join([document, row["title"], row.get("title_english") or ""])
             text = " " + re.sub(r"[^a-z0-9]+", " ", evidence_text.lower()) + " "
@@ -57,11 +59,11 @@ def load_corpus():
             masks.append(mask)
         groups[media] = {"ids":pack(ids,"<u4"), "indexed":len(ids), "catalog":len(records)}
 
-    return docs, groups, masks, source
+    return docs, groups, masks, source, fingerprints
 
 
 def main():
-    docs, groups, masks, source = load_corpus()
+    docs, groups, masks, source, fingerprints = load_corpus()
     vectorizer = TfidfVectorizer(max_features=6000, min_df=3, max_df=0.8,
                                  stop_words="english", token_pattern=r"(?u)\b[a-z0-9]{2,}\b",
                                  sublinear_tf=True, dtype=np.float32)
@@ -87,7 +89,7 @@ def main():
     quantized = np.rint(vectors * 7 / np.maximum(scale, 1e-9)).astype(np.int8) + 7
     packed_vectors = (quantized[:, ::2] << 4) | quantized[:, 1::2]
     data = {"version":1, "source_sha256":source.hexdigest(), "dimensions":DIM,
-            "groups":groups, "vocabulary":vectorizer.get_feature_names_out().tolist(),
+            "fingerprints":base64.b64encode(fingerprints).decode(), "groups":groups, "vocabulary":vectorizer.get_feature_names_out().tolist(),
             "projection":pack(np.rint(projection/scales),"i1"), "scales":scales.tolist(),
             "vectors":pack(packed_vectors,"u1"), "keywords":pack(keywords,"<u2"),
             "terms_per_doc":TERMS_PER_DOC,"tropes":pack(masks,"<u2")}

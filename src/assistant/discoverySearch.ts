@@ -11,7 +11,7 @@ import {
   type Account,
 } from './discoveryCatalog';
 import { catalogRevision } from './discoveryCache';
-import { indexedRow, retrievalModel } from './discoveryEmbedding';
+import { retrievalModel } from './discoveryEmbedding';
 import { makeQuery, rankTitle } from './discoveryRank';
 import type { DiscoverInput, Filters, Media, Seed } from './discoverySchemas';
 import { owner, savedPreferences } from './discoveryState';
@@ -68,21 +68,6 @@ function validateBounds(filters: Filters) {
       throw new AssistantError('invalid_argument', `min_${field} exceeds max_${field}.`);
   }
 }
-async function* rankablePages(media: Media, filters: Filters, revision: number) {
-  // Batch all unmatched IDs across pages. A partially indexed catalog should
-  // need a handful of extra reads, not an extra round-trip for every page.
-  const pending: number[] = [];
-  for await (const rows of candidatePages(media, filters, revision)) {
-    const indexed: Title[] = [];
-    for (const title of rows) {
-      if (indexedRow(media, title.mal_id) === undefined) pending.push(title.mal_id);
-      else indexed.push(title);
-    }
-    if (indexed.length) yield indexed;
-    while (pending.length >= 1200) yield await detailsFor(media, pending.splice(0, 1200));
-  }
-  if (pending.length) yield await detailsFor(media, pending);
-}
 function checkAccess(args: DiscoverInput, userId: string, allowPublic: boolean) {
   if (!allowPublic) owner(userId);
   const accountFilters = [
@@ -124,7 +109,7 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
   let total = 0;
   let best: Match[] = [];
   for (const media of mediaList(args.media_type)) {
-    for await (const page of rankablePages(media, filters, revision)) {
+    for await (const page of candidatePages(media, filters, revision)) {
       const matched = page.flatMap((title) => {
         const item = rankTitle(title, account, query, filters, prefs);
         return item ? [item] : [];
@@ -155,6 +140,7 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
     return [
       {
         ...title,
+        semantic_source: title.document.source,
         synopsis:
           !args.include_full_synopsis && (title.synopsis?.length ?? 0) > 350
             ? title.synopsis!.slice(0, 349).trimEnd() + '…'
@@ -183,7 +169,7 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
       ...retrievalModel,
       query_has_embedding: Boolean(query.vector),
       fallback:
-        'New titles use their current synopsis. Titles without a usable synopsis use available tags and title words. Unknown metadata cannot satisfy hard filters.',
+        'Changed and new titles use their current synopsis. Titles without a usable synopsis use available tags and title words. Unknown metadata cannot satisfy hard filters.',
     },
   };
 }

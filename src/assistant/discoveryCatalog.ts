@@ -1,5 +1,6 @@
 import { getDb, type DatabaseValue } from '../db/client';
 import { mediaFranchiseMembersSql } from './franchiseGraph';
+import { documentEmbedding, type DocumentEmbedding } from './discoveryDocument';
 import { publicCatalogPages } from './discoveryCache';
 import { tableFor } from './discoveryState';
 import type { Filters, Media } from './discoverySchemas';
@@ -138,13 +139,46 @@ function selectFields(media: Media, details: boolean) {
   return `SELECT c.mal_id,c.title,c.title_english,c.score,c.year,c.type,c.status,c.popularity,c.members,c.genres,c.themes,c.demographics,cm.aliases AS catalog_aliases,cm.studios AS catalog_studios,
     ${isAnime ? 'c.episodes,NULL AS chapters,d.aliases,d.studios' : 'NULL AS episodes,c.chapters,d.aliases,NULL AS studios'} ,
     ${isAnime ? 'NULL AS languages,NULL AS english' : 'c.available_languages AS languages,c.available_in_english AS english'}
-    ${details ? ',c.url,c.image,c.synopsis' : ''}
+    ,coalesce(nullif(d.synopsis,''),c.synopsis) AS synopsis ${details ? ',c.url,c.image' : ''}
     FROM ${tableFor(media)} c LEFT JOIN ${isAnime ? 'assistant_anime_details' : 'assistant_manga_details'} d ON d.mal_id=c.mal_id LEFT JOIN catalog_title_metadata cm ON cm.media='${media}' AND cm.mal_id=c.mal_id`;
+}
+async function prepareDocuments(
+  media: Media,
+  rows: Record<string, unknown>[],
+  keepSynopsis: boolean
+) {
+  for (let start = 0; start < rows.length; start += 128) {
+    await Promise.all(
+      rows.slice(start, start + 128).map(async (r) => {
+        const embedding = await documentEmbedding(
+          media,
+          Number(r.mal_id),
+          String(r.synopsis ?? ''),
+          String(r.title),
+          String(r.title_english ?? ''),
+          [...labels(r.genres), ...labels(r.themes), ...labels(r.demographics)]
+        );
+        r.document = embedding.row ?? embedding;
+        if (!keepSynopsis) delete r.synopsis;
+      })
+    );
+  }
+  return rows;
 }
 function titleRow(media: Media, r: Record<string, unknown>) {
   const langs = labels(r.languages);
   if (r.english && !langs.some((x) => fold(x) === 'english')) langs.push('English');
   return {
+    document:
+      typeof r.document === 'number'
+        ? {
+            row: r.document,
+            vector: null,
+            tropes: null,
+            keywords: [],
+            source: 'indexed-synopsis' as const,
+          }
+        : (r.document as DocumentEmbedding),
     media_type: media,
     mal_id: Number(r.mal_id),
     title: String(r.title),
@@ -179,7 +213,7 @@ export async function* candidatePages(media: Media, filters: Filters, revision: 
         sql: `${selectFields(media, false)} WHERE c.mal_id>? AND ${condition.sql} ORDER BY c.mal_id LIMIT ?`,
         args: [last, ...condition.args, batchSize],
       });
-      if (result.rows.length) yield result.rows;
+      if (result.rows.length) yield await prepareDocuments(media, result.rows, false);
       if (result.rows.length < batchSize) break;
       last = Number(result.rows.at(-1)?.mal_id);
     }
@@ -194,7 +228,7 @@ export async function detailsFor(media: Media, ids: number[]) {
     sql: `${selectFields(media, true)} WHERE c.mal_id IN (SELECT value FROM json_each(?))`,
     args: [JSON.stringify(ids)],
   });
-  return rows.rows.map((r) => titleRow(media, r));
+  return (await prepareDocuments(media, rows.rows, true)).map((r) => titleRow(media, r));
 }
 export async function resolveName(name: string, choice: Media | 'both') {
   const candidates: Title[] = [];
@@ -208,7 +242,8 @@ export async function resolveName(name: string, choice: Media | 'both') {
       (c.title=? COLLATE NOCASE OR coalesce(c.title_english,'')=? COLLATE NOCASE${alias}) DESC, c.members DESC,c.mal_id LIMIT 1`,
       args: [...condition.args, ...args],
     });
-    if (results.rows[0]) candidates.push(titleRow(media, results.rows[0]));
+    if (results.rows[0])
+      candidates.push(titleRow(media, (await prepareDocuments(media, results.rows, true))[0]));
   }
   const isExact = (row: Title) =>
     [row.title, row.title_english, ...row.alternative_titles].some(

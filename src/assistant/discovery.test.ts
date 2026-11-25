@@ -252,6 +252,45 @@ describe('assistant discovery', () => {
         .synopsis
     ).toBe(synopsis);
   });
+  it('validates a trained title against the live synopsis and reprojects same-length edits', async () => {
+    const title = JSON.parse(
+      readFileSync(new URL('../../cleaned_anime_data.json', import.meta.url), 'utf8')
+    )[0];
+    db.prepare(
+      'INSERT INTO anime_data(mal_id,title,title_english,url,synopsis,genres,themes,demographics,score) VALUES(?,?,?,?,?,?,?,?,?)'
+    ).run(
+      title.mal_id,
+      title.title,
+      title.title_english,
+      title.url,
+      title.synopsis,
+      JSON.stringify(title.genres),
+      JSON.stringify(title.themes),
+      JSON.stringify(title.demographics),
+      title.score
+    );
+    const filter = { media_type: 'anime', filters: { title: title.title } };
+    expect((await call('discover_titles', filter)).results[0].semantic_source).toBe(
+      'indexed-synopsis'
+    );
+    const plot =
+      'A magical academy and a wizard who is unaware of his own strength, politics and war. ';
+    const newSynopsis = plot
+      .repeat(Math.ceil(title.synopsis.length / plot.length))
+      .slice(0, title.synopsis.length);
+    db.prepare('UPDATE anime_data SET synopsis=? WHERE mal_id=?').run(newSynopsis, title.mal_id);
+    const updated = await call('semantic_search', { ...filter, query: 'magical academy' }, '');
+    expect(updated.results[0]).toMatchObject({
+      mal_id: title.mal_id,
+      semantic_source: 'live-synopsis',
+      tropes: expect.arrayContaining(['Magical academy']),
+    });
+    db.prepare('UPDATE anime_data SET synopsis=NULL WHERE mal_id=?').run(title.mal_id);
+    expect((await call('discover_titles', filter)).results[0]).toMatchObject({
+      semantic_source: 'metadata',
+      synopsis: null,
+    });
+  });
   it('rejects contradictory partial preference updates atomically', async () => {
     await call('update_user_preferences', { hard_filters: { min_score: 8 } });
     await expect(

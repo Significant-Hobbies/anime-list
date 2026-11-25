@@ -114,6 +114,7 @@ const resultSchema = z.object({
   studios: z.array(z.string()),
   languages: z.array(z.string()),
   semantic_relevance: outputNumber,
+  semantic_source: z.enum(['indexed-synopsis', 'live-synopsis', 'metadata']),
   ranking_score: z.number(),
   reasons: z.array(z.string()),
   image: z.string().nullable(),

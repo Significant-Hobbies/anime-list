@@ -24,6 +24,7 @@ function loadIndex() {
   }
   return {
     titles,
+    fingerprints: bytes(index.fingerprints),
     words: new Map(index.vocabulary.map((word, i) => [word, i])),
     projection: new Int8Array(bytes(index.projection).buffer),
     vectors,
@@ -114,4 +115,8 @@ export function titleTropes(row: number | undefined, fallback: string, tags: str
         (t.name === 'Fantasy comedy' && tags.includes('Fantasy') && tags.includes('Comedy'))
     )
     .map((t) => t.name);
+}
+
+export function matchesFingerprint(row: number, digest: Uint8Array) {
+  return digest.subarray(0, 8).every((value, i) => value === model().fingerprints[row * 8 + i]);
 }
