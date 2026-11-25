@@ -126,6 +126,7 @@ it('honors Retry-After, validates page order, and rejects mismatched provider ID
   const request = vi
     .fn<typeof fetch>()
     .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'Retry-After': '9' } }))
+    .mockResolvedValueOnce(new Response('{'))
     .mockResolvedValueOnce(Response.json(listed(1, 1, [1, 2])))
     .mockResolvedValueOnce(Response.json(listed(2, 2, [5, 3])))
     .mockResolvedValueOnce(Response.json({ data: names(77) }));

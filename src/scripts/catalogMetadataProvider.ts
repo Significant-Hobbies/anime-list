@@ -30,12 +30,16 @@ export function createMetadataReader(
         request(url, {
           headers: { Accept: 'application/json' },
           signal: AbortSignal.timeout(25_000),
+        }).then(async (res) => {
+          const payload = res.ok ? await res.json() : null;
+          if (!res.ok) await res.body?.cancel();
+          return { res, payload };
         }),
         wait(API_CONFIG.rateLimit),
       ]);
       if (response.status === 'fulfilled') {
-        const res = response.value;
-        if (res.ok) return res.json();
+        const { res, payload } = response.value;
+        if (res.ok) return payload;
         if (allowMissing && res.status === 404) return null;
         if (res.status !== 429 && res.status < 500)
           throw new Error(`Tenrai returned HTTP ${res.status} for ${url}`);

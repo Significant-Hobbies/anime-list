@@ -27,7 +27,12 @@ async function readMissing(db: DatabaseClient, media: Media) {
 // reconcile gaps caused by source insertions or deletions while pages were in flight.
 async function seek(reader: Reader, media: Media, minId: number) {
   const first = await reader.page(media, 1);
-  if (!first.data.length || first.data[first.data.length - 1].mal_id >= minId) return first;
+  if (
+    !first.pagination.has_next_page ||
+    !first.data.length ||
+    first.data[first.data.length - 1].mal_id >= minId
+  )
+    return first;
   let low = 2,
     high = first.pagination.last_visible_page;
   while (low < high) {
