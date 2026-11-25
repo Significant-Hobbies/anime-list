@@ -142,21 +142,21 @@ const LAST_UPDATED_CACHE_URL = 'https://mal-cache.local/api/last-updated?v=2';
 
 // ── JWT helpers (using jose instead of jsonwebtoken) ───────────────────
 
-function getJwtSecret() {
-  if (!process.env.JWT_SECRET) throw new Error('Session signing is not configured.');
-  return new TextEncoder().encode(process.env.JWT_SECRET);
+function getJwtSecret(secret: string) {
+  if (!secret) throw new Error('Session signing is not configured.');
+  return new TextEncoder().encode(secret);
 }
 
-async function signToken(payload: AuthPayload): Promise<string> {
+async function signToken(payload: AuthPayload, secret: string): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
-    .sign(getJwtSecret());
+    .sign(getJwtSecret(secret));
 }
 
-async function verifyToken(token: string): Promise<AuthPayload | null> {
+async function verifyToken(token: string, secret: string): Promise<AuthPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret());
+    const { payload } = await jwtVerify(token, getJwtSecret(secret), { algorithms: ['HS256'] });
     return payload as unknown as AuthPayload;
   } catch {
     return null;
@@ -244,7 +244,7 @@ async function resolveUser(
         }
       : null;
   }
-  return verifyToken(token);
+  return verifyToken(token, env.JWT_SECRET);
 }
 
 // ── Google OAuth (using jose JWKS instead of google-auth-library) ──────
@@ -302,8 +302,6 @@ app.use('*', async (c, next) => {
       503
     );
   }
-  process.env.JWT_SECRET = c.env.JWT_SECRET;
-  process.env.GOOGLE_CLIENT_ID = c.env.GOOGLE_CLIENT_ID;
   await next();
 });
 
@@ -388,12 +386,15 @@ app.post('/api/auth/google', async (c) => {
       picture: payload.picture as string | undefined,
     });
 
-    const token = await signToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
-    });
+    const token = await signToken(
+      {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+      },
+      c.env.JWT_SECRET
+    );
 
     // Set token in httpOnly cookie (XSS hardening). The token is also returned
     // in the body for backward compatibility during migration; the frontend
