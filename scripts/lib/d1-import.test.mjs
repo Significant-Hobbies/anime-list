@@ -73,7 +73,8 @@ test('replaying a watchlist dump preserves dependent schedule preferences', () =
       "INSERT INTO watching_schedule_preferences(user_id,mal_id,episodes_watched,hidden) VALUES ('u','1',5,1)"
     );
     const { chunks } = prepareD1Import(
-      "INSERT OR REPLACE INTO anime_watchlist VALUES ('u','1','tag','New title',NULL,12,'new');"
+      "INSERT INTO user_tags(id,user_id,name) VALUES ('new-tag','u','Watching');" +
+        "INSERT OR REPLACE INTO anime_watchlist VALUES ('u','1','new-tag','New title',NULL,12,'new');"
     );
     for (const chunk of chunks) db.exec(chunk);
     assert.equal(db.prepare('SELECT note FROM anime_watchlist').get().note, 'new');
@@ -81,6 +82,17 @@ test('replaying a watchlist dump preserves dependent schedule preferences', () =
       db.prepare('SELECT episodes_watched FROM watching_schedule_preferences WHERE hidden=1').get()
         ?.episodes_watched,
       5
+    );
+    const reversed = prepareD1Import(
+      "INSERT INTO watching_schedule_preferences VALUES ('u','2',3,7,NULL,0);" +
+        "INSERT INTO anime_watchlist VALUES ('u','2','new-tag','Another title',NULL,12,NULL);"
+    );
+    for (const chunk of reversed.chunks) db.exec(chunk);
+    assert.equal(
+      db
+        .prepare("SELECT episodes_watched FROM watching_schedule_preferences WHERE mal_id='2'")
+        .get()?.episodes_watched,
+      7
     );
   } finally {
     db.close();

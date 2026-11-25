@@ -72,8 +72,10 @@ export async function upsertScheduleItems(
         ],
       },
       {
-        sql: `UPDATE watching_schedule_preferences SET hidden = 0 WHERE user_id = ? AND mal_id = ?`,
-        args: [userId, item.malId],
+        sql: `UPDATE watching_schedule_preferences SET hidden = 0,
+              sort_order = COALESCE((SELECT MAX(sort_order) FROM schedule_queue WHERE user_id = ?), -1) + 1
+              WHERE user_id = ? AND mal_id = ? AND hidden = 1`,
+        args: [userId, userId, item.malId],
       }
     );
   }

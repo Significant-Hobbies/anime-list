@@ -54,6 +54,8 @@ describe('Watching schedule', () => {
     status('a', '2', 'c');
     status('a', '5', 'w');
     expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['1', '3', '5']);
+    status('a', '1', 'w');
+    expect((await getSchedule('a'))[0].episodes_watched).toBe(4);
     db.exec("UPDATE user_tags SET name='On hold' WHERE id='w'");
     expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['1']);
   });
@@ -102,7 +104,14 @@ it('starts a fresh plan when a title returns to Watching', async () => {
   db.exec(
     "UPDATE user_tags SET name='On hold' WHERE id='w'; UPDATE user_tags SET name='Watching' WHERE id='w'"
   );
-  expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['1', '2', '3']);
+  expect((await getSchedule('a')).map((i) => i.mal_id)).toEqual(['1', '3']);
+  await reorderSchedule('a', ['3', '1']);
+  await addScheduleItems('a', ['2'], 3);
+  expect((await getSchedule('a')).map((i) => [i.mal_id, i.sort_order])).toEqual([
+    ['3', 0],
+    ['1', 1],
+    ['2', 2],
+  ]);
 });
 
 it('appends manual titles after all visible rows and preserves existing positions on retry', async () => {

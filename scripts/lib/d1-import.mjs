@@ -122,6 +122,7 @@ function replayInsert(sourceStatement, table) {
 export function prepareD1Import(sourceSql, options = {}) {
   const maxBytes = options.maxBytes ?? 4 * 1024 * 1024;
   const statements = [];
+  const preferences = [];
   const tableStatementCounts = {};
 
   for (const rawSourceStatement of splitStatements(sourceSql)) {
@@ -140,18 +141,20 @@ export function prepareD1Import(sourceSql, options = {}) {
       throw new Error(`Source statement for ${table} exceeds the ${maxBytes}-byte chunk limit`);
     }
 
-    statements.push({ table, sql: statement });
+    const target = table === 'watching_schedule_preferences' ? preferences : statements;
+    target.push({ table, sql: statement });
     tableStatementCounts[table] = (tableStatementCounts[table] ?? 0) + 1;
   }
 
-  const chunks = chunkStatements(statements, maxBytes);
+  // Restore child preferences after their parents regardless of dump order.
+  const chunks = chunkStatements(statements.concat(preferences), maxBytes);
 
   return {
     chunks,
     manifest: {
       schemaVersion: 'anime-list-d1-import.v1',
       sourceSha256: createHash('sha256').update(sourceSql).digest('hex'),
-      statementCount: statements.length,
+      statementCount: statements.length + preferences.length,
       chunkCount: chunks.length,
       maxChunkBytes: Math.max(0, ...chunks.map((chunk) => Buffer.byteLength(chunk))),
       tableStatementCounts,
