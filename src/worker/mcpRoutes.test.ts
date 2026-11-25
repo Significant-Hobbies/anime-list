@@ -434,6 +434,14 @@ describe('handleMcpRequest', () => {
       expect.anything(),
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: auth }) })
     );
+    const sent = () => JSON.parse(String(vi.mocked(fetch).mock.lastCall?.[1]?.body));
+    expect(sent().hideWatched).toEqual(['Done', 'Completed', 'Dropped', 'Avoiding']);
+    await mcpCall(
+      'tools/call',
+      { ...call, arguments: { ...call.arguments, hideWatched: [] } },
+      auth
+    );
+    expect(sent().hideWatched).toEqual([]);
     await mcpCall('tools/call', { name: 'search_anime', arguments: {} }, auth);
     expect(fetchMock).toHaveBeenLastCalledWith(
       expect.anything(),

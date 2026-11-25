@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { z } from 'zod';
+import { watchTagSchema } from '../validators/watchTags';
 import { catalogOutputs } from './mcpCatalogContracts';
 import { registerAssistantTools, type ResolveSession } from '../assistant/register';
 import { assistantTools } from '../assistant/tools';
@@ -82,6 +83,8 @@ function searchBody(args: Record<string, unknown>) {
       ...(Array.isArray(search.filters) ? search.filters : []),
       { field: 'title', action: 'CONTAINS', value: query },
     ];
+  if (search.sortBy === 'recommended' && search.hideWatched === undefined && !search.includeWatched)
+    search.hideWatched = ['Done', 'Completed', 'Dropped', 'Avoiding'];
   return search;
 }
 const queryField = z
@@ -102,6 +105,19 @@ const TOOLS: ToolDef[] = [
     buildBody: searchBody,
     inputSchema: {
       query: queryField,
+      hideWatched: z
+        .array(watchTagSchema)
+        .max(30)
+        .optional()
+        .describe(
+          'Exclude entries with these watch statuses. In recommended order pass an empty list to include all statuses.'
+        ),
+      includeWatched: z
+        .array(watchTagSchema)
+        .nonempty()
+        .max(30)
+        .optional()
+        .describe('Only return entries with one of these saved watch statuses.'),
       filters: filterRequestSchema.shape.filters.max(20).default([]),
       sortBy: z
         .enum([...NUMERIC_FIELDS, 'released_at', 'created_at', 'recommended', 'time'])
@@ -121,6 +137,11 @@ const TOOLS: ToolDef[] = [
     buildBody: searchBody,
     inputSchema: {
       query: queryField,
+      hideWatched: z
+        .array(watchTagSchema)
+        .max(30)
+        .optional()
+        .describe('Exclude manga with any of these watch statuses.'),
       filters: mangaFilterRequestSchema.shape.filters.max(20).default([]),
       sortBy: z.enum([...MANGA_NUMERIC_FIELDS, 'released_at', 'created_at', 'time']).optional(),
       pagesize: z.number().int().min(1).max(READ_PAGE_MAX).default(20),
@@ -496,7 +517,10 @@ function buildToolHandler(
 ) {
   return async (args: Record<string, unknown>) => {
     const url = tool.buildUrl ? tool.buildUrl(origin, args) : `${origin}${tool.path}`;
-    const personal = tool.auth || (tool.name === 'search_anime' && args.sortBy === 'recommended');
+    const personal =
+      tool.auth ||
+      args.sortBy === 'recommended' ||
+      Boolean(args.includeWatched || args.hideWatched);
     if (personal && !readCredential) {
       return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
     }
