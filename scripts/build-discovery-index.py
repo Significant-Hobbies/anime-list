@@ -30,10 +30,12 @@ def pack(array, dtype):
     return base64.b64encode(np.asarray(array, dtype=dtype).tobytes()).decode("ascii")
 
 
-def main():
+def load_corpus():
     docs, groups, masks = [], {}, []
     source = hashlib.sha256()
     tropes = json.loads((ROOT / "src/assistant/discoveryTropes.json").read_text())
+    source.update(json.dumps(tropes, sort_keys=True).encode())
+    source.update(f"lsa4-v1:{DIM}:{TERMS_PER_DOC}".encode())
     for media in ("anime", "manga"):
         records = json.loads((ROOT / f"cleaned_{media}_data.json").read_text())
         ids = []
@@ -46,7 +48,8 @@ def main():
             ids.append(row["mal_id"])
             docs.append(document)
             source.update(f"{media}:{row['mal_id']}:{document}\n".encode())
-            text = " " + re.sub(r"[^a-z0-9]+", " ", document.lower()) + " "
+            evidence_text = " ".join([document, row["title"], row.get("title_english") or ""])
+            text = " " + re.sub(r"[^a-z0-9]+", " ", evidence_text.lower()) + " "
             mask = sum(1 << i for i, trope in enumerate(tropes)
                        if any(" " + phrase + " " in text for phrase in trope["evidence"]))
             if {"Fantasy","Comedy"}.issubset(tags):
@@ -54,6 +57,11 @@ def main():
             masks.append(mask)
         groups[media] = {"ids":pack(ids,"<u4"), "indexed":len(ids), "catalog":len(records)}
 
+    return docs, groups, masks, source
+
+
+def main():
+    docs, groups, masks, source = load_corpus()
     vectorizer = TfidfVectorizer(max_features=6000, min_df=3, max_df=0.8,
                                  stop_words="english", token_pattern=r"(?u)\b[a-z0-9]{2,}\b",
                                  sublinear_tf=True, dtype=np.float32)
@@ -63,7 +71,11 @@ def main():
     # Fold IDF into the query projection. Normalizing a query before multiplying
     # has no effect on cosine ordering; both projected vectors are unit-scaled.
     projection = lsa.components_.T * vectorizer.idf_[:,None]
+    if not np.isfinite(vectors).all() or not np.isfinite(projection).all():
+        raise ValueError("Embedding training produced non-finite coordinates")
     scales = np.abs(projection).max(axis=0) / 127
+    if np.any(scales <= 0):
+        raise ValueError("Embedding training produced an empty component")
     keywords = np.zeros((len(docs), TERMS_PER_DOC), dtype="<u2")
     for i in range(len(docs)):
         row = words.getrow(i)

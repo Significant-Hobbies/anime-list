@@ -8,7 +8,7 @@ import {
   titleTropes,
   vectorFor,
 } from './discoveryEmbedding';
-import { fold, keyFor, type Account, type Entry, type Title } from './discoveryCatalog';
+import { detailsFor, fold, keyFor, type Account, type Entry, type Title } from './discoveryCatalog';
 import type { Filters, Media, Preferences } from './discoverySchemas';
 
 const includes = (values: string[], needle: string) => values.some((v) => fold(v) === fold(needle));
@@ -71,26 +71,41 @@ function allowsTags(title: Title, tropes: string[], userTags: string[], filters:
   );
 }
 
-export function historyVector(account: Account) {
-  const inputs: { vector: Int8Array; weight: number }[] = [];
+function historyWeight(key: string, account: Account) {
+  const feedback = account.feedback.get(key);
+  if (feedback === 'like') return 1.4;
+  if (feedback === 'dislike' || feedback === 'dismiss') return -1.4;
+  const entry = account.library.get(key);
+  if (entry?.rating != null) return (entry.rating - 6) / 4;
+  return entry?.status === 'Done' ? 0.25 : 0;
+}
+async function historyVector(account: Account) {
+  const inputs: { vector: ArrayLike<number>; weight: number }[] = [];
+  const missing: { media: Media; id: number; weight: number }[] = [];
   const keys = new Set([...account.feedback.keys(), ...account.library.keys()]);
   for (const key of keys) {
-    const [media, id] = key.split(':');
-    const row = indexedRow(media as Media, Number(id));
-    if (row === undefined) continue;
-    const feedback = account.feedback.get(key);
-    const entry = account.library.get(key);
-    let weight = entry?.status === 'Done' ? 0.25 : 0;
-    if (entry?.rating != null) weight = (entry.rating - 6) / 4;
-    if (feedback === 'like') weight = 1.4;
-    if (feedback === 'dislike' || feedback === 'dismiss') weight = -1.4;
-    if (weight) inputs.push({ vector: vectorFor(row), weight });
-    if (inputs.length === 100) break;
+    const weight = historyWeight(key, account);
+    if (!weight) continue;
+    const [type, id] = key.split(':');
+    const media = type as Media;
+    const row = indexedRow(media, Number(id));
+    if (row === undefined) missing.push({ media, id: Number(id), weight });
+    else inputs.push({ vector: vectorFor(row), weight });
+    if (inputs.length + missing.length === 100) break;
+  }
+  for (const media of ['anime', 'manga'] as const) {
+    const weights = new Map(missing.filter((m) => m.media === media).map((m) => [m.id, m.weight]));
+    const details = await detailsFor(media, [...weights.keys()]);
+    for (const title of details) {
+      const vector = encode(
+        [title.synopsis, ...title.genres, ...title.themes, title.title].join(' ')
+      ).vector;
+      if (vector) inputs.push({ vector, weight: weights.get(title.mal_id)! });
+    }
   }
   return centroid(inputs);
 }
-
-export function makeQuery(text: string, seeds: Title[], account: Account) {
+export async function makeQuery(text: string, seeds: Title[], account: Account) {
   const tropes = queryTropes(text);
   const embedding = encode([text, ...tropes].join(' '));
   const vectors: { vector: ArrayLike<number>; weight: number }[] = [];
@@ -109,12 +124,12 @@ export function makeQuery(text: string, seeds: Title[], account: Account) {
     tropes,
     words: embedding.words,
     vector: centroid(vectors),
-    history: historyVector(account),
+    history: await historyVector(account),
     seedIds: new Set(seeds.map((seed) => keyFor(seed.media_type, seed.mal_id))),
     seedTags: Array.from(new Set(seeds.flatMap((s) => [...s.genres, ...s.themes]))),
   };
 }
-type Query = ReturnType<typeof makeQuery>;
+type Query = Awaited<ReturnType<typeof makeQuery>>;
 
 function preferred(title: Title, tropes: string[], prefs: Preferences) {
   const selected = [
@@ -150,6 +165,10 @@ function textRelevance(title: Title, row: number | undefined, tropes: string[], 
   const exact = Boolean(query.text) && names.includes(query.text);
   const titleMatch = Boolean(query.text) && names.some((t) => t.includes(query.text));
   const tags = [...title.genres, ...title.themes, ...title.demographics];
+  const seriousFantasy =
+    query.textTokens.has('serious') &&
+    includes(tags, 'Fantasy') &&
+    ['Drama', 'Suspense', 'Psychological', 'Military'].some((tag) => includes(tags, tag));
   const literalTags = tags.filter((t) => query.textTokens.has(fold(t)));
   const matchedTropes = hits(query.tropes, tropes);
   const vector =
@@ -167,7 +186,8 @@ function textRelevance(title: Title, row: number | undefined, tropes: string[], 
     Math.min(0.36, keywords * 0.1) +
     Math.min(0.35, literalTags.length * 0.16);
   const tropeScore = query.tropes.length ? (matchedTropes.length / query.tropes.length) * 0.75 : 0;
-  const relevanceScore = (similarity ?? 0) * 0.9 + lexical + tropeScore + seedMatch * 0.23;
+  const relevanceScore =
+    (similarity ?? 0) * 0.9 + lexical + tropeScore + seedMatch * 0.23 + (seriousFantasy ? 0.55 : 0);
   return { exact, matchedTropes, literalTags, similarity, affinity, relevanceScore };
 }
 export function rankTitle(
@@ -189,7 +209,10 @@ export function rankTitle(
   const entry = account.library.get(key);
   if (!allowsEntry(entry, filters)) return null;
   const row = indexedRow(title.media_type, title.mal_id);
-  const tropes = titleTropes(row, title.synopsis ?? '', [...title.genres, ...title.themes]);
+  const tropes = titleTropes(row, [title.title, title.title_english, title.synopsis].join(' '), [
+    ...title.genres,
+    ...title.themes,
+  ]);
   if (!allowsTags(title, tropes, entry?.tags ?? [], filters)) return null;
   const match = textRelevance(title, row, tropes, query);
   if ((query.text || query.seedIds.size) && match.relevanceScore < 0.12) return null;

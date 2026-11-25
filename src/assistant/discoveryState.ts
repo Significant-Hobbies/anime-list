@@ -25,14 +25,20 @@ export async function savePreferences(
   preferences: Preferences,
   replace: boolean
 ) {
-  await getDb().execute({
-    sql: `INSERT INTO assistant_discovery_preferences (user_id,hard_filters,preferences)
+  try {
+    await getDb().execute({
+      sql: `INSERT INTO assistant_discovery_preferences (user_id,hard_filters,preferences)
     VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET
     hard_filters=${replace ? 'excluded.hard_filters' : 'json_patch(hard_filters,excluded.hard_filters)'},
     preferences=${replace ? 'excluded.preferences' : 'json_patch(preferences,excluded.preferences)'},
     updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
-    args: [owner(userId), JSON.stringify(filters), JSON.stringify(preferences)],
-  });
+      args: [owner(userId), JSON.stringify(filters), JSON.stringify(preferences)],
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('assistant_preference_bounds'))
+      throw new AssistantError('invalid_argument', 'The saved minimum may not exceed its maximum.');
+    throw error;
+  }
   return savedPreferences(userId);
 }
 export const tableFor = (media: Media) => (media === 'anime' ? 'anime_data' : 'manga_data');

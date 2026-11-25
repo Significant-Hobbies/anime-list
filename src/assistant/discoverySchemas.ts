@@ -117,6 +117,7 @@ export const resultSchema = z.object({
   reasons: z.array(z.string()),
   image: z.string().nullable(),
   url: z.string(),
+  canonical_url: z.string().url(),
 });
 export const searchOutput = z.object({
   results: z.array(resultSchema),
@@ -133,6 +134,7 @@ export const searchOutput = z.object({
 });
 export const searchFields = {
   media_type: mediaChoice.default('both'),
+  include_full_synopsis: z.boolean().default(false),
   filters: filtersSchema.default({}),
   preferences: preferencesSchema.default({}),
   use_saved_preferences: z.boolean().optional(),

@@ -1,5 +1,6 @@
 import { getDb, type DatabaseValue } from '../db/client';
 import { mediaFranchiseMembersSql } from './franchiseGraph';
+import { publicCatalogPages } from './discoveryCache';
 import { tableFor } from './discoveryState';
 import type { Filters, Media } from './discoverySchemas';
 
@@ -168,18 +169,23 @@ function titleRow(media: Media, r: Record<string, unknown>) {
   };
 }
 export type Title = ReturnType<typeof titleRow>;
-export async function* candidatePages(media: Media, filters: Filters) {
+export async function* candidatePages(media: Media, filters: Filters, revision: number) {
   const condition = constraints(media, filters);
-  let last = 0;
-  const batchSize = 1800;
-  while (true) {
-    const result = await getDb().execute({
-      sql: `${selectFields(media, false)} WHERE c.mal_id>? AND ${condition.sql} ORDER BY c.mal_id LIMIT ?`,
-      args: [last, ...condition.args, batchSize],
-    });
-    if (result.rows.length) yield result.rows.map((r) => titleRow(media, r));
-    if (result.rows.length < batchSize) break;
-    last = Number(result.rows.at(-1)?.mal_id);
+  async function* read() {
+    let last = 0;
+    const batchSize = 1800;
+    while (true) {
+      const result = await getDb().execute({
+        sql: `${selectFields(media, false)} WHERE c.mal_id>? AND ${condition.sql} ORDER BY c.mal_id LIMIT ?`,
+        args: [last, ...condition.args, batchSize],
+      });
+      if (result.rows.length) yield result.rows;
+      if (result.rows.length < batchSize) break;
+      last = Number(result.rows.at(-1)?.mal_id);
+    }
+  }
+  for await (const rows of publicCatalogPages(JSON.stringify([media, condition]), revision, read)) {
+    yield rows.map((r) => titleRow(media, r));
   }
 }
 export async function detailsFor(media: Media, ids: number[]) {

@@ -9,6 +9,7 @@ import {
   type Title,
   type Account,
 } from './discoveryCatalog';
+import { catalogRevision } from './discoveryCache';
 import { indexedRow, retrievalModel } from './discoveryEmbedding';
 import { makeQuery, rankTitle } from './discoveryRank';
 import type { DiscoverInput, Filters, Media, Seed } from './discoverySchemas';
@@ -66,11 +67,11 @@ function validateBounds(filters: Filters) {
       throw new AssistantError('invalid_argument', `min_${field} exceeds max_${field}.`);
   }
 }
-async function* rankablePages(media: Media, filters: Filters) {
+async function* rankablePages(media: Media, filters: Filters, revision: number) {
   // Batch all unmatched IDs across pages. A partially indexed catalog should
   // need a handful of extra reads, not an extra round-trip for every page.
   const pending: number[] = [];
-  for await (const rows of candidatePages(media, filters)) {
+  for await (const rows of candidatePages(media, filters, revision)) {
     const indexed: Title[] = [];
     for (const title of rows) {
       if (indexedRow(media, title.mal_id) === undefined) pending.push(title.mal_id);
@@ -103,10 +104,11 @@ function checkAccess(args: DiscoverInput, userId: string, allowPublic: boolean) 
 export async function discover(args: DiscoverInput, userId: string, allowPublic = false) {
   checkAccess(args, userId, allowPublic);
   const emptyAccount: Account = { library: new Map(), feedback: new Map(), dismissed: new Set() };
-  const [saved, account, seedQuery] = await Promise.all([
+  const [saved, account, seedQuery, revision] = await Promise.all([
     userId && args.use_saved_preferences !== false ? savedPreferences(userId) : null,
     userId ? accountSignals(userId) : emptyAccount,
     resolveSeeds(args.similar_to, args.query ?? '', args.media_type),
+    catalogRevision(),
   ]);
   const filters = { ...saved?.hard_filters, ...args.filters };
   validateBounds(filters);
@@ -117,11 +119,11 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
     filters.franchise_media_type = seed.media_type;
   }
   const prefs = { ...saved?.preferences, ...args.preferences };
-  const query = makeQuery(seedQuery.text, seedQuery.seeds, account);
+  const query = await makeQuery(seedQuery.text, seedQuery.seeds, account);
   let total = 0;
   let best: Match[] = [];
   for (const media of mediaList(args.media_type)) {
-    for await (const page of rankablePages(media, filters)) {
+    for await (const page of rankablePages(media, filters, revision)) {
       const matched = page.flatMap((title) => {
         const item = rankTitle(title, account, query, filters, prefs);
         return item ? [item] : [];
@@ -152,6 +154,11 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
     return [
       {
         ...title,
+        synopsis:
+          !args.include_full_synopsis && (title.synopsis?.length ?? 0) > 350
+            ? title.synopsis!.slice(0, 349).trimEnd() + '…'
+            : title.synopsis,
+        canonical_url: `https://anime.significanthobbies.com/${match.media}/${match.id}`,
         tropes: match.tropes,
         ranking_score: round(match.points),
         semantic_relevance: match.semantic === null ? null : round(match.semantic),

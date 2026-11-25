@@ -7,6 +7,7 @@ import { discoveryTools } from './discoveryTools';
 import { encode, indexedRow, relevance, retrievalModel, vectorFor } from './discoveryEmbedding';
 
 let db: DatabaseSync;
+let catalogReads = 0;
 function call(name: string, args: unknown, userId = 'alice') {
   const tool = discoveryTools.find((t) => t.name === name)!;
   return tool.execute(args, { userId, env: {} }) as Promise<any>;
@@ -21,11 +22,13 @@ beforeEach(() => {
     '0005_assistant_discovery',
     '0006_assistant_franchises',
     '0008_catalog_title_metadata',
+    '0009_assistant_discovery_cache',
   ]) {
     db.exec(readFileSync(new URL(`../../migrations/d1/${migration}.sql`, import.meta.url), 'utf8'));
   }
   const execute = async (statement: DatabaseStatement) => {
     const { sql, args = [] } = typeof statement === 'string' ? { sql: statement } : statement;
+    if (sql.includes('WHERE c.mal_id>?')) catalogReads++;
     return { rows: db.prepare(sql).all(...(args as SQLInputValue[])), rowsAffected: 0 };
   };
   setDbClient({ execute, batch: (stmts) => Promise.all(stmts.map(execute)) });
@@ -201,6 +204,60 @@ describe('assistant discovery', () => {
     );
     expect(related.resolved_seeds.map((r: any) => r.media_type)).toEqual(['anime', 'manga']);
     expect(related.results.map((r: any) => r.mal_id)).not.toContain(910001);
+  });
+  it('reuses catalog reads across accounts and invalidates them on catalog or alias changes', async () => {
+    catalogReads = 0;
+    const args = { media_type: 'anime', filters: { min_score: 9 } };
+    expect((await call('discover_titles', args)).total).toBe(2);
+    const cold = catalogReads;
+    expect(cold).toBeGreaterThan(0);
+    expect((await call('discover_titles', args, 'bob')).total).toBe(2);
+    expect(catalogReads).toBe(cold);
+    db.exec('UPDATE anime_data SET score=7 WHERE mal_id=910002');
+    expect((await call('discover_titles', args)).total).toBe(1);
+    expect(catalogReads).toBeGreaterThan(cold);
+    const studio = { filters: { studio: 'Studio Z' } };
+    expect((await call('discover_titles', studio)).total).toBe(0);
+    db.exec(
+      `INSERT INTO catalog_title_metadata (media,mal_id,studios) VALUES ('anime',910001,'["Studio Z"]')`
+    );
+    expect((await call('discover_titles', studio)).total).toBe(1);
+  });
+  it('uses feedback for newly cataloged titles as a ranking signal in subsequent searches', async () => {
+    const args = { media_type: 'anime' };
+    const before = await call('discover_titles', args);
+    const original = before.results.find((r: any) => r.mal_id === 910002).ranking_score;
+    await call('record_recommendation_feedback', {
+      media_type: 'anime',
+      mal_id: 910001,
+      signal: 'like',
+    });
+    const after = await call('discover_titles', args);
+    const guild = after.results.find((r: any) => r.mal_id === 910002);
+    expect(guild.ranking_score).toBeGreaterThan(original);
+    expect(
+      (await call('discover_titles', args, 'bob')).results.find((r: any) => r.mal_id === 910002)
+        .ranking_score
+    ).toBe(original);
+  });
+  it('returns compact synopses with product links and expands only when requested', async () => {
+    const synopsis = 'A magical academy. '.repeat(40);
+    db.prepare('UPDATE anime_data SET synopsis=? WHERE mal_id=910001').run(synopsis);
+    const filter = { filters: { title: 'Unassuming Mage' } };
+    const compact = (await call('discover_titles', filter)).results[0];
+    expect(compact.synopsis.length).toBeLessThanOrEqual(350);
+    expect(compact.canonical_url).toBe('https://anime.significanthobbies.com/anime/910001');
+    expect(
+      (await call('discover_titles', { ...filter, include_full_synopsis: true })).results[0]
+        .synopsis
+    ).toBe(synopsis);
+  });
+  it('rejects contradictory partial preference updates atomically', async () => {
+    await call('update_user_preferences', { hard_filters: { min_score: 8 } });
+    await expect(
+      call('update_user_preferences', { hard_filters: { max_score: 6 } })
+    ).rejects.toMatchObject({ code: 'invalid_argument' });
+    expect((await call('get_user_preferences', {})).hard_filters).toEqual({ min_score: 8 });
   });
   it('persists feedback for the correct title namespace and invalidates dismissed titles immediately', async () => {
     const target = { media_type: 'anime', mal_id: 910001 };
