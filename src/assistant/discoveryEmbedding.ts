@@ -99,10 +99,27 @@ function matches(text: string, values: string[]) {
   return values.some((v) => text.includes(` ${v} `));
 }
 export function queryTropes(text: string) {
-  const query = phrases(text);
-  return tropes
-    .filter((t) => matches(query, [normalizeText(t.name), ...t.queries]))
-    .map((t) => t.name);
+  const query = phrases(text)
+    .replace(/\b(?:his|her|their) (?:own )?(strength|powers?|abilities)\b/g, 'their $1')
+    .replace(
+      /\b(?:does not|doesn t) (?:realize|know) how (?:strong|powerful) (?:he|she|they) (?:really )?(?:is|are)\b/g,
+      'unaware of their strength'
+    )
+    .replace(/\boblivious to their (?:strength|powers?|abilities)\b/g, 'unaware of their strength')
+    .replace(/\bop mc\b/g, 'op protagonist');
+  const wanted: string[] = [];
+  const excluded: string[] = [];
+  for (const trope of tropes) {
+    const aliases = [normalizeText(trope.name), ...trope.queries];
+    if (!matches(query, aliases)) continue;
+    const negated = aliases.some((alias) =>
+      ['no', 'without', 'exclude', 'excluding', 'avoid', 'not'].some((prefix) =>
+        query.includes(` ${prefix} ${alias} `)
+      )
+    );
+    (negated ? excluded : wanted).push(trope.name);
+  }
+  return { wanted, excluded };
 }
 export function titleTropes(row: number | undefined, fallback: string, tags: string[]) {
   if (row !== undefined)
@@ -112,6 +129,7 @@ export function titleTropes(row: number | undefined, fallback: string, tags: str
     .filter(
       (t) =>
         matches(text, t.evidence) ||
+        t.evidence_all?.some((group) => group.every((phrase) => matches(text, [phrase]))) ||
         (t.name === 'Fantasy comedy' && tags.includes('Fantasy') && tags.includes('Comedy'))
     )
     .map((t) => t.name);

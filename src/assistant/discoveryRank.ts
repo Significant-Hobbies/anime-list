@@ -93,7 +93,7 @@ async function historyVector(account: Account) {
   return centroid(inputs);
 }
 export async function makeQuery(text: string, seeds: Title[], account: Account) {
-  const tropes = queryTropes(text);
+  const { wanted: tropes, excluded } = queryTropes(text);
   const embedding = encode([text, ...tropes].join(' '));
   const vectors: { vector: ArrayLike<number>; weight: number }[] = [];
   if (embedding.vector) vectors.push({ vector: embedding.vector, weight: 1 });
@@ -105,6 +105,7 @@ export async function makeQuery(text: string, seeds: Title[], account: Account) 
     text: fold(text),
     textTokens: new Set(fold(text).split(/[^\p{L}\p{N}-]+/u)),
     tropes,
+    excluded,
     words: embedding.words,
     vector: centroid(vectors),
     history: await historyVector(account),
@@ -193,6 +194,7 @@ export function rankTitle(
   const entry = account.library.get(key);
   if (!allowsEntry(entry, filters)) return null;
   const tropes = documentTropes(title.document);
+  if (hits(query.excluded, tropes).length) return null;
   if (!allowsTags(title, tropes, entry?.tags ?? [], filters)) return null;
   const match = textRelevance(title, tropes, query);
   if ((query.text || query.seedIds.size) && match.relevanceScore < 0.12) return null;
@@ -200,13 +202,25 @@ export function rankTitle(
   const taste = match.affinity * 0.24 + pref.score + (signal === 'like' ? 0.18 : 0);
   const quality =
     ((title.score ?? 0) / 10) * 0.25 + Math.min(0.12, Math.log1p(title.members ?? 0) * 0.007);
-  const reasons = [...match.matchedTropes, ...match.literalTags, ...pref.selected];
+  const reasons = [
+    ...match.matchedTropes,
+    ...match.literalTags,
+    ...pref.selected.map((label) => `Prefers ${label}`),
+  ];
   if (match.exact) reasons.unshift('Exact title');
-  if ((match.similarity ?? 0) > 0.35) reasons.push('Similar synopsis');
+  if ((match.similarity ?? 0) > 0.35)
+    reasons.push(
+      title.document.source === 'metadata' ? 'Similar catalog metadata' : 'Similar synopsis'
+    );
   if (match.affinity > 0.25) reasons.push('Matches your library or feedback');
   return {
     media: title.media_type,
     id: title.mal_id,
+    exact: match.exact,
+    fullCompoundMatch:
+      query.tropes.length > 1 && query.tropes.length === match.matchedTropes.length,
+    matchedTropes: match.matchedTropes,
+    prefMatches: pref.selected,
     points: match.relevanceScore + taste + quality,
     semantic: match.similarity,
     reasons: [...new Set(reasons)].slice(0, 5),

@@ -1,3 +1,4 @@
+import tropeLabels from './discoveryTropes.json';
 import { pageSchema } from './pagination';
 import { z } from 'zod';
 
@@ -27,7 +28,11 @@ export const filtersSchema = z.strictObject({
   max_user_rating: rating.optional(),
   genres: labels.optional(),
   themes: labels.optional(),
-  tropes: labels.optional(),
+  tropes: labels
+    .optional()
+    .describe(
+      `Only return titles with catalog evidence for every supplied label. Coverage is incomplete. Use query or preferences.tropes for broader discovery. Supported labels: ${tropeLabels.map((t) => t.name).join(', ')}.`
+    ),
   include_tags: labels.optional(),
   exclude_tags: labels.optional(),
   include_watch_statuses: labels.optional(),
@@ -117,6 +122,15 @@ const resultSchema = z.object({
   semantic_source: z.enum(['indexed-synopsis', 'live-synopsis', 'metadata']),
   ranking_score: z.number(),
   reasons: z.array(z.string()),
+  matched_tropes: z
+    .array(z.string())
+    .describe('Recognized query tropes supported by catalog evidence.'),
+  unconfirmed_tropes: z
+    .array(z.string())
+    .describe('Recognized query tropes without catalog evidence for this title.'),
+  preference_matches: z
+    .array(z.string())
+    .describe('Genre, theme or trope labels matching soft preferences.'),
   image: z.string().nullable(),
   url: z.string(),
   canonical_url: z.string().url(),
@@ -129,6 +143,14 @@ export const searchOutput = z.object({
     model: z.string(),
     indexed_anime: z.number(),
     indexed_manga: z.number(),
+    excluded_query_tropes: z
+      .array(z.string())
+      .describe('Explicitly negated query labels excluded from candidates.'),
+    recognized_query_tropes: z
+      .array(z.string())
+      .describe(
+        'Labels recognized in the free-text query. Other story details require reading the synopsis. An empty list means no query tropes were evaluated.'
+      ),
     query_has_embedding: z.boolean(),
     fallback: z.string(),
   }),
@@ -136,8 +158,12 @@ export const searchOutput = z.object({
 export const searchFields = {
   media_type: mediaChoice.default('both'),
   include_full_synopsis: z.boolean().default(false),
-  filters: filtersSchema.default({}),
-  preferences: preferencesSchema.default({}),
+  filters: filtersSchema
+    .default({})
+    .describe(
+      'Hard requirements for this request. Unknown catalog values cannot satisfy a requirement.'
+    ),
+  preferences: preferencesSchema.default({}).describe('Soft tastes used to rank eligible titles.'),
   use_saved_preferences: z.boolean().optional(),
   similar_to: z.array(seedSchema).max(6).default([]),
   ...pageInput,

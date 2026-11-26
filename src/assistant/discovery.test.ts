@@ -5,7 +5,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setDbClient, type DatabaseStatement } from '../db/client';
 import { prepareDiscoveryPages } from '../scripts/prepareDiscoveryPages';
 import { discoveryTools } from './discoveryTools';
-import { encode, indexedRow, relevance, retrievalModel, vectorFor } from './discoveryEmbedding';
+import {
+  encode,
+  indexedRow,
+  relevance,
+  queryTropes,
+  retrievalModel,
+  titleTropes,
+  vectorFor,
+} from './discoveryEmbedding';
 
 let db: DatabaseSync;
 let catalogReads = 0;
@@ -124,6 +132,87 @@ describe('assistant discovery', () => {
     const query = encode('bounty hunters in space aboard a spaceship');
     expect(relevance(query.vector, vectorFor(cowboy))).toBeGreaterThan(0.2);
     expect(encode('qzxwjv').vector).toBeNull();
+  });
+  it('recognizes both the feat and the mistaken self-assessment in indexed and current synopses', () => {
+    const requested = ['Unaware of own strength', 'Overpowered protagonist'];
+    // Curated from the shipped synopsis snapshots. A revised synopsis must supply its own evidence.
+    for (const id of [40594, 39419, 57058, 56845])
+      expect(titleTropes(indexedRow('anime', id), '', [])).toEqual(
+        expect.arrayContaining(requested)
+      );
+    const feat = 'accustomed to defeating powerful enemies since childhood';
+    const belief = 'regards himself as the weakest in his village';
+    expect(titleTropes(undefined, feat + ' and he ' + belief, [])).toEqual(
+      expect.arrayContaining(requested)
+    );
+    for (const incomplete of [feat, belief, 'Unbeknownst to him, she is the princess.'])
+      expect(titleTropes(undefined, incomplete, [])).not.toContain('Unaware of own strength');
+  });
+  it('distinguishes requests without recognized query tropes from matched preferences', async () => {
+    expect(queryTropes('OP MC who does not realize how strong he is').wanted).toEqual([
+      'Unaware of own strength',
+      'Overpowered protagonist',
+    ]);
+    expect(queryTropes('overpowered protagonist unaware of his own power').wanted).toEqual([
+      'Unaware of own strength',
+      'Overpowered protagonist',
+    ]);
+    expect(queryTropes("hero doesn't know how strong his enemies are").wanted).toEqual([]);
+    expect(queryTropes('hero does not know how powerful the demon king is').wanted).toEqual([]);
+    expect(queryTropes('isekai without politics')).toEqual({
+      wanted: ['Isekai'],
+      excluded: ['Politics'],
+    });
+    const negated = await call('semantic_search', { query: 'fantasy without politics' }, '');
+    expect(negated.retrieval.excluded_query_tropes).toEqual(['Politics']);
+    expect(negated.results.every((r: { tropes: string[] }) => !r.tropes.includes('Politics'))).toBe(
+      true
+    );
+    const page = await call('discover_titles', {
+      query: 'wizard',
+      preferences: { tropes: ['Unaware of own strength'] },
+    });
+    expect(page.retrieval.recognized_query_tropes).toEqual([]);
+    expect(
+      page.results.find(
+        (r: { mal_id: number; media_type: string }) =>
+          r.mal_id === 910001 && r.media_type === 'anime'
+      )
+    ).toMatchObject({
+      matched_tropes: [],
+      unconfirmed_tropes: [],
+      preference_matches: ['Unaware of own strength'],
+    });
+  });
+  it('ranks supported query tropes first and reports which parts lack evidence', async () => {
+    db.exec(
+      "UPDATE anime_data SET synopsis='An overpowered wizard who is unaware of his own abilities.' WHERE mal_id=910001"
+    );
+    const request = {
+      media_type: 'anime',
+      query: 'overpowered protagonist unaware of their abilities',
+      preferences: { genres: ['Sports'] },
+    };
+    const { results } = await call('semantic_search', request, '');
+    expect(results[0]).toMatchObject({
+      mal_id: 910001,
+      matched_tropes: ['Unaware of own strength', 'Overpowered protagonist'],
+      unconfirmed_tropes: [],
+      preference_matches: [],
+    });
+    expect(
+      results
+        .slice(1)
+        .every((r: { unconfirmed_tropes: string[] }) => r.unconfirmed_tropes.length > 0)
+    ).toBe(true);
+    const partial = results.slice(1).map((r: { ranking_score: number }) => r.ranking_score);
+    expect(partial).toEqual([...partial].sort((a, b) => b - a));
+    const strict = await call(
+      'semantic_search',
+      { ...request, filters: { tropes: results[0].matched_tropes } },
+      ''
+    );
+    expect(strict.results.map((r: { mal_id: number }) => r.mal_id)).toEqual([910001]);
   });
   it('requires fantasy intent before boosting serious fantasy', async () => {
     db.exec(`UPDATE anime_data SET title='Fixture',title_english='Fixture',score=8,synopsis=NULL,episodes=12

@@ -22,7 +22,7 @@ export const discoveryTools = [
     name: 'semantic_search',
     access: 'optional',
     description:
-      'Search anime and manga by natural-language plot, trope, title, or themes using corpus-trained synopsis embeddings and keyword evidence. Use filters for strict constraints. Public catalog access supports content filters; use discover_titles for account filters. Connected account searches exclude Done, Dropped, and dismissed titles by default. Use next_offset to continue.',
+      'Search by plot description, theme or trope. Free text ranks candidates by similarity. Put required scores and years in filters. For tropes use free text, or filters.tropes to require catalog evidence. Compare recognized_query_tropes with the request. Check unconfirmed_tropes and verify other story details in the synopsis. Connected searches exclude Done, Dropped and dismissed titles by default.',
     input: z.strictObject({ ...searchFields, query: z.string().trim().min(1).max(600) }),
     output: searchOutput,
     example: {
@@ -38,7 +38,7 @@ export const discoveryTools = [
     name: 'discover_titles',
     access: 'read',
     description:
-      'Find titles across the live filtered catalog using your saved tastes, ratings, and feedback. Hard filter fields supplied for this call override the corresponding saved fields. List finished or dropped titles only by explicitly changing exclude_watch_statuses.',
+      'Recommend anime or manga for the connected account using ratings, watchlist and saved tastes. Use filters for requirements and preferences for ranking. Request filters override corresponding saved filters. Done and Dropped are excluded by default. Compare recognized_query_tropes with the request. Verify other details in the synopsis. preference_matches reports soft tastes separately.',
     input: discoverInput,
     output: searchOutput,
     example: {
@@ -52,7 +52,7 @@ export const discoveryTools = [
     name: 'get_similar_titles',
     access: 'optional',
     description:
-      'Find similar works using one or more source titles and their synopses. Supply the source media and MAL ID, then optionally limit the target media or combine filters.',
+      'Find titles like a known anime or manga. Supply its media type and MAL ID in seed, and additional references in similar_to. Source titles are excluded. Set media_type to choose the result medium and filters for strict requirements.',
     input: z.strictObject({
       ...searchFields,
       seed: seedSchema,

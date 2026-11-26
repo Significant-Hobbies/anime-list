@@ -19,7 +19,11 @@ import { AssistantError } from './tool';
 
 type Match = NonNullable<ReturnType<typeof rankTitle>>;
 const descending = (a: Match, b: Match) =>
-  b.points - a.points || a.media.localeCompare(b.media) || a.id - b.id;
+  Number(b.exact) - Number(a.exact) ||
+  Number(b.fullCompoundMatch) - Number(a.fullCompoundMatch) ||
+  b.points - a.points ||
+  a.media.localeCompare(b.media) ||
+  a.id - b.id;
 const round = (x: number) => Math.round(x * 10000) / 10000;
 async function resolveSeeds(ids: Seed[], query: string, choice: Media | 'both') {
   const seeds = new Map<string, Title>();
@@ -150,6 +154,9 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
         ranking_score: round(match.points),
         semantic_relevance: match.semantic === null ? null : round(match.semantic),
         reasons: match.reasons,
+        matched_tropes: match.matchedTropes,
+        unconfirmed_tropes: query.tropes.filter((t) => !match.matchedTropes.includes(t)),
+        preference_matches: match.prefMatches,
         user_status: entry?.status ?? null,
         user_rating: entry?.rating ?? null,
         user_tags: entry?.tags ?? [],
@@ -167,6 +174,8 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
     })),
     retrieval: {
       ...retrievalModel,
+      recognized_query_tropes: query.tropes,
+      excluded_query_tropes: query.excluded,
       query_has_embedding: Boolean(query.vector),
       fallback:
         'Changed and new titles use their current synopsis. Titles without a usable synopsis use available tags and title words. Unknown metadata cannot satisfy hard filters.',

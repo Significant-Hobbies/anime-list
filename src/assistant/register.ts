@@ -29,6 +29,13 @@ function failure(code: string, message: string) {
   };
 }
 
+const titles: Record<string, string> = {
+  semantic_search: 'Search by story or trope',
+  discover_titles: 'Find personalized recommendations',
+  get_similar_titles: 'Find titles like these',
+  upsert_watchlist_entries: 'Add or update watchlist entries',
+};
+
 export type ResolveSession = () => Promise<AssistantSession>;
 
 export function registerAssistantTools(
@@ -49,6 +56,8 @@ export function registerAssistantTools(
     server.registerTool(
       tool.name,
       {
+        title:
+          titles[tool.name] ?? tool.name.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase()),
         description: tool.description + ' Example: ' + JSON.stringify(example),
         inputSchema,
         outputSchema: tool.output,

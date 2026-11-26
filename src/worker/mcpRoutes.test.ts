@@ -62,7 +62,11 @@ describe('handleMcpRequest', () => {
     );
     expect(new Set(names).size).toBe(names.length);
     expect(names).toContain('upsert_watchlist_entries');
+    expect(tools.find((tool: { name: string }) => tool.name === 'semantic_search')?.title).toBe(
+      'Search by story or trope'
+    );
     for (const tool of tools) {
+      expect(tool.title).toMatch(/^[A-Z].* /);
       expect(typeof tool.annotations?.readOnlyHint).toBe('boolean');
       if (!tool.annotations.readOnlyHint)
         expect(tool.inputSchema.required).toContain('user_authorized');
