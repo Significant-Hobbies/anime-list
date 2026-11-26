@@ -27,6 +27,32 @@ async function resolveStatus(userId: string, status?: string) {
   );
 }
 
+const whereKey = 'user_id=? AND media=? AND mal_id=?';
+function appendDetails(statements: DatabaseStatement[], key: string[], input: EntryInput) {
+  const media = input.media_type;
+  const values: DatabaseValue[] = [];
+  const columns: string[] = [];
+  for (const [col, value] of [
+    ['rating', input.personal_rating],
+    ['notes', media === 'manga' ? input.notes : undefined],
+    [
+      'completed_at',
+      input.completed_at ? new Date(input.completed_at).toISOString() : input.completed_at,
+    ],
+  ] as const) {
+    if (value !== undefined) {
+      columns.push(col);
+      values.push(value);
+    }
+  }
+  if (columns.length)
+    statements.push({
+      sql: `UPDATE library_details SET ${columns.map((c) => c + '=?').join(',')}, updated_at=${now}
+         WHERE ${whereKey} AND (${columns.map((c) => c + ' IS NOT ?').join(' OR ')})`,
+      args: [...values, ...key, ...values],
+    });
+}
+
 export async function upsertLibraryEntry(userId: string, input: EntryInput) {
   const { media_type: media, watch_status: status } = input;
   const id = String(input.catalog_id);
@@ -77,28 +103,7 @@ export async function upsertLibraryEntry(userId: string, input: EntryInput) {
       sql: 'UPDATE anime_watchlist SET note=? WHERE user_id=? AND mal_id=? AND note IS NOT ?',
       args: [input.notes, userId, id, input.notes],
     });
-  const values: DatabaseValue[] = [];
-  const columns: string[] = [];
-  for (const [col, value] of [
-    ['rating', input.personal_rating],
-    ['notes', media === 'manga' ? input.notes : undefined],
-    [
-      'completed_at',
-      input.completed_at ? new Date(input.completed_at).toISOString() : input.completed_at,
-    ],
-  ] as const) {
-    if (value !== undefined) {
-      columns.push(col);
-      values.push(value);
-    }
-  }
-  const whereKey = 'user_id=? AND media=? AND mal_id=?';
-  if (columns.length)
-    statements.push({
-      sql: `UPDATE library_details SET ${columns.map((c) => c + '=?').join(',')}, updated_at=${now}
-         WHERE ${whereKey} AND (${columns.map((c) => c + ' IS NOT ?').join(' OR ')})`,
-      args: [...values, ...key, ...values],
-    });
+  appendDetails(statements, key, input);
   if (input.tags !== undefined) {
     const tags = JSON.stringify(input.tags ?? []);
     statements.push(
