@@ -218,7 +218,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_watchlist',
     description:
-      "Page through the authenticated user's complete anime watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This anime view supports existing clients. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/watchlist',
     auth: true,
@@ -228,7 +228,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_manga_watchlist',
     description:
-      "Page through the authenticated user's complete manga watchlist in deterministic MAL-id order. Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This manga view supports existing clients. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/manga/watchlist',
     auth: true,
@@ -238,7 +238,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_watchlist_tags',
     description:
-      "Page through the authenticated user's watchlist tags with per-tag anime counts. Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
+      'For classification tags across anime and manga, use list_library_tags. This view includes anime watch status tags. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/watchlist/tags',
     auth: true,
@@ -248,7 +248,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'get_manga_watchlist_enriched',
     description:
-      'Page through your manga watchlist with titles, genres, chapters, and scores. Follow nextCall until null. Requires a connected account.',
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This manga view supports existing clients. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/manga/watchlist/enriched',
     auth: true,
@@ -259,7 +259,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'get_watchlist_enriched',
     description:
-      "Page through the authenticated user's complete anime watchlist joined with catalog metadata (title, image, score, genres). Returns { items, total, nextOffset, hasMore }; when nextCall is present, call it to continue. Requires a PAT.",
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This anime view supports existing clients. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/watchlist/enriched',
     auth: true,

@@ -112,6 +112,7 @@ export function titleTropes(row: number | undefined, fallback: string, tags: str
     .filter(
       (t) =>
         matches(text, t.evidence) ||
+        t.evidence_all?.some((group) => group.every((phrase) => matches(text, [phrase]))) ||
         (t.name === 'Fantasy comedy' && tags.includes('Fantasy') && tags.includes('Comedy'))
     )
     .map((t) => t.name);

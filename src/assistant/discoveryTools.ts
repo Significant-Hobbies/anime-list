@@ -22,7 +22,7 @@ export const discoveryTools = [
     name: 'semantic_search',
     access: 'optional',
     description:
-      'Search anime and manga by natural-language plot, trope, title, or themes using corpus-trained synopsis embeddings and keyword evidence. Use filters for strict constraints. Public catalog access supports content filters; use discover_titles for account filters. Connected account searches exclude Done, Dropped, and dismissed titles by default. Use next_offset to continue.',
+      'Search by plot description, theme or trope. Free text ranks candidates by similarity. Put required score, year or trope labels in filters. Check unconfirmed_tropes before describing a result as a full match. Connected searches exclude Done, Dropped and dismissed titles by default.',
     input: z.strictObject({ ...searchFields, query: z.string().trim().min(1).max(600) }),
     output: searchOutput,
     example: {
@@ -38,7 +38,7 @@ export const discoveryTools = [
     name: 'discover_titles',
     access: 'read',
     description:
-      'Find titles across the live filtered catalog using your saved tastes, ratings, and feedback. Hard filter fields supplied for this call override the corresponding saved fields. List finished or dropped titles only by explicitly changing exclude_watch_statuses.',
+      'Recommend anime or manga for the connected account using ratings, watchlist and saved tastes. Use filters for requirements and preferences for ranking. Request filters override corresponding saved filters. Done and Dropped are excluded by default. Check unconfirmed_tropes before presenting a full match.',
     input: discoverInput,
     output: searchOutput,
     example: {
@@ -52,7 +52,7 @@ export const discoveryTools = [
     name: 'get_similar_titles',
     access: 'optional',
     description:
-      'Find similar works using one or more source titles and their synopses. Supply the source media and MAL ID, then optionally limit the target media or combine filters.',
+      'Find titles like a known anime or manga. Supply its media type and MAL ID in seed, and additional references in similar_to. Source titles are excluded. Set media_type to choose the result medium and filters for strict requirements.',
     input: z.strictObject({
       ...searchFields,
       seed: seedSchema,

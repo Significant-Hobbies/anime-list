@@ -200,13 +200,23 @@ export function rankTitle(
   const taste = match.affinity * 0.24 + pref.score + (signal === 'like' ? 0.18 : 0);
   const quality =
     ((title.score ?? 0) / 10) * 0.25 + Math.min(0.12, Math.log1p(title.members ?? 0) * 0.007);
-  const reasons = [...match.matchedTropes, ...match.literalTags, ...pref.selected];
+  const reasons = [
+    ...match.matchedTropes,
+    ...match.literalTags,
+    ...pref.selected.map((label) => `Prefers ${label}`),
+  ];
   if (match.exact) reasons.unshift('Exact title');
-  if ((match.similarity ?? 0) > 0.35) reasons.push('Similar synopsis');
+  if ((match.similarity ?? 0) > 0.35)
+    reasons.push(
+      title.document.source === 'metadata' ? 'Similar catalog metadata' : 'Similar synopsis'
+    );
   if (match.affinity > 0.25) reasons.push('Matches your library or feedback');
   return {
     media: title.media_type,
     id: title.mal_id,
+    exact: match.exact,
+    matchedTropes: match.matchedTropes,
+    prefMatches: pref.selected,
     points: match.relevanceScore + taste + quality,
     semantic: match.similarity,
     reasons: [...new Set(reasons)].slice(0, 5),

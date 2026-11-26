@@ -53,7 +53,9 @@ def load_corpus():
             evidence_text = " ".join([document, row["title"], row.get("title_english") or ""])
             text = " " + re.sub(r"[^a-z0-9]+", " ", evidence_text.lower()) + " "
             mask = sum(1 << i for i, trope in enumerate(tropes)
-                       if any(" " + phrase + " " in text for phrase in trope["evidence"]))
+                       if any(" " + phrase + " " in text for phrase in trope["evidence"])
+                       or any(all(" " + phrase + " " in text for phrase in group)
+                              for group in trope.get("evidence_all", [])))
             if {"Fantasy","Comedy"}.issubset(tags):
                 mask |= 1 << next(i for i,t in enumerate(tropes) if t["name"] == "Fantasy comedy")
             masks.append(mask)
