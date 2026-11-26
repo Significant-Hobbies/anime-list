@@ -63,7 +63,7 @@ export function encode(text: string) {
     for (let i = 0; i < dimensions; i++)
       vector[i] += weight * model().projection[id * dimensions + i] * index.scales[i];
   }
-  return { vector: unit(vector), words: new Set(counts.keys()) };
+  return { vector: unit(vector), words: new Set(counts.keys()), keywordLimit: index.terms_per_doc };
 }
 export function centroid(vectors: { vector: Vector; weight: number }[]) {
   const sum = new Float32Array(dimensions);

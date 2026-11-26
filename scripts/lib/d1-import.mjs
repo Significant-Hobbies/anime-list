@@ -30,6 +30,7 @@ const APPLICATION_TABLES = new Set([
   'assistant_manga_edges',
   'assistant_franchise_monitors',
   'assistant_release_events',
+  'assistant_bootstrap_failures',
   'assistant_provider_attempts',
   'assistant_manga_attempts',
 ]);

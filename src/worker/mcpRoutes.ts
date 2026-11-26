@@ -520,7 +520,9 @@ function buildToolHandler(
     const personal =
       tool.auth ||
       args.sortBy === 'recommended' ||
-      Boolean(args.includeWatched || args.hideWatched);
+      [args.includeWatched, args.hideWatched].some(
+        (list) => Array.isArray(list) && list.length > 0
+      );
     if (personal && !readCredential) {
       return stableError(tool, 'unauthorized', AUTH_ERROR_MESSAGE);
     }

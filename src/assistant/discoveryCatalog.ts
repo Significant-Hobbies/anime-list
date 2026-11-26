@@ -139,7 +139,7 @@ function selectFields(media: Media, details: boolean) {
   return `SELECT c.mal_id,c.title,c.title_english,c.score,c.year,c.type,c.status,c.popularity,c.members,c.genres,c.themes,c.demographics,cm.aliases AS catalog_aliases,cm.studios AS catalog_studios,
     ${isAnime ? 'c.episodes,NULL AS chapters,d.aliases,d.studios' : 'NULL AS episodes,c.chapters,d.aliases,NULL AS studios'} ,
     ${isAnime ? 'NULL AS languages,NULL AS english' : 'c.available_languages AS languages,c.available_in_english AS english'}
-    ,coalesce(nullif(d.synopsis,''),c.synopsis) AS synopsis ${details ? ',c.url,c.image' : ''}
+    ,coalesce(nullif(c.synopsis,''),d.synopsis) AS synopsis ${details ? ',c.url,c.image' : ''}
     FROM ${tableFor(media)} c LEFT JOIN ${isAnime ? 'assistant_anime_details' : 'assistant_manga_details'} d ON d.mal_id=c.mal_id LEFT JOIN catalog_title_metadata cm ON cm.media='${media}' AND cm.mal_id=c.mal_id`;
 }
 async function prepareDocuments(

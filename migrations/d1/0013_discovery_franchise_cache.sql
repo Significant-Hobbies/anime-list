@@ -1,8 +1,0 @@
--- Franchise-filtered discovery reads live membership. Other catalog projections
--- are independent of graph edits, and result-page franchise labels are always live.
-DROP TRIGGER assistant_discovery_assistant_franchise_edges_insert;
-DROP TRIGGER assistant_discovery_assistant_franchise_edges_update;
-DROP TRIGGER assistant_discovery_assistant_franchise_edges_delete;
-DROP TRIGGER assistant_discovery_assistant_manga_edges_insert;
-DROP TRIGGER assistant_discovery_assistant_manga_edges_update;
-DROP TRIGGER assistant_discovery_assistant_manga_edges_delete;

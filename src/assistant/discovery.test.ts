@@ -23,7 +23,7 @@ beforeEach(() => {
     '0006_assistant_franchises',
     '0008_catalog_title_metadata',
     '0009_assistant_discovery_cache',
-    '0013_discovery_franchise_cache',
+    '0014_discovery_franchise_cache',
   ]) {
     db.exec(readFileSync(new URL(`../../migrations/d1/${migration}.sql`, import.meta.url), 'utf8'));
   }

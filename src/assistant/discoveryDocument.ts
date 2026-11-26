@@ -32,7 +32,7 @@ export async function documentEmbedding(
       return { row, vector: null, tropes: null, keywords: [], source: 'indexed-synopsis' };
   }
   const text = [synopsis, title, english, ...tags].join(' ');
-  const { vector, words } = encode(text);
+  const { vector, words, keywordLimit } = encode(text);
   const packed = vector
     ? btoa(String.fromCharCode(...Uint8Array.from(vector, (x) => 127 + Math.round(x * 127))))
     : null;
@@ -40,7 +40,7 @@ export async function documentEmbedding(
     row: null,
     vector: packed,
     tropes: titleTropes(undefined, text, tags),
-    keywords: [...words].slice(0, 32),
+    keywords: [...words].slice(0, keywordLimit),
     source: synopsis ? 'live-synopsis' : 'metadata',
   };
 }
