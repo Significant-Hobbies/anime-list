@@ -30,6 +30,15 @@ def pack(array, dtype):
     return base64.b64encode(np.asarray(array, dtype=dtype).tobytes()).decode("ascii")
 
 
+def has_trope_evidence(text, trope):
+    def contains(phrase):
+        return " " + phrase + " " in text
+
+    return (any(contains(phrase) for phrase in trope["evidence"])
+            or any(all(contains(phrase) for phrase in group)
+                   for group in trope.get("evidence_all", [])))
+
+
 def load_corpus():
     docs, groups, masks, fingerprints = [], {}, [], bytearray()
     source = hashlib.sha256()
@@ -53,9 +62,7 @@ def load_corpus():
             evidence_text = " ".join([document, row["title"], row.get("title_english") or ""])
             text = " " + re.sub(r"[^a-z0-9]+", " ", evidence_text.lower()) + " "
             mask = sum(1 << i for i, trope in enumerate(tropes)
-                       if any(" " + phrase + " " in text for phrase in trope["evidence"])
-                       or any(all(" " + phrase + " " in text for phrase in group)
-                              for group in trope.get("evidence_all", [])))
+                       if has_trope_evidence(text, trope))
             if {"Fantasy","Comedy"}.issubset(tags):
                 mask |= 1 << next(i for i,t in enumerate(tropes) if t["name"] == "Fantasy comedy")
             masks.append(mask)
