@@ -145,6 +145,25 @@ describe('assistant discovery', () => {
     await prepareDiscoveryPages('anime');
     expect((await call('semantic_search', args, '')).results).toEqual(after.results);
   });
+  it('applies hard filters and owner exclusions across overlapping prepared and dirty buckets', async () => {
+    db.exec(`WITH RECURSIVE ids(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM ids WHERE n<150)
+      INSERT INTO anime_data(mal_id,title,url,score,year,genres)
+      SELECT 800000+n,'Knights '||n,'https://fixture.invalid/'||n,8,2020,'{"Adventure":1}' FROM ids;
+      INSERT INTO user_tags(id,user_id,name) VALUES ('done','alice','Done');
+      INSERT INTO anime_watchlist(user_id,mal_id,tag_id) VALUES ('alice','800001','done');`);
+    await prepareDiscoveryPages('anime');
+    db.exec('UPDATE anime_data SET score=6 WHERE mal_id=800002');
+    const args = {
+      media_type: 'anime',
+      filters: { min_score: 7, year: 2020, genres: ['Adventure'] },
+      limit: 2,
+    };
+    expect((await call('discover_titles', args, 'alice')).total).toBe(148);
+    expect((await call('discover_titles', args, 'bob')).total).toBe(149);
+    expect((await call('discover_titles', { ...args, offset: 147 }, 'alice')).results).toHaveLength(
+      1
+    );
+  });
   it('ranks unseen titles using live synopsis vectors, keyword and trope evidence', async () => {
     const search = await call('semantic_search', {
       query: 'OP protagonist unaware of strength at a magical academy',
