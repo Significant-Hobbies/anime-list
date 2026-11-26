@@ -99,7 +99,14 @@ function matches(text: string, values: string[]) {
   return values.some((v) => text.includes(` ${v} `));
 }
 export function queryTropes(text: string) {
-  const query = phrases(text);
+  const query = phrases(text)
+    .replace(/\b(?:his|her|their) (?:own )?(strength|powers?|abilities)\b/g, 'their $1')
+    .replace(
+      /\b(?:does not|doesn t) (?:realize|know) how (?:strong|powerful)\b/g,
+      'unaware of their strength'
+    )
+    .replace(/\boblivious to their (?:strength|powers?|abilities)\b/g, 'unaware of their strength')
+    .replace(/\bop mc\b/g, 'op protagonist');
   return tropes
     .filter((t) => matches(query, [normalizeText(t.name), ...t.queries]))
     .map((t) => t.name);

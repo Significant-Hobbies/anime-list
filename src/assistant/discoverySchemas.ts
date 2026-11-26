@@ -31,7 +31,7 @@ export const filtersSchema = z.strictObject({
   tropes: labels
     .optional()
     .describe(
-      `Require every supplied catalog trope label. Supported labels: ${tropeLabels.map((t) => t.name).join(', ')}.`
+      `Only return titles with catalog evidence for every supplied label. Coverage is incomplete. Use query or preferences.tropes for broader discovery. Supported labels: ${tropeLabels.map((t) => t.name).join(', ')}.`
     ),
   include_tags: labels.optional(),
   exclude_tags: labels.optional(),
@@ -143,6 +143,11 @@ export const searchOutput = z.object({
     model: z.string(),
     indexed_anime: z.number(),
     indexed_manga: z.number(),
+    recognized_query_tropes: z
+      .array(z.string())
+      .describe(
+        'Labels recognized in the free-text query. Other story details require reading the synopsis. An empty list means no query tropes were evaluated.'
+      ),
     query_has_embedding: z.boolean(),
     fallback: z.string(),
   }),

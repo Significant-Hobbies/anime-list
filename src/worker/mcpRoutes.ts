@@ -218,7 +218,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_watchlist',
     description:
-      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This anime view supports existing clients. Follow nextCall to continue. Requires a connected account.',
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This compact anime view pages entries in MAL ID order. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/watchlist',
     auth: true,
@@ -228,7 +228,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_manga_watchlist',
     description:
-      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This manga view supports existing clients. Follow nextCall to continue. Requires a connected account.',
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This compact manga view pages entries in MAL ID order. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/manga/watchlist',
     auth: true,
@@ -248,7 +248,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'get_manga_watchlist_enriched',
     description:
-      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This manga view supports existing clients. Follow nextCall to continue. Requires a connected account.',
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This manga view adds catalog titles, genres and scores. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/manga/watchlist/enriched',
     auth: true,
@@ -259,7 +259,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'get_watchlist_enriched',
     description:
-      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This anime view supports existing clients. Follow nextCall to continue. Requires a connected account.',
+      'Use get_watchlist for filtered anime and manga entries, ratings and notes. This anime view adds catalog titles, genres and scores. Follow nextCall to continue. Requires a connected account.',
     method: 'GET',
     path: '/api/watchlist/enriched',
     auth: true,

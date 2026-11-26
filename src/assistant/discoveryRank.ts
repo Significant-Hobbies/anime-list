@@ -215,6 +215,8 @@ export function rankTitle(
     media: title.media_type,
     id: title.mal_id,
     exact: match.exact,
+    fullCompoundMatch:
+      query.tropes.length > 1 && query.tropes.length === match.matchedTropes.length,
     matchedTropes: match.matchedTropes,
     prefMatches: pref.selected,
     points: match.relevanceScore + taste + quality,

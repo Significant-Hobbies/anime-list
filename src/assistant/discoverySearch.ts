@@ -20,7 +20,7 @@ import { AssistantError } from './tool';
 type Match = NonNullable<ReturnType<typeof rankTitle>>;
 const descending = (a: Match, b: Match) =>
   Number(b.exact) - Number(a.exact) ||
-  b.matchedTropes.length - a.matchedTropes.length ||
+  Number(b.fullCompoundMatch) - Number(a.fullCompoundMatch) ||
   b.points - a.points ||
   a.media.localeCompare(b.media) ||
   a.id - b.id;
@@ -174,6 +174,7 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
     })),
     retrieval: {
       ...retrievalModel,
+      recognized_query_tropes: query.tropes,
       query_has_embedding: Boolean(query.vector),
       fallback:
         'Changed and new titles use their current synopsis. Titles without a usable synopsis use available tags and title words. Unknown metadata cannot satisfy hard filters.',

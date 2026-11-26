@@ -9,6 +9,7 @@ import {
   encode,
   indexedRow,
   relevance,
+  queryTropes,
   retrievalModel,
   titleTropes,
   vectorFor,
@@ -134,6 +135,7 @@ describe('assistant discovery', () => {
   });
   it('recognizes both the feat and the mistaken self-assessment in indexed and current synopses', () => {
     const requested = ['Unaware of own strength', 'Overpowered protagonist'];
+    // Curated from the shipped synopsis snapshots. A revised synopsis must supply its own evidence.
     for (const id of [40594, 39419, 57058, 56845])
       expect(titleTropes(indexedRow('anime', id), '', [])).toEqual(
         expect.arrayContaining(requested)
@@ -145,6 +147,31 @@ describe('assistant discovery', () => {
     );
     for (const incomplete of [feat, belief, 'Unbeknownst to him, she is the princess.'])
       expect(titleTropes(undefined, incomplete, [])).not.toContain('Unaware of own strength');
+  });
+  it('distinguishes requests without recognized query tropes from matched preferences', async () => {
+    expect(queryTropes('OP MC who does not realize how strong he is')).toEqual([
+      'Unaware of own strength',
+      'Overpowered protagonist',
+    ]);
+    expect(queryTropes('overpowered protagonist unaware of his own power')).toEqual([
+      'Unaware of own strength',
+      'Overpowered protagonist',
+    ]);
+    const page = await call('discover_titles', {
+      query: 'wizard',
+      preferences: { tropes: ['Unaware of own strength'] },
+    });
+    expect(page.retrieval.recognized_query_tropes).toEqual([]);
+    expect(
+      page.results.find(
+        (r: { mal_id: number; media_type: string }) =>
+          r.mal_id === 910001 && r.media_type === 'anime'
+      )
+    ).toMatchObject({
+      matched_tropes: [],
+      unconfirmed_tropes: [],
+      preference_matches: ['Unaware of own strength'],
+    });
   });
   it('ranks supported query tropes first and reports which parts lack evidence', async () => {
     db.exec(

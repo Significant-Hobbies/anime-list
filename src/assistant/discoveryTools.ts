@@ -22,7 +22,7 @@ export const discoveryTools = [
     name: 'semantic_search',
     access: 'optional',
     description:
-      'Search by plot description, theme or trope. Free text ranks candidates by similarity. Put required score, year or trope labels in filters. Check unconfirmed_tropes before describing a result as a full match. Connected searches exclude Done, Dropped and dismissed titles by default.',
+      'Search by plot description, theme or trope. Free text ranks candidates by similarity. Put required score, year or trope labels in filters. Compare recognized_query_tropes with the request. Check unconfirmed_tropes and verify other story details in the synopsis. Connected searches exclude Done, Dropped and dismissed titles by default.',
     input: z.strictObject({ ...searchFields, query: z.string().trim().min(1).max(600) }),
     output: searchOutput,
     example: {
@@ -38,7 +38,7 @@ export const discoveryTools = [
     name: 'discover_titles',
     access: 'read',
     description:
-      'Recommend anime or manga for the connected account using ratings, watchlist and saved tastes. Use filters for requirements and preferences for ranking. Request filters override corresponding saved filters. Done and Dropped are excluded by default. Check unconfirmed_tropes before presenting a full match.',
+      'Recommend anime or manga for the connected account using ratings, watchlist and saved tastes. Use filters for requirements and preferences for ranking. Request filters override corresponding saved filters. Done and Dropped are excluded by default. Compare recognized_query_tropes with the request. Verify other details in the synopsis. preference_matches reports soft tastes separately.',
     input: discoverInput,
     output: searchOutput,
     example: {
