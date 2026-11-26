@@ -20,6 +20,7 @@ export interface ApiTokenMetadata {
   createdAt: string;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  canWrite: boolean;
 }
 
 function toMetadata(row: Record<string, unknown>): ApiTokenMetadata {
@@ -28,6 +29,7 @@ function toMetadata(row: Record<string, unknown>): ApiTokenMetadata {
     name: row.name as string,
     createdAt: row.created_at as string,
     lastUsedAt: (row.last_used_at as string | null) ?? null,
+    canWrite: row.can_write === 1,
     revokedAt: (row.revoked_at as string | null) ?? null,
   };
 }
@@ -50,15 +52,27 @@ async function hashToken(raw: string): Promise<string> {
     .join('');
 }
 
-export async function createApiToken(userId: string, name: string): Promise<CreatedApiToken> {
+export async function createApiToken(
+  userId: string,
+  name: string,
+  canWrite = false
+): Promise<CreatedApiToken> {
   const db = getDb();
   const id = crypto.randomUUID();
   const raw = generateRawToken();
   const tokenHash = await hashToken(raw);
-  await db.execute({
+  const insert = {
     sql: 'INSERT INTO user_api_tokens (id, user_id, name, token_hash) VALUES (?, ?, ?, ?)',
     args: [id, userId, name, tokenHash],
-  });
+  };
+  if (canWrite) {
+    await db.batch([
+      insert,
+      { sql: 'INSERT INTO assistant_write_grants(token_hash) VALUES (?)', args: [tokenHash] },
+    ]);
+  } else {
+    await db.execute(insert);
+  }
   const createdAt = new Date().toISOString();
   return { token: raw, id, name, createdAt };
 }
@@ -66,7 +80,8 @@ export async function createApiToken(userId: string, name: string): Promise<Crea
 export async function listApiTokens(userId: string): Promise<ApiTokenMetadata[]> {
   const db = getDb();
   const result = await db.execute({
-    sql: `SELECT id, name, created_at, last_used_at, revoked_at
+    sql: `SELECT id, name, created_at, last_used_at, revoked_at,
+                 EXISTS (SELECT 1 FROM assistant_write_grants g WHERE g.token_hash=user_api_tokens.token_hash) AS can_write
           FROM user_api_tokens
           WHERE user_id = ?
           ORDER BY created_at DESC`,
@@ -94,18 +109,22 @@ export async function revokeApiToken(
 
 export async function resolveApiToken(
   rawToken: string
-): Promise<{ userId: string; tokenId: string } | null> {
+): Promise<{ userId: string; tokenId: string; canWrite: boolean } | null> {
   if (!isApiToken(rawToken)) return null;
   const db = getDb();
   const tokenHash = await hashToken(rawToken);
   const result = await db.execute({
-    sql: `SELECT id, user_id FROM user_api_tokens
+    sql: `SELECT id, user_id, EXISTS (SELECT 1 FROM assistant_write_grants g WHERE g.token_hash=user_api_tokens.token_hash) AS can_write FROM user_api_tokens
           WHERE token_hash = ? AND revoked_at IS NULL`,
     args: [tokenHash],
   });
   if (result.rows.length === 0) return null;
   const row = result.rows[0];
-  return { userId: row.user_id as string, tokenId: row.id as string };
+  return {
+    userId: row.user_id as string,
+    tokenId: row.id as string,
+    canWrite: row.can_write === 1,
+  };
 }
 
 export async function touchApiTokenLastUsed(tokenId: string): Promise<void> {

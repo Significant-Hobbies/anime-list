@@ -57,7 +57,9 @@ const ANILIST_EXPORT_STATUS_MAP: Record<string, string> = {
   completed: 'COMPLETED',
   done: 'COMPLETED',
   deferred: 'PAUSED',
+  delaying: 'PAUSED',
   avoiding: 'DROPPED',
+  dropped: 'DROPPED',
   brr: 'PLANNING',
 };
 

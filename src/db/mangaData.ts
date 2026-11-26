@@ -1,12 +1,9 @@
+import { catalogIdentity, catalogWithNames, metadataStatements } from './catalogTitleMetadata';
 import { getMangaCatalogDb } from './client';
 import type { MangaItem } from '../types/manga';
 
 const mapMangaRow = (row: Record<string, unknown>): MangaItem => ({
-  mal_id: row.mal_id as number,
-  url: row.url as string,
-  title: row.title as string,
-  title_english: (row.title_english as string) || undefined,
-  type: (row.type as string) || undefined,
+  ...catalogIdentity(row),
   chapters: (row.chapters as number) || undefined,
   volumes: (row.volumes as number) || undefined,
   published: row.published_from
@@ -113,7 +110,10 @@ async function writeMangaBatches(mangaList: MangaItem[]): Promise<void> {
   const db = getMangaCatalogDb();
   for (let i = 0; i < mangaList.length; i += UPSERT_BATCH_SIZE) {
     const batch = mangaList.slice(i, i + UPSERT_BATCH_SIZE);
-    await db.batch(batch.map(buildMangaUpsertStatement), 'write');
+    await db.batch(
+      [...batch.map(buildMangaUpsertStatement), ...metadataStatements('manga', batch)],
+      'write'
+    );
   }
 }
 
@@ -124,14 +124,14 @@ export async function upsertMangaBatch(mangaList: MangaItem[]): Promise<void> {
 
 export async function getAllManga(): Promise<MangaItem[]> {
   const db = getMangaCatalogDb();
-  const result = await db.execute('SELECT * FROM manga_data ORDER BY mal_id');
+  const result = await db.execute(catalogWithNames('manga') + ' ORDER BY c.mal_id');
   return result.rows.map((row) => mapMangaRow(row as unknown as Record<string, unknown>));
 }
 
 export async function getMangaByMalId(malId: number): Promise<MangaItem | null> {
   const db = getMangaCatalogDb();
   const result = await db.execute({
-    sql: 'SELECT * FROM manga_data WHERE mal_id = ? LIMIT 1',
+    sql: catalogWithNames('manga') + ' WHERE c.mal_id = ? LIMIT 1',
     args: [malId],
   });
   if (result.rows.length === 0) return null;

@@ -27,6 +27,7 @@
     "db:migrate:remote": "node scripts/validate-d1-config.mjs && wrangler d1 migrations apply anime-list --remote --config wrangler.cron.toml",
     "db:prepare-import": "node scripts/prepare-d1-import.mjs",
     "db:rehearse": "tsx scripts/rehearse-d1.ts",
+    "db:index:franchises": "tsx src/scripts/indexAssistantFranchises.ts",
     "db:seed": "pnpm db:migrate:local && tsx src/scripts/seedAnimeData.ts",
     "db:seed:manga": "pnpm db:migrate:local && tsx src/scripts/seedMangaData.ts",
     "db:update": "tsx src/scripts/updateAnimeData.ts",

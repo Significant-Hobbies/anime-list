@@ -8,7 +8,11 @@ const APPLICATION_TABLES = new Set([
   'anime_dismissals',
   'anime_schedule',
   'watching_schedule_preferences',
+  'library_details',
+  'library_tags',
+  'library_entry_tags',
   'anime_data',
+  'catalog_title_metadata',
   'manga_data',
   'anime_relations_cache',
   'anime_recommendations_cache',
@@ -17,10 +21,28 @@ const APPLICATION_TABLES = new Set([
   'collections',
   'collection_items',
   'user_api_tokens',
+  'assistant_write_grants',
+  'assistant_discovery_preferences',
+  'assistant_recommendation_feedback',
+  'assistant_franchise_edges',
+  'assistant_anime_details',
+  'assistant_manga_details',
+  'assistant_manga_edges',
+  'assistant_franchise_monitors',
+  'assistant_release_events',
+  'assistant_bootstrap_failures',
+  'assistant_provider_attempts',
+  'assistant_manga_attempts',
 ]);
 
 const HEADER = 'PRAGMA defer_foreign_keys = true;\n';
-const IGNORED_TABLES = new Set(['d1_migrations', 'sqlite_sequence', '_cf_KV', '_cf_METADATA']);
+const IGNORED_TABLES = new Set([
+  'd1_migrations',
+  'sqlite_sequence',
+  '_cf_KV',
+  '_cf_METADATA',
+  'assistant_discovery_revision',
+]);
 
 export function splitStatements(sql) {
   const statements = [];
@@ -109,20 +131,51 @@ function chunkStatements(statements, maxBytes) {
 
 function replayInsert(sourceStatement, table) {
   const prefix = /^INSERT(?:\s+OR\s+REPLACE)?\s+INTO/i;
-  if (table !== 'anime_watchlist') return sourceStatement.replace(prefix, 'INSERT OR REPLACE INTO');
-
-  // REPLACE deletes the old parent row, cascading to schedule preferences
-  // even when a legacy backup or a single replayed chunk has no preferences.
   const insert = sourceStatement.replace(prefix, 'INSERT INTO').replace(/;$/, '');
-  return `${insert} ON CONFLICT(user_id, mal_id) DO UPDATE SET
-    tag_id=excluded.tag_id, title=excluded.title, type=excluded.type,
-    episodes=excluded.episodes, note=excluded.note;`;
+  if (table === 'user_api_tokens')
+    return (
+      insert +
+      ` ON CONFLICT(id) DO UPDATE SET name=excluded.name,
+      last_used_at=nullif(max(coalesce(user_api_tokens.last_used_at,''),coalesce(excluded.last_used_at,'')),''),
+      revoked_at=coalesce(user_api_tokens.revoked_at,excluded.revoked_at)
+      WHERE user_api_tokens.user_id=excluded.user_id AND user_api_tokens.token_hash=excluded.token_hash;`
+    );
+  if (table === 'library_tags' || table === 'library_entry_tags')
+    return insert + ' ON CONFLICT DO NOTHING;';
+  if (table === 'library_details')
+    return (
+      insert +
+      ` ON CONFLICT(user_id,media,mal_id) DO UPDATE SET
+    rating=excluded.rating,notes=excluded.notes,
+    created_at=excluded.created_at,updated_at=excluded.updated_at,completed_at=excluded.completed_at;`
+    );
+  if (table !== 'anime_watchlist' && table !== 'manga_watchlist')
+    return sourceStatement.replace(prefix, 'INSERT OR REPLACE INTO');
+
+  // Preseed unknown legacy timestamps before insert triggers run. The source's
+  // actual dated metadata (if available) is replayed after parent and tag rows.
+  const media = table === 'anime_watchlist' ? 'anime' : 'manga';
+  const columns =
+    media === 'anime' ? 'user_id,mal_id,tag_id,title,type,episodes,note' : 'user_id,mal_id,tag_id';
+  const parts = insert.match(/^INSERT INTO\s+[^\s(]+\s*(?:\(([^)]+)\))?\s*(VALUES[\s\S]+)$/i);
+  if (!parts) throw new Error('Unsupported watchlist backup row');
+  const prepareDates = `WITH source(${parts[1] ?? columns}) AS (${parts[2]})
+    INSERT INTO library_details(user_id,media,mal_id) SELECT user_id,'${media}',mal_id FROM source WHERE true ON CONFLICT DO NOTHING;`;
+  const fields =
+    media === 'anime'
+      ? 'tag_id=excluded.tag_id,title=excluded.title,type=excluded.type,episodes=excluded.episodes,note=excluded.note'
+      : 'tag_id=excluded.tag_id';
+  return (
+    prepareDates + '\n' + insert + ' ON CONFLICT(user_id,mal_id) DO UPDATE SET ' + fields + ';'
+  );
 }
 
 export function prepareD1Import(sourceSql, options = {}) {
   const maxBytes = options.maxBytes ?? 4 * 1024 * 1024;
   const statements = [];
   const preferences = [];
+  const assignments = [];
+  const details = [];
   const tableStatementCounts = {};
 
   for (const rawSourceStatement of splitStatements(sourceSql)) {
@@ -141,20 +194,28 @@ export function prepareD1Import(sourceSql, options = {}) {
       throw new Error(`Source statement for ${table} exceeds the ${maxBytes}-byte chunk limit`);
     }
 
-    const target = table === 'watching_schedule_preferences' ? preferences : statements;
+    const target =
+      {
+        assistant_write_grants: preferences,
+        watching_schedule_preferences: preferences,
+        assistant_release_events: assignments,
+        library_entry_tags: assignments,
+        library_details: details,
+      }[table] ?? statements;
     target.push({ table, sql: statement });
     tableStatementCounts[table] = (tableStatementCounts[table] ?? 0) + 1;
   }
 
   // Restore child preferences after their parents regardless of dump order.
-  const chunks = chunkStatements(statements.concat(preferences), maxBytes);
+  const ordered = statements.concat(preferences, assignments, details);
+  const chunks = chunkStatements(ordered, maxBytes);
 
   return {
     chunks,
     manifest: {
       schemaVersion: 'anime-list-d1-import.v1',
       sourceSha256: createHash('sha256').update(sourceSql).digest('hex'),
-      statementCount: statements.length + preferences.length,
+      statementCount: ordered.length,
       chunkCount: chunks.length,
       maxChunkBytes: Math.max(0, ...chunks.map((chunk) => Buffer.byteLength(chunk))),
       tableStatementCounts,

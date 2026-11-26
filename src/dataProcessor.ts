@@ -1,3 +1,4 @@
+import { providerNames } from './db/catalogTitleMetadata';
 import type { AnimeItem, RawAnimeData } from './types/anime';
 import { filterCollection } from './filterEngine';
 import {
@@ -25,6 +26,7 @@ const arrayToMap = (arr?: Array<{ name: string }>): { [key: string]: number } =>
 
 export const transformRawAnime = (rawAnime: RawAnimeData[0]): AnimeItem => {
   return {
+    ...providerNames(rawAnime),
     mal_id: rawAnime.mal_id,
     url: rawAnime.url,
     title: rawAnime.title,
@@ -57,6 +59,7 @@ export const transformRawAnime = (rawAnime: RawAnimeData[0]): AnimeItem => {
 // Manga data processing functions
 export const transformRawManga = (rawManga: RawMangaData[0]): MangaItem => {
   return {
+    ...providerNames(rawManga),
     mal_id: rawManga.mal_id,
     url: rawManga.url,
     title: rawManga.title,
@@ -120,12 +123,26 @@ export const filterMangaList = async (filters: MangaFilter[]): Promise<MangaItem
     const { mangaStore } = await import('./store/mangaStore');
     const mangaList = await mangaStore.getMangaList();
 
-    return filterCollection(mangaList, filters, {
-      getFieldValue: getMangaFieldValue,
-      isNumericField: isMangaNumericField,
-      isArrayField: isMangaArrayField,
-      isStringField: isMangaStringField,
-    });
+    const titleQueries = filters.filter(
+      (f) => f.field === MangaField.Title && f.action === 'CONTAINS'
+    );
+    const candidates = mangaList.filter((m) =>
+      titleQueries.every((q) =>
+        [m.title, m.title_english, ...(m.aliases ?? [])].some((t) =>
+          t?.toLowerCase().includes(String(q.value).toLowerCase())
+        )
+      )
+    );
+    return filterCollection(
+      candidates,
+      filters.filter((f) => !titleQueries.includes(f)),
+      {
+        getFieldValue: getMangaFieldValue,
+        isNumericField: isMangaNumericField,
+        isArrayField: isMangaArrayField,
+        isStringField: isMangaStringField,
+      }
+    );
   } catch (error) {
     console.error('Error during manga filtering:', error);
     throw error;

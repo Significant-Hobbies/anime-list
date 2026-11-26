@@ -4,7 +4,7 @@ import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { isAllowedOrigin } from './corsOrigins';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
-import { isRs256Jwt, verifyAnimeAuth0Subject } from './auth0Mcp';
+import { isRs256Jwt, verifyAnimeAuth0Grant } from './auth0Mcp';
 import { handleAgentEdge } from './agent-edge.mjs';
 import { isWriteFrozenRequest } from './writeFreeze';
 import {
@@ -40,7 +40,7 @@ import {
   getSimpleAnimeSearchPage,
 } from './db/animeData';
 import { getLastMangaDataUpdate } from './db/mangaData';
-import { findOrCreateUser, findUserByGoogleId } from './db/users';
+import { createAssistantAccount, findOrCreateUser, findUserByGoogleId } from './db/users';
 import {
   hideWatchedItems,
   includeOnlyWatchedItems,
@@ -84,6 +84,7 @@ import { executeSearch } from './controllers/searchController';
 import { buildScheduleTimelineResponse, addScheduleItems } from './services/scheduleService';
 import { buildTasteRecommendations } from './recommendations';
 import { registerMangaRoutes } from './worker/mangaRoutes';
+import { refreshFranchiseIndex } from './assistant/franchiseCatalog';
 import { handleMcpRequest } from './worker/mcpRoutes';
 import { boundedReadPage, compareWatchlistIds, pageReadItems } from './worker/readPagination';
 import {
@@ -118,6 +119,7 @@ interface AuthPayload {
   email: string;
   name: string;
   picture?: string;
+  assistantAccess?: 'read' | 'write';
 }
 
 type Env = {
@@ -140,19 +142,21 @@ const LAST_UPDATED_CACHE_URL = 'https://mal-cache.local/api/last-updated?v=2';
 
 // ── JWT helpers (using jose instead of jsonwebtoken) ───────────────────
 
-const getJwtSecret = () =>
-  new TextEncoder().encode(process.env.JWT_SECRET || 'mal-explorer-dev-secret-change-in-prod');
+function getJwtSecret(secret: string) {
+  if (!secret) throw new Error('Session signing is not configured.');
+  return new TextEncoder().encode(secret);
+}
 
-async function signToken(payload: AuthPayload): Promise<string> {
+async function signToken(payload: AuthPayload, secret: string): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
-    .sign(getJwtSecret());
+    .sign(getJwtSecret(secret));
 }
 
-async function verifyToken(token: string): Promise<AuthPayload | null> {
+async function verifyToken(token: string, secret: string): Promise<AuthPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret());
+    const { payload } = await jwtVerify(token, getJwtSecret(secret), { algorithms: ['HS256'] });
     return payload as unknown as AuthPayload;
   } catch {
     return null;
@@ -218,17 +222,29 @@ async function resolveUser(
     const resolved = await resolveApiToken(token);
     if (!resolved) return null;
     if (ctx) ctx.waitUntil(touchApiTokenLastUsed(resolved.tokenId));
-    return { userId: resolved.userId, email: '', name: '' };
+    return {
+      userId: resolved.userId,
+      email: '',
+      name: '',
+      assistantAccess: resolved.canWrite ? 'write' : 'read',
+    };
   }
   if (isRs256Jwt(token)) {
-    const googleId = await verifyAnimeAuth0Subject(token, env);
-    if (!googleId) return null;
-    const user = await findUserByGoogleId(googleId);
+    const grant = await verifyAnimeAuth0Grant(token, env);
+    if (!grant) return null;
+    const user =
+      (await findUserByGoogleId(grant.googleId)) ?? (await createAssistantAccount(grant.googleId));
     return user
-      ? { userId: user.id, email: user.email, name: user.name, picture: user.picture }
+      ? {
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          picture: user.picture,
+          assistantAccess: grant.canWrite ? 'write' : 'read',
+        }
       : null;
   }
-  return verifyToken(token);
+  return verifyToken(token, env.JWT_SECRET);
 }
 
 // ── Google OAuth (using jose JWKS instead of google-auth-library) ──────
@@ -253,6 +269,8 @@ const toDetailAnime = (anime: NonNullable<Awaited<ReturnType<typeof getAnimeByMa
   url: anime.url,
   title: anime.title,
   title_english: anime.title_english,
+  aliases: anime.aliases,
+  studios: anime.studios,
   type: anime.type,
   episodes: anime.episodes,
   score: anime.score,
@@ -284,8 +302,6 @@ app.use('*', async (c, next) => {
       503
     );
   }
-  process.env.JWT_SECRET = c.env.JWT_SECRET;
-  process.env.GOOGLE_CLIENT_ID = c.env.GOOGLE_CLIENT_ID;
   await next();
 });
 
@@ -319,20 +335,24 @@ const optionalAuth = async (
   await next();
 };
 
-const requireAuth = async (
-  c: {
-    req: { header: (name: string) => string | undefined };
-    set: (key: string, value: unknown) => void;
-    json: (data: unknown, status?: number) => Response;
-    executionCtx: { waitUntil: (p: Promise<unknown>) => void };
-    env: Env;
-  },
-  next: () => Promise<void>
-) => {
+const requireAuth = async (c: AppContext, next: () => Promise<void>) => {
   const token = extractToken(c);
   if (!token) return c.json({ error: 'Authentication required' }, 401);
   const user = await resolveUser(token, c.env, c.executionCtx);
   if (!user) return c.json({ error: 'Invalid or expired token' }, 401);
+  if (
+    user.assistantAccess &&
+    (c.req.path === '/api/tokens' || c.req.path.startsWith('/api/tokens/'))
+  ) {
+    return c.json({ error: 'Manage credentials through your signed-in browser session.' }, 403);
+  }
+  if (
+    user.assistantAccess === 'read' &&
+    c.req.method !== 'GET' &&
+    c.req.path !== '/api/watchlist/import/preview'
+  ) {
+    return c.json({ error: 'This operation requires Anime List write permission.' }, 403);
+  }
   c.set('user', user);
   await next();
 };
@@ -366,12 +386,15 @@ app.post('/api/auth/google', async (c) => {
       picture: payload.picture as string | undefined,
     });
 
-    const token = await signToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
-    });
+    const token = await signToken(
+      {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+      },
+      c.env.JWT_SECRET
+    );
 
     // Set token in httpOnly cookie (XSS hardening). The token is also returned
     // in the body for backward compatibility during migration; the frontend
@@ -1237,29 +1260,26 @@ app.all('/api/mcp', async (c) => {
   }
   const authHeader = c.req.header('Authorization') ?? null;
   const token = extractBearerToken(authHeader ?? undefined);
-  let federated = false;
-  if (token && isRs256Jwt(token)) {
-    const googleId = await verifyAnimeAuth0Subject(token, c.env);
-    if (!googleId)
-      return c.json({ code: 'UNAUTHORIZED', message: 'Valid Anime List OAuth required.' }, 401);
-    const user = await findUserByGoogleId(googleId);
-    if (!user) {
-      return c.json(
-        {
-          code: 'ACCOUNT_NOT_FOUND',
-          message: 'Sign in to Anime List with the same Google account first.',
-        },
-        403
-      );
-    }
-    federated = true;
+  const federated = Boolean(token && isRs256Jwt(token));
+  const principal = token && federated ? await resolveUser(token, c.env, c.executionCtx) : null;
+  if (federated && !principal) {
+    return c.json(
+      { code: 'UNAUTHORIZED', message: 'Connect a valid Anime List account with read permission.' },
+      401
+    );
   }
   // Dispatch through the same router and auth middleware without a Worker self-fetch.
   return handleMcpRequest(
     c.req.raw,
     (url, init) => app.fetch(new Request(url, init), c.env, c.executionCtx),
     authHeader,
-    federated
+    federated,
+    async () => {
+      const owner =
+        principal ??
+        (token && isApiToken(token) ? await resolveUser(token, c.env, c.executionCtx) : null);
+      return { userId: owner?.userId ?? '', canWrite: owner?.assistantAccess === 'write', env: {} };
+    }
   );
 });
 
@@ -1271,7 +1291,7 @@ app.post('/api/tokens', requireAuth, async (c) => {
     return c.json({ error: 'Invalid token payload', details: parsed.error.issues }, 400);
   }
   const user = c.get('user')!;
-  const created = await createApiToken(user.userId, parsed.data.name);
+  const created = await createApiToken(user.userId, parsed.data.name, parsed.data.canWrite);
   return c.json(created);
 });
 
@@ -1319,6 +1339,8 @@ export default {
     bindD1Database(env.DB);
     console.log('Cron: refreshing anime and manga caches from D1');
     await Promise.all([animeStore.setAnimeList(), mangaStore.setMangaList()]);
-    console.log('Cron: caches refreshed');
+    if (isWriteFrozenRequest('POST', env.WRITE_FREEZE)) return;
+    await refreshFranchiseIndex();
+    console.log('Cron: caches and franchise index refreshed');
   },
 };

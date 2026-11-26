@@ -72,6 +72,7 @@ describe('apiTokens', () => {
       createdAt: '2026-01-01',
       lastUsedAt: null,
       revokedAt: null,
+      canWrite: false,
     });
     // No hash or raw token in the output.
     expect(JSON.stringify(tokens)).not.toContain('hash');
@@ -101,7 +102,7 @@ describe('apiTokens', () => {
   it('continues to resolve legacy shelf_ tokens', async () => {
     setResults([
       {
-        match: (s) => s.sql.includes('SELECT id, user_id FROM user_api_tokens'),
+        match: (s) => s.sql.startsWith('SELECT id, user_id,'),
         result: { rows: [{ id: 'legacy', user_id: 'user1' }] },
       },
     ]);
@@ -109,25 +110,26 @@ describe('apiTokens', () => {
     await expect(resolveApiToken('shelf_legacy-token')).resolves.toEqual({
       userId: 'user1',
       tokenId: 'legacy',
+      canWrite: false,
     });
   });
 
   it('resolveApiToken returns the user when the hash matches an active row', async () => {
     setResults([
       {
-        match: (s) => s.sql.includes('SELECT id, user_id FROM user_api_tokens'),
+        match: (s) => s.sql.startsWith('SELECT id, user_id,'),
         result: { rows: [{ id: 't1', user_id: 'user1' }] },
       },
     ]);
     const created = await createApiToken('user1', 'test'); // generate a real token to hash
     const result = await resolveApiToken(created.token);
-    expect(result).toEqual({ userId: 'user1', tokenId: 't1' });
+    expect(result).toEqual({ userId: 'user1', tokenId: 't1', canWrite: false });
   });
 
   it('resolveApiToken returns null when no active row matches', async () => {
     setResults([
       {
-        match: (s) => s.sql.includes('SELECT id, user_id FROM user_api_tokens'),
+        match: (s) => s.sql.startsWith('SELECT id, user_id,'),
         result: { rows: [] },
       },
     ]);

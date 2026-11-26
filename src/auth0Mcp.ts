@@ -69,11 +69,11 @@ function remoteJwks(issuer: string): JWTVerifyGetKey {
   return cachedJwks;
 }
 
-export async function verifyAnimeAuth0Subject(
+export async function verifyAnimeAuth0Grant(
   token: string,
   env: Auth0McpEnv,
   getKey?: JWTVerifyGetKey
-): Promise<string | null> {
+): Promise<{ googleId: string; canWrite: boolean } | null> {
   const issuer = auth0Issuer(env.AUTH0_ISSUER);
   const audience = exactAudience(env.AUTH0_MCP_AUDIENCE);
   if (!issuer || !audience) return null;
@@ -100,7 +100,13 @@ export async function verifyAnimeAuth0Subject(
       !permissions.has(REQUIRED_SCOPE)
     )
       return null;
-    return match[1] ?? null;
+    // Write access must be present in the granted OAuth scope.
+    return {
+      googleId: match[1]!,
+      canWrite:
+        typeof payload.scope === 'string' &&
+        [REQUIRED_SCOPE, 'anime-list.write'].every((s) => stringClaims(payload.scope).includes(s)),
+    };
   } catch {
     return null;
   }

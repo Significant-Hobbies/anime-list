@@ -2,7 +2,7 @@
 
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { describe, expect, it } from 'vitest';
-import { isRs256Jwt, verifyAnimeAuth0Subject } from './auth0Mcp';
+import { isRs256Jwt, verifyAnimeAuth0Grant } from './auth0Mcp';
 
 const issuer = 'https://fleet-test.us.auth0.com/';
 const audience = 'https://mcp.significanthobbies.com/anime-list/mcp';
@@ -34,7 +34,17 @@ describe('Anime List Auth0 MCP verification', () => {
     const env = { AUTH0_ISSUER: issuer, AUTH0_MCP_AUDIENCE: audience };
     const valid = await signed.token();
     expect(isRs256Jwt(valid)).toBe(true);
-    await expect(verifyAnimeAuth0Subject(valid, env, signed.getKey)).resolves.toBe('google-user-1');
+    await expect(verifyAnimeAuth0Grant(valid, env, signed.getKey)).resolves.toEqual({
+      googleId: 'google-user-1',
+      canWrite: false,
+    });
+    await expect(
+      verifyAnimeAuth0Grant(
+        await signed.token({ scope: 'anime-list.read anime-list.write' }),
+        env,
+        signed.getKey
+      )
+    ).resolves.toMatchObject({ canWrite: true });
     for (const overrides of [
       { aud: 'https://mcp.significanthobbies.com/reader/mcp' },
       { permissions: ['reader.read'] },
@@ -42,7 +52,7 @@ describe('Anime List Auth0 MCP verification', () => {
       { exp: Math.floor(Date.now() / 1000) + 7_200 },
     ]) {
       await expect(
-        verifyAnimeAuth0Subject(await signed.token(overrides), env, signed.getKey)
+        verifyAnimeAuth0Grant(await signed.token(overrides), env, signed.getKey)
       ).resolves.toBeNull();
     }
   });

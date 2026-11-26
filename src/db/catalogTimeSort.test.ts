@@ -26,6 +26,12 @@ const rows = [
 beforeEach(() => {
   db = new DatabaseSync(':memory:');
   db.exec(readFileSync(new URL('../../migrations/d1/0001_initial.sql', import.meta.url), 'utf8'));
+  db.exec(
+    readFileSync(
+      new URL('../../migrations/d1/0008_catalog_title_metadata.sql', import.meta.url),
+      'utf8'
+    )
+  );
   for (const table of ['anime_data', 'manga_data']) {
     const released = table === 'anime_data' ? 'aired_from' : 'published_from';
     const insert = db.prepare(

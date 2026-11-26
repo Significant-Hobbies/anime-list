@@ -28,6 +28,9 @@ export function pageReadItems<T>(items: readonly T[], page: ReadPage) {
     page.offset + selected.length < items.length ? page.offset + selected.length : null;
   return {
     items: selected,
+    offset: page.offset,
+    limit: page.limit,
+    returned: selected.length,
     total: items.length,
     nextOffset,
     hasMore: nextOffset !== null,

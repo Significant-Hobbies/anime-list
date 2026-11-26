@@ -8,6 +8,8 @@ export interface BaseAnimeItem {
   url: string;
   title: string;
   title_english?: string;
+  aliases?: string[];
+  studios?: string[];
   type?: string;
   episodes?: number;
   aired?: { from: string; to: string };
@@ -36,7 +38,12 @@ export type RawAnimeData = ({
   themes?: Array<{ name: string }>;
   demographics?: Array<{ name: string }>;
   images?: { webp?: { image_url?: string }; jpg?: { image_url?: string } };
-} & BaseAnimeItem)[];
+} & Omit<BaseAnimeItem, 'studios'> & {
+    titles?: { title: string }[];
+    title_synonyms?: string[];
+    title_japanese?: string;
+    studios?: { name: string }[];
+  })[];
 
 export type ScoreMultiplier<T> = T extends string[] ? { [subCategory: string]: number } : number;
 

@@ -28,7 +28,7 @@ export interface ArrayFieldValidators<Field extends string> {
 }
 
 export const createNumericFilterSchema = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>
+  fieldSchema: z.ZodEnum<Record<string, Field>>
 ) =>
   z.object({
     field: fieldSchema,
@@ -38,7 +38,7 @@ export const createNumericFilterSchema = <Field extends string>(
   });
 
 export const createArrayFilterSchemas = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>,
+  fieldSchema: z.ZodEnum<Record<string, Field>>,
   validators?: ArrayFieldValidators<Field>
 ) => {
   const includesSchema = z
@@ -46,7 +46,7 @@ export const createArrayFilterSchemas = <Field extends string>(
       field: fieldSchema,
       action: arrayIncludesActionSchema,
       value: z.array(z.string().min(1)),
-      score_multiplier: z.record(z.number()).optional(),
+      score_multiplier: z.record(z.string(), z.number()).optional(),
     })
     .superRefine((data, ctx) => {
       const field = data.field as Field;
@@ -61,7 +61,7 @@ export const createArrayFilterSchemas = <Field extends string>(
       field: fieldSchema,
       action: z.literal(FilterAction.Excludes),
       value: z.union([z.string().min(1), z.array(z.string().min(1))]),
-      score_multiplier: z.record(z.number()).optional(),
+      score_multiplier: z.record(z.string(), z.number()).optional(),
     })
     .superRefine((data, ctx) => {
       const field = data.field as Field;
@@ -73,7 +73,7 @@ export const createArrayFilterSchemas = <Field extends string>(
 };
 
 export const createStringFilterSchemas = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>
+  fieldSchema: z.ZodEnum<Record<string, Field>>
 ) => {
   const textSchema = z.object({
     field: fieldSchema,
@@ -100,7 +100,7 @@ export const createStringFilterSchemas = <Field extends string>(
 };
 
 export const createBooleanFilterSchema = <Field extends string>(
-  fieldSchema: z.ZodEnum<[Field, ...Field[]]>
+  fieldSchema: z.ZodEnum<Record<string, Field>>
 ) =>
   z.object({
     field: fieldSchema,

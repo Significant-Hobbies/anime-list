@@ -28,6 +28,17 @@ export async function findUserByGoogleId(googleId: string): Promise<DbUser | nul
   };
 }
 
+// OAuth can establish an account before its owner ever opens the web app.
+export async function createAssistantAccount(googleId: string): Promise<DbUser> {
+  await getDb().execute({
+    sql: "INSERT INTO users (id,google_id,email,name) VALUES (?,?,'','') ON CONFLICT(google_id) DO NOTHING",
+    args: [crypto.randomUUID(), googleId],
+  });
+  const user = await findUserByGoogleId(googleId);
+  if (!user) throw new Error('Account creation could not be verified.');
+  return user;
+}
+
 export async function findOrCreateUser(profile: {
   googleId: string;
   email: string;
@@ -45,13 +56,13 @@ export async function findOrCreateUser(profile: {
     const row = existing.rows[0];
     // Update name/picture in case they changed
     await db.execute({
-      sql: 'UPDATE users SET name = ?, picture = ? WHERE google_id = ?',
-      args: [profile.name, profile.picture ?? null, profile.googleId],
+      sql: "UPDATE users SET name = ?, picture = ?, email = CASE WHEN email='' THEN ? ELSE email END WHERE google_id = ?",
+      args: [profile.name, profile.picture ?? null, profile.email, profile.googleId],
     });
     return {
       id: row.id as string,
       google_id: row.google_id as string,
-      email: row.email as string,
+      email: (row.email as string) || profile.email,
       name: profile.name,
       picture: profile.picture,
       created_at: row.created_at as string,

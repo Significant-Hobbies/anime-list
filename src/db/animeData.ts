@@ -1,3 +1,4 @@
+import { catalogIdentity, catalogWithNames, metadataStatements } from './catalogTitleMetadata';
 import { getDb } from './client';
 import type { AnimeItem, BaseAnimeItem } from '../types/anime';
 import { AnimeField, FilterAction } from '../config';
@@ -5,11 +6,7 @@ import type { AnimeSortField, ArrayField, Filter, NumericField, StringField } fr
 import { ANIME_TIME_SORT_SQL, getCatalogTime, isTimeSortField } from '../utils/catalogTime';
 
 const mapBaseAnimeRow = (row: Record<string, unknown>): BaseAnimeItem => ({
-  mal_id: row.mal_id as number,
-  url: row.url as string,
-  title: row.title as string,
-  title_english: (row.title_english as string) || undefined,
-  type: (row.type as string) || undefined,
+  ...catalogIdentity(row),
   episodes: (row.episodes as number) || undefined,
   aired: row.aired_from
     ? {
@@ -123,7 +120,7 @@ async function writeAnimeBatches(animeList: AnimeItem[]): Promise<void> {
   for (let i = 0; i < animeList.length; i += UPSERT_BATCH_SIZE) {
     const batch = animeList.slice(i, i + UPSERT_BATCH_SIZE);
     const statements = batch.map(buildAnimeUpsertStatement);
-    await db.batch(statements, 'write');
+    await db.batch([...statements, ...metadataStatements('anime', batch)], 'write');
   }
 }
 
@@ -181,7 +178,7 @@ export async function upsertAnimeBatch(animeList: AnimeItem[]): Promise<UpsertSu
  */
 export async function getAllAnime(): Promise<AnimeItem[]> {
   const db = getDb();
-  const result = await db.execute('SELECT * FROM anime_data ORDER BY mal_id');
+  const result = await db.execute(catalogWithNames('anime') + ' ORDER BY c.mal_id');
 
   return result.rows.map((row) => mapAnimeRow(row as unknown as Record<string, unknown>));
 }
@@ -266,8 +263,8 @@ function buildStringFilterClause(
     values.length === 1
   ) {
     return {
-      clause: `(${contains('title')} OR ${contains("COALESCE(title_english, '')")})`,
-      args: [values[0], values[0]],
+      clause: `(${contains('title')} OR ${contains("COALESCE(title_english, '')")} OR EXISTS (SELECT 1 FROM catalog_title_metadata m,json_each(m.aliases) n WHERE m.media='anime' AND m.mal_id=anime_data.mal_id AND ${contains('n.value')}))`,
+      args: [values[0], values[0], values[0]],
     };
   }
   if (filter.action === FilterAction.Contains && values.length === 1) {
@@ -448,7 +445,7 @@ export async function getSimpleAnimeSearchPage({
 export async function getAnimeByMalId(malId: number): Promise<AnimeItem | null> {
   const db = getDb();
   const result = await db.execute({
-    sql: 'SELECT * FROM anime_data WHERE mal_id = ? LIMIT 1',
+    sql: catalogWithNames('anime') + ' WHERE c.mal_id = ? LIMIT 1',
     args: [malId],
   });
 

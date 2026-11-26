@@ -1,6 +1,6 @@
+import type { ExternalWatchlistEntry } from '../watchlistSync';
 import { getDb } from './client';
 import type {
-  ExternalWatchlistEntry,
   MangaWatchlistData,
   WatchedAnime,
   WatchedManga,
@@ -42,7 +42,7 @@ const normalizeTagColor = (color?: string): string | null => {
   return trimmed.toLowerCase();
 };
 
-const defaultTagColor = (tag: string): string => {
+export const defaultTagColor = (tag: string): string => {
   const mapped = DEFAULT_TAG_COLOR_MAP.get(tag);
   if (mapped) return mapped;
 
@@ -385,14 +385,11 @@ export async function importAnimeWatchlistEntries(
   const statements = entries.map((entry) => {
     const tagId = tagIdByStatus.get(normalizeTag(entry.status).toLowerCase())!;
     return {
-      sql: `INSERT INTO anime_watchlist (user_id, mal_id, tag_id, title, type, episodes, note)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(user_id, mal_id) DO UPDATE SET
-              tag_id = excluded.tag_id,
-              title = COALESCE(excluded.title, anime_watchlist.title),
-              type = COALESCE(excluded.type, anime_watchlist.type),
-              episodes = COALESCE(excluded.episodes, anime_watchlist.episodes),
-              note = COALESCE(excluded.note, anime_watchlist.note)`,
+      sql: `INSERT INTO anime_watchlist_import
+              (user_id, mal_id, tag_id, title, type, episodes, note, completed_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7,
+              (SELECT completed_at FROM library_details
+               WHERE user_id=?1 AND media='anime' AND mal_id=?2))`,
       args: [
         userId,
         entry.malId,
