@@ -3,6 +3,7 @@ import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setDbClient, type DatabaseStatement } from '../db/client';
+import { prepareDiscoveryPages } from '../scripts/prepareDiscoveryPages';
 import { discoveryTools } from './discoveryTools';
 import { encode, indexedRow, relevance, retrievalModel, vectorFor } from './discoveryEmbedding';
 
@@ -24,6 +25,7 @@ beforeEach(() => {
     '0008_catalog_title_metadata',
     '0009_assistant_discovery_cache',
     '0014_discovery_franchise_cache',
+    '0015_discovery_pages',
   ]) {
     db.exec(readFileSync(new URL(`../../migrations/d1/${migration}.sql`, import.meta.url), 'utf8'));
   }
@@ -130,6 +132,18 @@ describe('assistant discovery', () => {
     }
     expect(await first('serious sports')).toBe(910003);
     expect(await first('serious fantasy')).toBe(910001);
+  });
+  it('returns equivalent public and owner results from prepared pages and reads changed buckets live', async () => {
+    const args = { query: 'magic academy', media_type: 'anime' };
+    const before = await call('semantic_search', args, '');
+    await prepareDiscoveryPages('anime');
+    expect((await call('semantic_search', args, '')).results).toEqual(before.results);
+    expect((await call('semantic_search', args, 'alice')).results).toEqual(before.results);
+    db.exec('DELETE FROM anime_data WHERE mal_id=910001');
+    const after = await call('semantic_search', args, '');
+    expect(after.results.some((r: any) => r.mal_id === 910001)).toBe(false);
+    await prepareDiscoveryPages('anime');
+    expect((await call('semantic_search', args, '')).results).toEqual(after.results);
   });
   it('ranks unseen titles using live synopsis vectors, keyword and trope evidence', async () => {
     const search = await call('semantic_search', {

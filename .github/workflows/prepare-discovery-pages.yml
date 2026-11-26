@@ -1,0 +1,34 @@
+name: Prepare Discovery Pages
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Update Catalog Data, Backfill Catalog Title Metadata, Quarterly Anime Sync, Quarterly Manga Sync]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: anime-list-discovery-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Prepare changed public discovery pages
+        env:
+          D1_REMOTE_APPROVED: 'true'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm db:prepare:discovery --remote

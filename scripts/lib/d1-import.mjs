@@ -42,6 +42,7 @@ const IGNORED_TABLES = new Set([
   '_cf_KV',
   '_cf_METADATA',
   'assistant_discovery_revision',
+  'assistant_discovery_pages',
 ]);
 
 export function splitStatements(sql) {

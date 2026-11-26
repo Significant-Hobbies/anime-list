@@ -1,6 +1,7 @@
 import { getDb, type DatabaseValue } from '../db/client';
 import { mediaFranchiseMembersSql } from './franchiseGraph';
 import { documentEmbedding, type DocumentEmbedding } from './discoveryDocument';
+import { bucketSize, preparedPages } from './discoveryPages';
 import { publicCatalogPages } from './discoveryCache';
 import { tableFor } from './discoveryState';
 import type { Filters, Media } from './discoverySchemas';
@@ -134,13 +135,17 @@ function constraints(media: Media, filters: Filters) {
   return { sql: sql.length ? sql.join(' AND ') : '1', args };
 }
 
+function catalogFrom(media: Media) {
+  const isAnime = media === 'anime';
+  return `FROM ${tableFor(media)} c LEFT JOIN ${isAnime ? 'assistant_anime_details' : 'assistant_manga_details'} d ON d.mal_id=c.mal_id LEFT JOIN catalog_title_metadata cm ON cm.media='${media}' AND cm.mal_id=c.mal_id`;
+}
 function selectFields(media: Media, details: boolean) {
   const isAnime = media === 'anime';
   return `SELECT c.mal_id,c.title,c.title_english,c.score,c.year,c.type,c.status,c.popularity,c.members,c.genres,c.themes,c.demographics,cm.aliases AS catalog_aliases,cm.studios AS catalog_studios,
     ${isAnime ? 'c.episodes,NULL AS chapters,d.aliases,d.studios' : 'NULL AS episodes,c.chapters,d.aliases,NULL AS studios'} ,
     ${isAnime ? 'NULL AS languages,NULL AS english' : 'c.available_languages AS languages,c.available_in_english AS english'}
     ,coalesce(nullif(c.synopsis,''),d.synopsis) AS synopsis ${details ? ',c.url,c.image' : ''}
-    FROM ${tableFor(media)} c LEFT JOIN ${isAnime ? 'assistant_anime_details' : 'assistant_manga_details'} d ON d.mal_id=c.mal_id LEFT JOIN catalog_title_metadata cm ON cm.media='${media}' AND cm.mal_id=c.mal_id`;
+    ${catalogFrom(media)}`;
 }
 async function prepareDocuments(
   media: Media,
@@ -203,28 +208,54 @@ function titleRow(media: Media, r: Record<string, unknown>) {
   };
 }
 export type Title = ReturnType<typeof titleRow>;
+// The operator and live fallback use exactly the same projection and embedding.
+export async function readProjection(media: Media, first: number, last: number) {
+  const result = await getDb().execute({
+    sql: `${selectFields(media, false)} WHERE c.mal_id BETWEEN ? AND ? ORDER BY c.mal_id`,
+    args: [first, last],
+  });
+  return prepareDocuments(media, result.rows, false);
+}
 export async function* candidatePages(media: Media, filters: Filters, revision: number) {
   const condition = constraints(media, filters);
-  async function* read() {
+  async function* read(dirty?: number[]) {
+    const dirtySql = dirty ? `AND c.mal_id/${bucketSize} IN (SELECT value FROM json_each(?))` : '';
+    const params = dirty ? [...condition.args, JSON.stringify(dirty)] : condition.args;
     let last = 0;
     const batchSize = 1800;
     while (true) {
       const result = await getDb().execute({
-        sql: `${selectFields(media, false)} WHERE c.mal_id>? AND ${condition.sql} ORDER BY c.mal_id LIMIT ?`,
-        args: [last, ...condition.args, batchSize],
+        sql: `${selectFields(media, false)} WHERE c.mal_id>? AND ${condition.sql} ${dirtySql} ORDER BY c.mal_id LIMIT ?`,
+        args: [last, ...params, batchSize],
       });
       if (result.rows.length) yield await prepareDocuments(media, result.rows, false);
       if (result.rows.length < batchSize) break;
       last = Number(result.rows.at(-1)?.mal_id);
     }
   }
-  // Membership can change independently of title metadata. Re-read filtered franchises.
+  if (!filters.franchise_id) {
+    const ids =
+      condition.sql === '1'
+        ? null
+        : (
+            await getDb().execute({
+              sql: `SELECT c.mal_id ${catalogFrom(media)} WHERE ${condition.sql}`,
+              args: condition.args,
+            })
+          ).rows.map((r) => Number(r.mal_id));
+    if (!ids || ids.length > 128) {
+      const changed = (dirty: number[]) =>
+        publicCatalogPages(JSON.stringify([media, condition, dirty]), revision, () => read(dirty));
+      for await (const rows of preparedPages(media, ids, changed)) {
+        yield rows.map((r) => titleRow(media, r));
+      }
+      return;
+    }
+  }
   const pages = filters.franchise_id
     ? read()
     : publicCatalogPages(JSON.stringify([media, condition]), revision, read);
-  for await (const rows of pages) {
-    yield rows.map((r) => titleRow(media, r));
-  }
+  for await (const rows of pages) yield rows.map((r) => titleRow(media, r));
 }
 export async function detailsFor(media: Media, ids: number[]) {
   if (!ids.length) return [];
