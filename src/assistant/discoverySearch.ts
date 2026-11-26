@@ -175,6 +175,7 @@ export async function discover(args: DiscoverInput, userId: string, allowPublic 
     retrieval: {
       ...retrievalModel,
       recognized_query_tropes: query.tropes,
+      excluded_query_tropes: query.excluded,
       query_has_embedding: Boolean(query.vector),
       fallback:
         'Changed and new titles use their current synopsis. Titles without a usable synopsis use available tags and title words. Unknown metadata cannot satisfy hard filters.',

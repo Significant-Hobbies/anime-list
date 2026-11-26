@@ -149,14 +149,25 @@ describe('assistant discovery', () => {
       expect(titleTropes(undefined, incomplete, [])).not.toContain('Unaware of own strength');
   });
   it('distinguishes requests without recognized query tropes from matched preferences', async () => {
-    expect(queryTropes('OP MC who does not realize how strong he is')).toEqual([
+    expect(queryTropes('OP MC who does not realize how strong he is').wanted).toEqual([
       'Unaware of own strength',
       'Overpowered protagonist',
     ]);
-    expect(queryTropes('overpowered protagonist unaware of his own power')).toEqual([
+    expect(queryTropes('overpowered protagonist unaware of his own power').wanted).toEqual([
       'Unaware of own strength',
       'Overpowered protagonist',
     ]);
+    expect(queryTropes("hero doesn't know how strong his enemies are").wanted).toEqual([]);
+    expect(queryTropes('hero does not know how powerful the demon king is').wanted).toEqual([]);
+    expect(queryTropes('isekai without politics')).toEqual({
+      wanted: ['Isekai'],
+      excluded: ['Politics'],
+    });
+    const negated = await call('semantic_search', { query: 'fantasy without politics' }, '');
+    expect(negated.retrieval.excluded_query_tropes).toEqual(['Politics']);
+    expect(negated.results.every((r: { tropes: string[] }) => !r.tropes.includes('Politics'))).toBe(
+      true
+    );
     const page = await call('discover_titles', {
       query: 'wizard',
       preferences: { tropes: ['Unaware of own strength'] },
@@ -194,6 +205,8 @@ describe('assistant discovery', () => {
         .slice(1)
         .every((r: { unconfirmed_tropes: string[] }) => r.unconfirmed_tropes.length > 0)
     ).toBe(true);
+    const partial = results.slice(1).map((r: { ranking_score: number }) => r.ranking_score);
+    expect(partial).toEqual([...partial].sort((a, b) => b - a));
     const strict = await call(
       'semantic_search',
       { ...request, filters: { tropes: results[0].matched_tropes } },

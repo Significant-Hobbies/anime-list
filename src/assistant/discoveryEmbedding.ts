@@ -102,14 +102,24 @@ export function queryTropes(text: string) {
   const query = phrases(text)
     .replace(/\b(?:his|her|their) (?:own )?(strength|powers?|abilities)\b/g, 'their $1')
     .replace(
-      /\b(?:does not|doesn t) (?:realize|know) how (?:strong|powerful)\b/g,
+      /\b(?:does not|doesn t) (?:realize|know) how (?:strong|powerful) (?:he|she|they) (?:really )?(?:is|are)\b/g,
       'unaware of their strength'
     )
     .replace(/\boblivious to their (?:strength|powers?|abilities)\b/g, 'unaware of their strength')
     .replace(/\bop mc\b/g, 'op protagonist');
-  return tropes
-    .filter((t) => matches(query, [normalizeText(t.name), ...t.queries]))
-    .map((t) => t.name);
+  const wanted: string[] = [];
+  const excluded: string[] = [];
+  for (const trope of tropes) {
+    const aliases = [normalizeText(trope.name), ...trope.queries];
+    if (!matches(query, aliases)) continue;
+    const negated = aliases.some((alias) =>
+      ['no', 'without', 'exclude', 'excluding', 'avoid', 'not'].some((prefix) =>
+        query.includes(` ${prefix} ${alias} `)
+      )
+    );
+    (negated ? excluded : wanted).push(trope.name);
+  }
+  return { wanted, excluded };
 }
 export function titleTropes(row: number | undefined, fallback: string, tags: string[]) {
   if (row !== undefined)

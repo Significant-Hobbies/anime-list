@@ -93,7 +93,7 @@ async function historyVector(account: Account) {
   return centroid(inputs);
 }
 export async function makeQuery(text: string, seeds: Title[], account: Account) {
-  const tropes = queryTropes(text);
+  const { wanted: tropes, excluded } = queryTropes(text);
   const embedding = encode([text, ...tropes].join(' '));
   const vectors: { vector: ArrayLike<number>; weight: number }[] = [];
   if (embedding.vector) vectors.push({ vector: embedding.vector, weight: 1 });
@@ -105,6 +105,7 @@ export async function makeQuery(text: string, seeds: Title[], account: Account) 
     text: fold(text),
     textTokens: new Set(fold(text).split(/[^\p{L}\p{N}-]+/u)),
     tropes,
+    excluded,
     words: embedding.words,
     vector: centroid(vectors),
     history: await historyVector(account),
@@ -193,6 +194,7 @@ export function rankTitle(
   const entry = account.library.get(key);
   if (!allowsEntry(entry, filters)) return null;
   const tropes = documentTropes(title.document);
+  if (hits(query.excluded, tropes).length) return null;
   if (!allowsTags(title, tropes, entry?.tags ?? [], filters)) return null;
   const match = textRelevance(title, tropes, query);
   if ((query.text || query.seedIds.size) && match.relevanceScore < 0.12) return null;

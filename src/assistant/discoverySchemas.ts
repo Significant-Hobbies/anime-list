@@ -143,6 +143,9 @@ export const searchOutput = z.object({
     model: z.string(),
     indexed_anime: z.number(),
     indexed_manga: z.number(),
+    excluded_query_tropes: z
+      .array(z.string())
+      .describe('Explicitly negated query labels excluded from candidates.'),
     recognized_query_tropes: z
       .array(z.string())
       .describe(

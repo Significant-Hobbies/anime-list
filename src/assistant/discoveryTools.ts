@@ -22,7 +22,7 @@ export const discoveryTools = [
     name: 'semantic_search',
     access: 'optional',
     description:
-      'Search by plot description, theme or trope. Free text ranks candidates by similarity. Put required score, year or trope labels in filters. Compare recognized_query_tropes with the request. Check unconfirmed_tropes and verify other story details in the synopsis. Connected searches exclude Done, Dropped and dismissed titles by default.',
+      'Search by plot description, theme or trope. Free text ranks candidates by similarity. Put required scores and years in filters. For tropes use free text, or filters.tropes to require catalog evidence. Compare recognized_query_tropes with the request. Check unconfirmed_tropes and verify other story details in the synopsis. Connected searches exclude Done, Dropped and dismissed titles by default.',
     input: z.strictObject({ ...searchFields, query: z.string().trim().min(1).max(600) }),
     output: searchOutput,
     example: {
