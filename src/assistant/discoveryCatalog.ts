@@ -243,19 +243,27 @@ export async function* candidatePages(media: Media, filters: Filters, revision: 
               args: condition.args,
             })
           ).rows.map((r) => Number(r.mal_id));
-    if (!ids || ids.length > 128) {
-      const changed = (dirty: number[]) =>
-        publicCatalogPages(JSON.stringify([media, condition, dirty]), revision, () => read(dirty));
-      for await (const rows of preparedPages(media, ids, changed)) {
-        yield rows.map((r) => titleRow(media, r));
+    if (ids && ids.length <= 128) {
+      if (!ids.length) return;
+      async function* byId() {
+        const result = await getDb().execute({
+          sql: `${selectFields(media, false)} WHERE c.mal_id IN (SELECT value FROM json_each(?)) ORDER BY c.mal_id`,
+          args: [JSON.stringify(ids)],
+        });
+        yield await prepareDocuments(media, result.rows, false);
       }
+      for await (const rows of publicCatalogPages(JSON.stringify([media, ids]), revision, byId))
+        yield rows.map((r) => titleRow(media, r));
       return;
     }
+    const changed = (dirty: number[]) =>
+      publicCatalogPages(JSON.stringify([media, condition, dirty]), revision, () => read(dirty));
+    for await (const rows of preparedPages(media, ids, changed)) {
+      yield rows.map((r) => titleRow(media, r));
+    }
+    return;
   }
-  const pages = filters.franchise_id
-    ? read()
-    : publicCatalogPages(JSON.stringify([media, condition]), revision, read);
-  for await (const rows of pages) yield rows.map((r) => titleRow(media, r));
+  for await (const rows of read()) yield rows.map((r) => titleRow(media, r));
 }
 export async function detailsFor(media: Media, ids: number[]) {
   if (!ids.length) return [];

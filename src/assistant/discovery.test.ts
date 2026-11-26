@@ -9,12 +9,14 @@ import { encode, indexedRow, relevance, retrievalModel, vectorFor } from './disc
 
 let db: DatabaseSync;
 let catalogReads = 0;
+let beforeQuery: ((sql: string) => void) | undefined;
 function call(name: string, args: unknown, userId = 'alice') {
   const tool = discoveryTools.find((t) => t.name === name)!;
   return tool.execute(args, { userId, env: {} }) as Promise<any>;
 }
 beforeEach(() => {
   db = new DatabaseSync(':memory:');
+  beforeQuery = undefined;
   for (const migration of [
     '0001_initial',
     '0002_anime_search_indexes',
@@ -31,7 +33,12 @@ beforeEach(() => {
   }
   const execute = async (statement: DatabaseStatement) => {
     const { sql, args = [] } = typeof statement === 'string' ? { sql: statement } : statement;
-    if (sql.includes('WHERE c.mal_id>?')) catalogReads++;
+    beforeQuery?.(sql);
+    if (
+      sql.includes('WHERE c.mal_id>?') ||
+      sql.includes('WHERE c.mal_id IN (SELECT value FROM json_each(?)) ORDER BY c.mal_id')
+    )
+      catalogReads++;
     return { rows: db.prepare(sql).all(...(args as SQLInputValue[])), rowsAffected: 0 };
   };
   setDbClient({ execute, batch: (stmts) => Promise.all(stmts.map(execute)) });
@@ -163,6 +170,35 @@ describe('assistant discovery', () => {
     expect((await call('discover_titles', { ...args, offset: 147 }, 'alice')).results).toHaveLength(
       1
     );
+  });
+  it('reads a manga bucket live when it changes after the manifest read', async () => {
+    await prepareDiscoveryPages('manga');
+    beforeQuery = (sql) => {
+      if (!sql.startsWith('SELECT bucket,generation,payload')) return;
+      beforeQuery = undefined;
+      db.exec("UPDATE manga_data SET title='Updated manga' WHERE mal_id=910001");
+    };
+    const args = { media_type: 'manga', query: 'Updated manga' };
+    expect((await call('semantic_search', args, '')).results[0]).toMatchObject({
+      mal_id: 910001,
+      title: 'Updated manga',
+    });
+    expect(beforeQuery).toBeUndefined();
+  });
+  it('rechecks guarded writes and reports dirty buckets after bounded retries', async () => {
+    let changes = 0;
+    beforeQuery = (sql) => {
+      if (sql.startsWith('UPDATE assistant_discovery_pages') && changes++ < 10)
+        db.exec("UPDATE manga_data SET title=title||'!' WHERE mal_id=910001");
+    };
+    expect(await prepareDiscoveryPages('manga')).toMatchObject({ passes: 3, remaining: 1 });
+    beforeQuery = undefined;
+    expect(await prepareDiscoveryPages('manga')).toMatchObject({ passes: 1, remaining: 0 });
+    expect(await prepareDiscoveryPages('manga')).toMatchObject({
+      passes: 0,
+      attempted: 0,
+      remaining: 0,
+    });
   });
   it('ranks unseen titles using live synopsis vectors, keyword and trope evidence', async () => {
     const search = await call('semantic_search', {

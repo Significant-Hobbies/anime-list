@@ -5,12 +5,14 @@ import { readProjection } from '../assistant/discoveryCatalog';
 import type { Media } from '../assistant/discoverySchemas';
 
 // Reuse the exact live projection and guard each write against intervening changes.
-export async function prepareDiscoveryPages(media: Media) {
-  const db = getDb();
-  const pending = await db.execute({
+function pendingBuckets(media: Media) {
+  return getDb().execute({
     sql: 'SELECT bucket,generation FROM assistant_discovery_pages WHERE media=? AND model IS NOT ? ORDER BY bucket',
     args: [media, projectionModel],
   });
+}
+async function preparePass(media: Media, pending: Awaited<ReturnType<typeof pendingBuckets>>) {
+  const db = getDb();
   for (let i = 0; i < pending.rows.length; ) {
     const start = i,
       first = Number(pending.rows[i++].bucket);
@@ -37,5 +39,16 @@ export async function prepareDiscoveryPages(media: Media) {
       }))
     );
   }
-  return pending.rows.length;
+}
+export async function prepareDiscoveryPages(media: Media) {
+  let pending = await pendingBuckets(media);
+  let passes = 0;
+  let attempted = 0;
+  while (pending.rows.length && passes < 3) {
+    passes++;
+    attempted += pending.rows.length;
+    await preparePass(media, pending);
+    pending = await pendingBuckets(media);
+  }
+  return { passes, attempted, remaining: pending.rows.length };
 }
