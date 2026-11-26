@@ -3,17 +3,20 @@ import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setDbClient, type DatabaseStatement } from '../db/client';
+import { prepareDiscoveryPages } from '../scripts/prepareDiscoveryPages';
 import { discoveryTools } from './discoveryTools';
 import { encode, indexedRow, relevance, retrievalModel, vectorFor } from './discoveryEmbedding';
 
 let db: DatabaseSync;
 let catalogReads = 0;
+let beforeQuery: ((sql: string) => void) | undefined;
 function call(name: string, args: unknown, userId = 'alice') {
   const tool = discoveryTools.find((t) => t.name === name)!;
   return tool.execute(args, { userId, env: {} }) as Promise<any>;
 }
 beforeEach(() => {
   db = new DatabaseSync(':memory:');
+  beforeQuery = undefined;
   for (const migration of [
     '0001_initial',
     '0002_anime_search_indexes',
@@ -24,12 +27,18 @@ beforeEach(() => {
     '0008_catalog_title_metadata',
     '0009_assistant_discovery_cache',
     '0014_discovery_franchise_cache',
+    '0015_discovery_pages',
   ]) {
     db.exec(readFileSync(new URL(`../../migrations/d1/${migration}.sql`, import.meta.url), 'utf8'));
   }
   const execute = async (statement: DatabaseStatement) => {
     const { sql, args = [] } = typeof statement === 'string' ? { sql: statement } : statement;
-    if (sql.includes('WHERE c.mal_id>?')) catalogReads++;
+    beforeQuery?.(sql);
+    if (
+      sql.includes('WHERE c.mal_id>?') ||
+      sql.includes('WHERE c.mal_id IN (SELECT value FROM json_each(?)) ORDER BY c.mal_id')
+    )
+      catalogReads++;
     return { rows: db.prepare(sql).all(...(args as SQLInputValue[])), rowsAffected: 0 };
   };
   setDbClient({ execute, batch: (stmts) => Promise.all(stmts.map(execute)) });
@@ -130,6 +139,66 @@ describe('assistant discovery', () => {
     }
     expect(await first('serious sports')).toBe(910003);
     expect(await first('serious fantasy')).toBe(910001);
+  });
+  it('returns equivalent public and owner results from prepared pages and reads changed buckets live', async () => {
+    const args = { query: 'magic academy', media_type: 'anime' };
+    const before = await call('semantic_search', args, '');
+    await prepareDiscoveryPages('anime');
+    expect((await call('semantic_search', args, '')).results).toEqual(before.results);
+    expect((await call('semantic_search', args, 'alice')).results).toEqual(before.results);
+    db.exec('DELETE FROM anime_data WHERE mal_id=910001');
+    const after = await call('semantic_search', args, '');
+    expect(after.results.some((r: any) => r.mal_id === 910001)).toBe(false);
+    await prepareDiscoveryPages('anime');
+    expect((await call('semantic_search', args, '')).results).toEqual(after.results);
+  });
+  it('applies hard filters and owner exclusions across overlapping prepared and dirty buckets', async () => {
+    db.exec(`WITH RECURSIVE ids(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM ids WHERE n<150)
+      INSERT INTO anime_data(mal_id,title,url,score,year,genres)
+      SELECT 800000+n,'Knights '||n,'https://fixture.invalid/'||n,8,2020,'{"Adventure":1}' FROM ids;
+      INSERT INTO user_tags(id,user_id,name) VALUES ('done','alice','Done');
+      INSERT INTO anime_watchlist(user_id,mal_id,tag_id) VALUES ('alice','800001','done');`);
+    await prepareDiscoveryPages('anime');
+    db.exec('UPDATE anime_data SET score=6 WHERE mal_id=800002');
+    const args = {
+      media_type: 'anime',
+      filters: { min_score: 7, year: 2020, genres: ['Adventure'] },
+      limit: 2,
+    };
+    expect((await call('discover_titles', args, 'alice')).total).toBe(148);
+    expect((await call('discover_titles', args, 'bob')).total).toBe(149);
+    expect((await call('discover_titles', { ...args, offset: 147 }, 'alice')).results).toHaveLength(
+      1
+    );
+  });
+  it('reads a manga bucket live when it changes after the manifest read', async () => {
+    await prepareDiscoveryPages('manga');
+    beforeQuery = (sql) => {
+      if (!sql.startsWith('SELECT bucket,generation,payload')) return;
+      beforeQuery = undefined;
+      db.exec("UPDATE manga_data SET title='Updated manga' WHERE mal_id=910001");
+    };
+    const args = { media_type: 'manga', query: 'Updated manga' };
+    expect((await call('semantic_search', args, '')).results[0]).toMatchObject({
+      mal_id: 910001,
+      title: 'Updated manga',
+    });
+    expect(beforeQuery).toBeUndefined();
+  });
+  it('rechecks guarded writes and reports dirty buckets after bounded retries', async () => {
+    let changes = 0;
+    beforeQuery = (sql) => {
+      if (sql.startsWith('UPDATE assistant_discovery_pages') && changes++ < 10)
+        db.exec("UPDATE manga_data SET title=title||'!' WHERE mal_id=910001");
+    };
+    expect(await prepareDiscoveryPages('manga')).toMatchObject({ passes: 3, remaining: 1 });
+    beforeQuery = undefined;
+    expect(await prepareDiscoveryPages('manga')).toMatchObject({ passes: 1, remaining: 0 });
+    expect(await prepareDiscoveryPages('manga')).toMatchObject({
+      passes: 0,
+      attempted: 0,
+      remaining: 0,
+    });
   });
   it('ranks unseen titles using live synopsis vectors, keyword and trope evidence', async () => {
     const search = await call('semantic_search', {

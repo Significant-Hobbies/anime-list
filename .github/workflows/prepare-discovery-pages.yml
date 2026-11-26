@@ -1,0 +1,54 @@
+name: Prepare Discovery Pages
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Deploy anime_list to Cloudflare Pages
+      - Bootstrap Tracked Franchise Relationships
+      - Update Catalog Data
+      - Backfill Catalog Title Metadata
+      - Quarterly Anime Sync
+      - Quarterly Manga Sync
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: anime-list-discovery-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Resolve the source revision serving production traffic
+        id: deployed
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/mal-api"
+          cf_get() { curl --fail --silent --show-error --retry 3 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api/$1"; }
+          version=$(cf_get deployments | jq -er '.result.deployments[0].versions[] | select(.percentage == 100) | .version_id')
+          sha=$(cf_get "versions/$version" | jq -er '.result.annotations["workers/tag"] | select(test("^[a-f0-9]{40}$"))')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.deployed.outputs.sha }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Prepare changed public discovery pages
+        env:
+          D1_REMOTE_APPROVED: 'true'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm db:prepare:discovery --remote

@@ -14,6 +14,7 @@ test('splitStatements preserves semicolons and escaped quotes inside values', ()
 test('prepareD1Import keeps only approved data and makes chunks repeatable', () => {
   const source = [
     'CREATE TABLE users (id TEXT);',
+    "INSERT INTO assistant_discovery_pages VALUES ('anime',0,1,'old','obsolete');",
     "INSERT INTO d1_migrations VALUES (1, '0001_initial.sql');",
     "INSERT INTO users VALUES ('u1');",
     "INSERT INTO anime_data VALUES (1, 'url', 'title');",
